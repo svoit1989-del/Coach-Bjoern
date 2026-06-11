@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- PWA Meta -->
+  <meta name="theme-color" content="#121212">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Coach Bjoern">
+  <link id="pwa-manifest" rel="manifest">
+
+  <!-- Manifest + Icon as inline blob -->
+  <script>
+    function _buildIcon() {
+      const cv = document.createElement("canvas");
+      cv.width = 192; cv.height = 192;
+      const ctx = cv.getContext("2d");
+      ctx.fillStyle = "#121212";
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0,0,192,192,36); ctx.fill(); }
+      else { ctx.fillRect(0,0,192,192); }
+      ctx.fillStyle = "#4caf50";
+      ctx.beginPath(); ctx.arc(96,96,80,0,Math.PI*2); ctx.fill();
+      ctx.font = "88px serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("\uD83C\uDFC3", 96, 102);
+      return cv.toDataURL("image/png");
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+      const m = {
+        name: "Coach Bjoern", short_name: "CoachBjoern",
+        start_url: ".", display: "standalone",
+        background_color: "#121212", theme_color: "#121212",
+        icons: [{ src: _buildIcon(), sizes: "192x192", type: "image/png" }]
+      };
+      const blob = new Blob([JSON.stringify(m)], {type:"application/json"});
+      document.getElementById("pwa-manifest").href = URL.createObjectURL(blob);
+    });
+  </script>
+
+  <title>Coach Bjoern Dashboard V2.1</title>
+  <style>
+    :root {
+      --bg: #121212; --surface: #1e1e1e; --surface-2: #262626; --surface-3: #2e2e2e;
+      --text: #f5f5f5; --muted: #b5b5b5;
+      --accent: #4caf50; --accent-dim: #388e3c;
+      --warning: #ffb300; --danger: #e53935; --blue: #29b6f6;
+      --radius: 14px; --nav-height: 68px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 15px; line-height: 1.5; }
+    body { padding-bottom: calc(var(--nav-height) + 16px); }
+    h1, h2, h3 { font-weight: 700; }
+
+    /* HEADER */
+    .app-header { position: sticky; top: 0; z-index: 100; background: var(--surface); padding: 14px 16px 10px; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; justify-content: space-between; }
+    .app-header h1 { font-size: 1.1rem; color: var(--accent); }
+    .header-stats { display: flex; gap: 10px; font-size: 0.8rem; color: var(--muted); }
+    .header-stats span { background: var(--surface-2); padding: 3px 10px; border-radius: 20px; }
+
+    /* NAV */
+    .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; display: flex; overflow-x: auto; background: #181818; border-top: 1px solid #2a2a2a; height: var(--nav-height); scrollbar-width: none; }
+    .bottom-nav::-webkit-scrollbar { display: none; }
+    .tab-btn { flex: 0 0 auto; min-width: 70px; background: transparent; color: var(--muted); border: none; border-top: 2px solid transparent; padding: 6px 8px; font-size: 0.68rem; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 0.03em; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .tab-btn .ni { font-size: 1.15rem; }
+    .tab-btn.active { color: var(--accent); border-top-color: var(--accent); background: #222; }
+
+    /* MAIN */
+    main { padding: 12px; max-width: 680px; margin: auto; }
+    .tab-page { display: none; }
+    .tab-page.active { display: block; }
+
+    /* CARD */
+    .card { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .card h2 { font-size: 1rem; color: var(--accent); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+    /* GARMIN */
+    .garmin-card { background: #0d1b2a; border: 1px solid #1a3a5c; border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .garmin-card h2 { font-size: 1rem; color: var(--blue); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .garmin-card p.sub { font-size: 0.78rem; color: #5a8ab0; margin-bottom: 12px; }
+    .garmin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* FORMS */
+    label { display: block; margin-top: 12px; margin-bottom: 4px; color: var(--muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    input:not([type=checkbox]), textarea, select { width: 100%; border: 1px solid #383838; border-radius: 10px; background: var(--surface-2); color: var(--text); padding: 10px 12px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+    input:not([type=checkbox]):focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { resize: vertical; }
+
+    /* CHECKBOXES */
+    .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .check-item { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+    .check-item input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+    .check-item span { font-size: 0.88rem; }
+
+    /* BUTTONS */
+    .btn { display: block; width: 100%; border: none; border-radius: 10px; background: var(--accent); color: #000; padding: 13px 20px; margin-top: 14px; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.2s, transform 0.1s; }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.98); }
+    .btn.secondary { background: var(--surface-2); color: var(--text); }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: calc(var(--nav-height) + 14px); left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; font-size: 0.82rem; font-weight: 700; padding: 8px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; z-index: 2000; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+
+    /* PROGRESS */
+    .progress { width: 100%; height: 10px; background: #333; border-radius: 20px; overflow: hidden; margin: 12px 0; }
+    #progressBar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); transition: width 0.4s ease; border-radius: 20px; }
+
+    /* METRIC GRID */
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .metric { background: var(--surface-2); padding: 12px; border-radius: 10px; }
+    .metric-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .metric-value { font-size: 1.2rem; font-weight: 800; }
+    .status-green { color: var(--accent); }
+    .status-yellow { color: var(--warning); }
+    .status-red { color: var(--danger); }
+
+    /* WEEK CARDS */
+    .week-card { background: var(--surface); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+    .week-header { background: var(--surface-2); padding: 14px 16px; cursor: pointer; font-weight: 700; font-size: 0.92rem; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+    .week-badge { background: var(--accent); color: #000; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 20px; }
+    .week-focus-badge { font-size: 0.72rem; color: var(--muted); background: var(--surface-3); padding: 2px 8px; border-radius: 20px; }
+    .week-content { display: none; padding: 12px; }
+    .week-content.open { display: block; }
+    .day-card { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid var(--accent-dim); }
+    .day-title { font-weight: 700; font-size: 0.88rem; color: var(--accent); margin-bottom: 3px; }
+    .day-detail { font-size: 0.83rem; color: var(--muted); }
+
+    /* EXERCISE */
+    .exercise-card { background: var(--surface-2); padding: 12px; border-radius: 10px; margin-bottom: 10px; }
+    .exercise-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .exercise-name { font-weight: 700; font-size: 0.92rem; }
+    .exercise-soll { font-size: 0.78rem; color: var(--accent); font-weight: 700; background: #1a2e1a; padding: 2px 8px; border-radius: 20px; }
+    .exercise-links { margin-top: 6px; }
+    .exercise-links a { color: var(--blue); font-size: 0.8rem; text-decoration: none; }
+
+    /* NUTRITION TIME */
+    .nutrition-time-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 4px; }
+    .nutrition-time-row input.time-input { width: 90px; flex-shrink: 0; }
+    .nutrition-time-row input.note-input { flex: 1; }
+
+    /* FEELING */
+    .feeling-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .feel-btn { flex: 1; min-width: 70px; border: 2px solid #383838; border-radius: 10px; background: var(--surface-2); color: var(--muted); padding: 10px 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.15s; }
+    .feel-btn:hover { border-color: var(--accent); color: var(--text); }
+    .feel-btn.selected { border-color: var(--accent); background: #1a2e1a; color: var(--accent); }
+
+    /* COACH OUTPUT */
+    #coachOutput { background: var(--surface-2); border-radius: 10px; padding: 14px; font-size: 0.88rem; line-height: 1.75; color: var(--muted); min-height: 80px; }
+    #coachOutput h3 { color: var(--text); font-size: 0.88rem; margin: 12px 0 5px; }
+    #coachOutput p { margin-bottom: 5px; }
+    #coachOutput hr { border-color: #333; margin: 12px 0; }
+
+    /* EXPORT */
+    #exportText { font-family: 'Courier New', monospace; font-size: 0.78rem; color: var(--accent); background: #0a0a0a; margin-top: 12px; }
+
+    /* STARTSEITE */
+    .hero-card { background: linear-gradient(145deg,#1a2e1a,#0f1f0f); border: 1px solid #2d5a2d; border-radius: var(--radius); padding: 20px 18px 18px; margin-bottom: 12px; position: relative; overflow: hidden; }
+    .hero-card::before { content:''; position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:radial-gradient(circle,#4caf5022 0%,transparent 70%); border-radius:50%; }
+    .hero-greeting { font-size: 0.8rem; color: #5a9a5a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .hero-date { font-size: 0.88rem; color: var(--muted); margin-bottom: 14px; }
+    .hero-status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .hero-status-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .hero-status-text { font-size: 1rem; font-weight: 700; }
+    .hero-next { background: #0d1a0d; border-radius: 10px; padding: 12px 14px; border-left: 3px solid var(--accent); }
+    .hero-next-label { font-size: 0.72rem; color: #5a9a5a; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .hero-next-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .hero-next-detail { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+    .install-btn { display: none; margin-top: 14px; width: 100%; border: 1px solid #1e4060; border-radius: 10px; background: linear-gradient(135deg,#0d1b2a,#1a3a5c); color: var(--blue); padding: 12px 16px; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.04em; cursor: pointer; text-align: center; }
+
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .dash-tile { background: var(--surface); border-radius: var(--radius); padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; }
+    .dash-tile:hover { background: var(--surface-2); border-color: #333; }
+    .dash-tile-icon { font-size: 1.4rem; margin-bottom: 2px; }
+    .dash-tile-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .dash-tile-value { font-size: 1.15rem; font-weight: 800; }
+    .dash-tile-sub { font-size: 0.75rem; color: var(--muted); }
+
+    .week-progress-card { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+    .week-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .week-progress-label { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .week-progress-pct { font-size: 0.9rem; font-weight: 800; color: var(--accent); }
+
+    .coach-quote { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; border-left: 3px solid var(--accent-dim); }
+    .coach-quote-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .coach-quote-text { font-size: 0.88rem; color: var(--text); line-height: 1.6; font-style: italic; }
+
+    @media (min-width: 600px) { .metric-grid { grid-template-columns: repeat(4,1fr); } .garmin-grid { grid-template-columns: repeat(3,1fr); } }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast">Gespeichert</div>
+
+<header class="app-header">
+  <h1>&#127939; Coach Bjoern - Stefan</h1>
+  <div class="header-stats">
+    <span id="currentWeekDisp">Woche 1</span>
+    <span id="weightStatus">74 kg &#8594; 69 kg</span>
+  </div>
+</header>
+
+<nav class="bottom-nav">
+  <button class="tab-btn active" data-tab="start"><span class="ni">&#127968;</span>Start</button>
+  <button class="tab-btn" data-tab="today"><span class="ni">&#127780;</span>Heute</button>
+  <button class="tab-btn" data-tab="plan"><span class="ni">&#128197;</span>Plan</button>
+  <button class="tab-btn" data-tab="training"><span class="ni">&#127939;</span>Training</button>
+  <button class="tab-btn" data-tab="strength"><span class="ni">&#128170;</span>Kraft</button>
+  <button class="tab-btn" data-tab="nutrition"><span class="ni">&#129367;</span>Ernaehrung</button>
+  <button class="tab-btn" data-tab="recovery"><span class="ni">&#128716;</span>Recovery</button>
+  <button class="tab-btn" data-tab="analysis"><span class="ni">&#128202;</span>Analyse</button>
+  <button class="tab-btn" data-tab="goals"><span class="ni">&#127919;</span>Ziele</button>
+  <button class="tab-btn" data-tab="coach"><span class="ni">&#129302;</span>Coach</button>
+  <button class="tab-btn" data-tab="export"><span class="ni">&#128228;</span>Im/Export</button>
+</nav>
+
+<main>
+
+<!-- START -->
+<section id="start" class="tab-page active">
+  <div class="hero-card">
+    <div class="hero-greeting">Guten Morgen, Stefan</div>
+    <div class="hero-date" id="heroDate"></div>
+    <div class="hero-status-row">
+      <div class="hero-status-dot" id="heroStatusDot" style="background:#4caf50;"></div>
+      <div class="hero-status-text" id="heroStatusText" style="color:var(--accent);">Bereit - los geht's!</div>
+    </div>
+    <div class="hero-next">
+      <div class="hero-next-label">Naechste Einheit</div>
+      <div class="hero-next-title" id="heroNextTitle">-</div>
+      <div class="hero-next-detail" id="heroNextDetail"></div>
+    </div>
+    <button id="installPwaBtn" class="install-btn" onclick="triggerInstall()">&#128073; Zum Homescreen hinzufuegen</button>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="dash-tile" onclick="switchTab('today')">
+      <span class="dash-tile-icon">&#9889;</span>
+      <span class="dash-tile-label">Energie</span>
+      <span class="dash-tile-value" id="tileEnergy">-</span>
+      <span class="dash-tile-sub">von 10</span>
+    </div>
+    <div class="dash-tile" onclick="switchTab('today')">
+      <span class="dash-tile-icon">&#8987;</span>
+      <span class="dash-tile-label">Body Battery</span>
+      <span class="dash-tile-value" id="tileBattery">-</span>
+      <span class="dash-tile-sub">Garmin</span>
+    </div>
+    <div class="dash-tile" onclick="switchTab('today')">
+      <span class="dash-tile-icon">&#129459;</span>
+      <span class="dash-tile-label">Wade</span>
+      <span class="dash-tile-value" id="tileWade">-</span>
+      <span class="dash-tile-sub" id="tileWadeSub">-</span>
+    </div>
+    <div class="dash-tile" onclick="switchTab('recovery')">
+      <span class="dash-tile-icon">&#128716;</span>
+      <span class="dash-tile-label">Schlaf</span>
+      <span class="dash-tile-value" id="tileSleep">-</span>
+      <span class="dash-tile-sub">Stunden</span>
+    </div>
+    <div class="dash-tile" onclick="switchTab('training')">
+      <span class="dash-tile-icon">&#128205;</span>
+      <span class="dash-tile-label">Letzte Pace</span>
+      <span class="dash-tile-value" id="tilePace">-</span>
+      <span class="dash-tile-sub">min/km</span>
+    </div>
+    <div class="dash-tile" onclick="switchTab('goals')">
+      <span class="dash-tile-icon">&#9878;</span>
+      <span class="dash-tile-label">Gewicht</span>
+      <span class="dash-tile-value" id="tileWeight">-</span>
+      <span class="dash-tile-sub" id="tileWeightSub">-</span>
+    </div>
+  </div>
+
+  <div class="week-progress-card">
+    <div class="week-progress-header">
+      <span class="week-progress-label">Wochenfortschritt</span>
+      <span class="week-progress-pct" id="tileCompletion">0%</span>
+    </div>
+    <div class="progress" style="margin:0;">
+      <div id="startProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,#388e3c,#4caf50);border-radius:20px;transition:width 0.4s;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.78rem;color:var(--muted);">
+      <span id="tileKm">0 km diese Woche</span>
+      <span id="tileHRV"></span>
+    </div>
+  </div>
+
+  <div class="coach-quote">
+    <div class="coach-quote-label">Coach Bjoern sagt</div>
+    <div class="coach-quote-text" id="coachQuote">Lade Daten...</div>
+  </div>
+</section>
+
+<!-- HEUTE -->
+<section id="today" class="tab-page">
+  <div class="card">
+    <h2>Tages-Check</h2>
+    <label>Energie (1-10)</label>
+    <input id="energy" type="number" min="1" max="10" placeholder="z.B. 7">
+    <label>Motivation (1-10)</label>
+    <input id="motivation" type="number" min="1" max="10" placeholder="z.B. 8">
+    <label>Wade links (0-10)</label>
+    <input id="calfLeft" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
+    <label>Wade rechts (0-10)</label>
+    <input id="calfRight" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
+    <button class="btn" onclick="confirmSave('today')">Tages-Check speichern</button>
+  </div>
+  <div class="garmin-card">
+    <h2>Garmin Connect</h2>
+    <p class="sub">Werte aus Garmin Connect App manuell uebertragen</p>
+    <div class="garmin-grid">
+      <div><label>Body Battery</label><input id="bodyBattery" type="number" min="0" max="100" placeholder="0-100"></div>
+      <div><label>Schlaf (h)</label><input id="garminSleep" type="number" step="0.1" placeholder="z.B. 7.5"></div>
+      <div><label>Ruhepuls (bpm)</label><input id="garminRHR" type="number" placeholder="z.B. 52"></div>
+      <div>
+        <label>HRV Status</label>
+        <select id="garminHRV">
+          <option value="">- waehlen -</option>
+          <option value="balanced">Balanced</option>
+          <option value="low">Low</option>
+          <option value="unbalanced">Unbalanced</option>
+          <option value="poor">Poor</option>
+        </select>
+      </div>
+      <div>
+        <label>Training Status</label>
+        <select id="garminTrainingStatus">
+          <option value="">- waehlen -</option>
+          <option value="peaking">Peaking</option>
+          <option value="productive">Productive</option>
+          <option value="maintaining">Maintaining</option>
+          <option value="recovery">Recovery</option>
+          <option value="unproductive">Unproductive</option>
+          <option value="detraining">Detraining</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" onclick="confirmSave('garmin')">Garmin-Daten speichern</button>
+  </div>
+</section>
+
+<!-- PLAN -->
+<section id="plan" class="tab-page">
+  <div id="planContainer"></div>
+</section>
+
+<!-- TRAINING -->
+<section id="training" class="tab-page">
+  <div class="card">
+    <h2>Lauferfassung</h2>
+    <label>Training vom (Datum)</label>
+    <input id="runDate" type="date">
+    <label>Kilometer</label>
+    <input id="runKm" type="number" step="0.1" placeholder="z.B. 7.2">
+    <label>Zeit (mm:ss)</label>
+    <input id="runTime" placeholder="z.B. 44:30">
+    <label>Pace (min/km)</label>
+    <input id="runPace" placeholder="z.B. 6:10">
+    <label>Herzfrequenz Oe (bpm)</label>
+    <input id="runHF" type="number" placeholder="z.B. 145">
+    <label>Kadenz (spm)</label>
+    <input id="runCadence" type="number" placeholder="z.B. 172">
+    <label>Bodenkontaktzeit BKT (ms)</label>
+    <input id="runBKT" type="number" placeholder="z.B. 265">
+    <label>Hoehenmeter (m)</label>
+    <input id="runElevation" type="number" placeholder="z.B. 45">
+    <label>Vertikale Bewegung (cm)</label>
+    <input id="runVertical" type="number" step="0.1" placeholder="z.B. 8.4">
+    <label>RPE (1-10)</label>
+    <input id="runRPE" type="number" min="1" max="10" placeholder="z.B. 6">
+    <label>Wie hat sich das Training angefuehlt?</label>
+    <div class="feeling-row" id="feelingRow">
+      <button type="button" class="feel-btn" data-feel="sehr-gut">Sehr gut</button>
+      <button type="button" class="feel-btn" data-feel="gut">Gut</button>
+      <button type="button" class="feel-btn" data-feel="okay">Okay</button>
+      <button type="button" class="feel-btn" data-feel="schwer">Schwer</button>
+      <button type="button" class="feel-btn" data-feel="schlecht">Schlecht</button>
+    </div>
+    <input type="hidden" id="runFeeling" value="">
+    <button class="btn" onclick="confirmSave('training')">Training speichern</button>
+  </div>
+</section>
+
+<!-- KRAFT -->
+<section id="strength" class="tab-page">
+  <div id="strengthContainer"></div>
+</section>
+
+<!-- ERNAEHRUNG -->
+<section id="nutrition" class="tab-page">
+  <div class="card">
+    <h2>Ernaehrung</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px;">Dr.-Feil-Protokoll - taeglich abhaken</p>
+    <label>Datum</label>
+    <input id="nutritionDate" type="date">
+    <div style="margin-top:14px;">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Eingenommen</div>
+      <div class="check-grid">
+        <label class="check-item"><input type="checkbox" id="protein"><span>Protein</span></label>
+        <label class="check-item"><input type="checkbox" id="vegetables"><span>Gemuese</span></label>
+        <label class="check-item"><input type="checkbox" id="omega3"><span>Omega 3</span></label>
+        <label class="check-item"><input type="checkbox" id="arginine"><span>Arginin</span></label>
+        <label class="check-item"><input type="checkbox" id="turmeric"><span>Kurkuma</span></label>
+        <label class="check-item"><input type="checkbox" id="ginger"><span>Ingwer</span></label>
+        <label class="check-item"><input type="checkbox" id="waterGoal"><span>Trinkziel</span></label>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Wann &amp; Was</div>
+      <div style="font-size:0.77rem;color:#666;margin-bottom:8px;">Uhrzeit + kurze Notiz pro Mahlzeit</div>
+      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 1</div>
+        <div class="nutrition-time-row"><input class="time-input" id="meal1Time" type="time"><input class="note-input" id="meal1Note" placeholder="z.B. Haferflocken, Protein-Shake"></div></div>
+      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 2</div>
+        <div class="nutrition-time-row"><input class="time-input" id="meal2Time" type="time"><input class="note-input" id="meal2Note" placeholder="z.B. Salat, Huehnchen"></div></div>
+      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 3</div>
+        <div class="nutrition-time-row"><input class="time-input" id="meal3Time" type="time"><input class="note-input" id="meal3Note" placeholder="z.B. Abendessen"></div></div>
+      <div><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Snack / Supplement</div>
+        <div class="nutrition-time-row"><input class="time-input" id="meal4Time" type="time"><input class="note-input" id="meal4Note" placeholder="z.B. Arginin, Kurkuma, Ingwer"></div></div>
+    </div>
+    <button class="btn" onclick="confirmSave('nutrition')">Ernaehrung speichern</button>
+  </div>
+</section>
+
+<!-- RECOVERY -->
+<section id="recovery" class="tab-page">
+  <div class="card">
+    <h2>Recovery</h2>
+    <label>Datum</label>
+    <input id="recoveryDate" type="date">
+    <label>Schlaf (h)</label>
+    <input id="sleep" type="number" step="0.1" placeholder="z.B. 7.5">
+    <label>Ruhepuls (bpm)</label>
+    <input id="restingHR" type="number" placeholder="z.B. 52">
+    <label>Stress (1-10)</label>
+    <input id="stress" type="number" min="1" max="10" placeholder="z.B. 4">
+    <label>Muskelkater (1-10)</label>
+    <input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3">
+    <label>Notizen</label>
+    <textarea id="recoveryNotes" rows="2" placeholder="Besonderheiten, Schmerzen, Befinden..."></textarea>
+    <button class="btn" onclick="confirmSave('recovery')">Recovery speichern</button>
+  </div>
+</section>
+
+<!-- ANALYSE -->
+<section id="analysis" class="tab-page">
+  <div class="card">
+    <h2>Wochenanalyse</h2>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div id="analysisOutput"></div>
+  </div>
+</section>
+
+<!-- ZIELE -->
+<section id="goals" class="tab-page">
+  <div class="card">
+    <h2>Ziele</h2>
+    <label>Aktuelles Gewicht (kg)</label>
+    <input id="currentWeight" type="number" step="0.1" value="74">
+    <label>Zielgewicht (kg)</label>
+    <input id="goalWeight" type="number" step="0.1" value="69">
+    <label>10km Pace aktuell (min/km)</label>
+    <input id="current10kPace" value="4:55">
+    <label>10km Pace Ziel (min/km)</label>
+    <input id="goal10kPace" value="4:35">
+    <button class="btn" onclick="confirmSave('goals')">Ziele speichern</button>
+  </div>
+</section>
+
+<!-- COACH -->
+<section id="coach" class="tab-page">
+  <div class="card">
+    <h2>Coach Bjoern Analyse</h2>
+    <div id="coachOutput">Noch keine Analyse. Daten eingeben und Analyse starten.</div>
+    <button class="btn" id="runCoachAnalysis">Coach Analyse starten</button>
+  </div>
+</section>
+
+<!-- IMPORT / EXPORT -->
+<section id="export" class="tab-page">
+  <div class="card" style="border:1px solid #1a3a5c;">
+    <h2 style="color:#29b6f6;">Trainingsplan importieren</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Den von Coach-Bjoern KI (ChatGPT) zurueckgegebenen JSON-Plan hier einfuegen. Der Plan wird sofort im Plan-Reiter aktiv.</p>
+    <div style="background:#0d1b2a;border:1px solid #1a3a5c;border-radius:10px;padding:12px;margin:12px 0;font-size:0.78rem;color:#5a8ab0;line-height:1.7;">
+      <strong style="color:#29b6f6;">Format (JSON-Array):</strong><br>
+      Jede Woche: <code style="color:#4caf50;">week</code> (Zahl), <code style="color:#4caf50;">focus</code> (Text), <code style="color:#4caf50;">days</code> (Array)<br>
+      Jeder Tag: <code style="color:#4caf50;">day</code>, <code style="color:#4caf50;">type</code>, optional <code style="color:#4caf50;">km</code>, <code style="color:#4caf50;">pace</code>, <code style="color:#4caf50;">workout</code>, <code style="color:#4caf50;">title</code>
+    </div>
+    <textarea id="importPlanText" rows="8" placeholder="JSON-Plan hier einfuegen..." style="font-family:'Courier New',monospace;font-size:0.78rem;color:#29b6f6;background:#0a0a0a;"></textarea>
+    <div id="importStatus" style="font-size:0.82rem;margin-top:8px;min-height:20px;"></div>
+    <button class="btn" id="importPlanBtn" style="background:#29b6f6;color:#000;">Plan importieren &amp; aktivieren</button>
+    <button class="btn secondary" id="resetPlanBtn" style="margin-top:8px;">Original-Plan wiederherstellen</button>
+  </div>
+  <div class="card">
+    <h2>Wochenreport exportieren</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Export fuer Coach-Bjoern-Analyse - in ChatGPT einfuegen</p>
+    <button class="btn" id="generateExport">Wochenreport erzeugen</button>
+    <textarea id="exportText" rows="22" placeholder="Report erscheint hier..."></textarea>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ============================================================
+//  TRAINING PLAN DATA
+// ============================================================
+const trainingPlan = [
+  { week:1, focus:"Laufokonomie", days:[
+    { day:"Montag",    type:"Kraft A" },
+    { day:"Dienstag",  type:"Lauf",     title:"Locker",   km:7,  pace:"6:15-6:45" },
+    { day:"Donnerstag",type:"Long Run", km:12, pace:"6:20-6:50" },
+    { day:"Samstag",   type:"Lauf",     title:"Schwelle", workout:"4 x 5 min" }
+  ]},
+  { week:2, focus:"Laufokonomie", days:[
+    { day:"Montag",    type:"Kraft B" },
+    { day:"Dienstag",  type:"Lauf",     title:"Locker",   km:8 },
+    { day:"Donnerstag",type:"Long Run", km:13 },
+    { day:"Samstag",   type:"Schwelle", workout:"5 x 5 min" }
+  ]},
+  { week:3, focus:"Laufokonomie", days:[
+    { day:"Montag",    type:"Kraft A" },
+    { day:"Dienstag",  type:"Locker",   km:8 },
+    { day:"Donnerstag",type:"Long Run", km:14 },
+    { day:"Samstag",   type:"Schwelle", workout:"3 x 8 min" }
+  ]},
+  { week:4, focus:"Entlastung", days:[
+    { day:"Montag",    type:"Kraft B" },
+    { day:"Dienstag",  type:"Locker",   km:6 },
+    { day:"Donnerstag",type:"Long Run", km:10 },
+    { day:"Samstag",   type:"Locker",   km:6 }
+  ]},
+  { week:5,  focus:"Schwelle",        days:[] },
+  { week:6,  focus:"Schwelle",        days:[] },
+  { week:7,  focus:"Schwelle",        days:[] },
+  { week:8,  focus:"Entlastung",      days:[] },
+  { week:9,  focus:"10km Spezifisch", days:[] },
+  { week:10, focus:"10km Spezifisch", days:[] },
+  { week:11, focus:"10km Spezifisch", days:[] },
+  { week:12, focus:"Testwoche",       days:[] }
+];
+
+const strengthA = [
+  { name:"Kniebeuge",              sets:"3 x 8",  link:"https://exrx.net/WeightExercises/Quadriceps/BBSquat" },
+  { name:"Rumaenisches Kreuzheben",sets:"3 x 8",  link:"https://exrx.net/WeightExercises/Hamstrings/BBRomanianDeadlift" },
+  { name:"Ausfallschritte",        sets:"3 x 10" },
+  { name:"Wadenheben",             sets:"3 x 15" },
+  { name:"Plank",                  sets:"3 x 60s" }
+];
+const strengthB = [
+  { name:"Bulgarian Split Squat",    sets:"3 x 8" },
+  { name:"Step Ups",                 sets:"3 x 10" },
+  { name:"Exzentrisches Wadenheben", sets:"3 x 12" },
+  { name:"Seitsteitz",               sets:"3 x 45s" }
+];
+
+// ============================================================
+//  PLAN RENDER
+// ============================================================
+function renderPlan() {
+  const c = document.getElementById("planContainer");
+  if (!c) return;
+  let html = "";
+  trainingPlan.forEach(w => {
+    const hasDays = w.days.length > 0;
+    html += '<div class="week-card"><div class="week-header" onclick="toggleWeek('+w.week+')">'
+          + '<span>Woche '+w.week+'</span>'
+          + '<span class="'+(hasDays?'week-badge':'week-focus-badge')+'">'+w.focus+'</span>'
+          + '</div><div id="week-'+w.week+'" class="week-content">';
+    if (hasDays) {
+      w.days.forEach(d => {
+        const det = [d.title, d.km?d.km+" km":null, d.pace?d.pace+" /km":null, d.workout].filter(Boolean).join(" - ");
+        html += '<div class="day-card"><div class="day-title">'+d.day+'</div>'
+              + '<div class="day-detail">'+d.type+(det?" - "+det:"")+'</div></div>';
+      });
+    } else {
+      html += '<p style="color:var(--muted);font-size:0.83rem;padding:4px 0">Folgt in der Planung.</p>';
+    }
+    html += '</div></div>';
+  });
+  c.innerHTML = html;
+}
+function toggleWeek(n) { document.getElementById("week-"+n).classList.toggle("open"); }
+
+// ============================================================
+//  STRENGTH RENDER
+// ============================================================
+function renderStrength() {
+  const c = document.getElementById("strengthContainer");
+  if (!c) return;
+  const section = (title, list) => {
+    let h = '<div class="card"><h2>'+title+'</h2>';
+    list.forEach(ex => {
+      const id = "str-"+ex.name.replace(/\s+/g,"-");
+      h += '<div class="exercise-card">'
+         + '<div class="exercise-header"><span class="exercise-name">'+ex.name+'</span>'
+         + '<span class="exercise-soll">SOLL '+ex.sets+'</span></div>'
+         + '<input id="'+id+'" placeholder="IST-Wert / Gewicht">'
+         + (ex.link?'<div class="exercise-links"><a href="'+ex.link+'" target="_blank">Anleitung</a></div>':"")
+         + '</div>';
+    });
+    h += '<button class="btn" onclick="confirmSave(\'strength\')">Kraftwerte speichern</button></div>';
+    return h;
+  };
+  c.innerHTML = section("Kraft A", strengthA) + section("Kraft B", strengthB);
+}
+
+// ============================================================
+//  FEELING BUTTONS
+// ============================================================
+function initFeelingButtons() {
+  document.querySelectorAll(".feel-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".feel-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      document.getElementById("runFeeling").value = btn.dataset.feel;
+      saveData();
+    });
+  });
+}
+function restoreFeeling(val) {
+  if (!val) return;
+  document.querySelectorAll(".feel-btn").forEach(b => b.classList.toggle("selected", b.dataset.feel===val));
+}
+
+// ============================================================
+//  TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg || "Gespeichert";
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2000);
+}
+function confirmSave(section) {
+  saveData();
+  const msgs = { today:"Tages-Check gespeichert", garmin:"Garmin-Daten gespeichert",
+    training:"Training gespeichert", strength:"Kraftwerte gespeichert",
+    nutrition:"Ernaehrung gespeichert", recovery:"Recovery gespeichert", goals:"Ziele gespeichert" };
+  showToast(msgs[section] || "Gespeichert");
+}
+
+// ============================================================
+//  COACH LOGIC
+// ============================================================
+function getCalfStatus(score) {
+  if (score<=2) return { text:"Gruen - Training normal", cls:"status-green" };
+  if (score<=5) return { text:"Gelb - Umfang halten", cls:"status-yellow" };
+  return        { text:"Rot - Long Run -20%, kein Intervall", cls:"status-red" };
+}
+function calcEconomyScore(hf,cadence,bkt,weight) {
+  let s=50;
+  if(hf>0&&hf<150)s+=10; if(cadence>=170)s+=10; if(bkt>0&&bkt<280)s+=10;
+  if(weight<72)s+=10; if(weight<70)s+=10;
+  return Math.min(s,100);
+}
+function calcCompletion(km) { return Math.round((km/7)*100); }
+function weightProgress(cur,goal) {
+  const d=cur-goal;
+  if(d<=0)return "Ziel erreicht!";
+  if(d<=2)return "Noch "+d.toFixed(1)+" kg";
+  return d.toFixed(1)+" kg offen";
+}
+function getRecommendation(completion,calf,sleep) {
+  if(calf>=6) return "Wade kritisch. Long Run -20%. Kein Intervalltraining. Fokus: Kraft + Regeneration.";
+  if(completion>=90&&calf<=2&&sleep>=7) return "Sehr gute Woche! Umfang +5%, Long Run +1 km. Schwellenlauf beibehalten. Protein leicht erhoehen.";
+  if(completion>=75) return "Solide Woche. Umfang halten. Technik und Kraft priorisieren.";
+  return "Belastung reduzieren. Fokus auf Konstanz. Naechste Woche identisch wiederholen.";
+}
+function runCoachAnalysis() {
+  const weight=parseFloat(document.getElementById("currentWeight").value||74);
+  const goalW=parseFloat(document.getElementById("goalWeight").value||69);
+  const calfL=parseFloat(document.getElementById("calfLeft").value||0);
+  const calfR=parseFloat(document.getElementById("calfRight").value||0);
+  const sleep=parseFloat(document.getElementById("sleep").value||0);
+  const pace=document.getElementById("runPace").value;
+  const hf=parseFloat(document.getElementById("runHF").value||0);
+  const cadence=parseFloat(document.getElementById("runCadence").value||0);
+  const bkt=parseFloat(document.getElementById("runBKT").value||0);
+  const km=parseFloat(document.getElementById("runKm").value||0);
+  const feeling=document.getElementById("runFeeling").value;
+  const hrv=document.getElementById("garminHRV").value;
+  const battery=document.getElementById("bodyBattery").value;
+  const tStatus=document.getElementById("garminTrainingStatus").value;
+  const calfScore=Math.max(calfL,calfR);
+  const calfSt=getCalfStatus(calfScore);
+  const econScore=calcEconomyScore(hf,cadence,bkt,weight);
+  const completion=calcCompletion(km);
+  const rec=getRecommendation(completion,calfScore,sleep);
+  const wt=weightProgress(weight,goalW);
+  const fMap={"sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht"};
+  document.getElementById("coachOutput").innerHTML =
+    '<div class="metric-grid">'
+    +'<div class="metric"><div class="metric-label">Wade</div><div class="metric-value '+calfSt.cls+'" style="font-size:0.85rem">'+calfSt.text+'</div></div>'
+    +'<div class="metric"><div class="metric-label">Economy Score</div><div class="metric-value">'+econScore+' / 100</div></div>'
+    +'<div class="metric"><div class="metric-label">Planerfuellung</div><div class="metric-value">'+completion+'%</div></div>'
+    +'<div class="metric"><div class="metric-label">Gewicht</div><div class="metric-value">'+wt+'</div></div>'
+    +'</div><hr>'
+    +'<h3>Garmin</h3><p>Body Battery: <strong>'+(battery||"-")+'</strong> | HRV: <strong>'+(hrv||"-")+'</strong> | Status: <strong>'+(tStatus||"-")+'</strong></p>'
+    +'<h3>Letzte Einheit</h3><p>Pace: <strong>'+(pace||"-")+'</strong> | HF: <strong>'+(hf||"-")+' bpm</strong> | Schlaf: <strong>'+(sleep||"-")+' h</strong></p>'
+    +'<p>Gefuehl: <strong>'+(fMap[feeling]||"-")+'</strong></p>'
+    +'<h3>Empfehlung</h3><p>'+rec+'</p>';
+}
+
+// ============================================================
+//  DATA / STORAGE
+// ============================================================
+const STORAGE_KEY = "coach_bjoern_v21";
+const PLAN_STORAGE_KEY = "coach_bjoern_custom_plan";
+const originalPlan = JSON.parse(JSON.stringify(trainingPlan));
+
+function collectData() {
+  const d = {};
+  document.querySelectorAll("input[id], textarea[id], select[id]").forEach(el => {
+    d[el.id] = el.type==="checkbox" ? el.checked : el.value;
+  });
+  return d;
+}
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+  updateHeaderStats();
+}
+function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  const d = JSON.parse(raw);
+  Object.keys(d).forEach(k => {
+    const el = document.getElementById(k);
+    if (!el) return;
+    if (el.type==="checkbox") el.checked=d[k]; else el.value=d[k];
+  });
+  if (d.runFeeling) restoreFeeling(d.runFeeling);
+  updateHeaderStats();
+}
+function updateHeaderStats() {
+  const w = document.getElementById("currentWeight")?.value || "74";
+  const gw = document.getElementById("goalWeight")?.value || "69";
+  document.getElementById("weightStatus").textContent = w+" kg -> "+gw+" kg";
+}
+
+// ============================================================
+//  ANALYSIS
+// ============================================================
+function updateAnalysis() {
+  const km=parseFloat(document.getElementById("runKm")?.value||0);
+  const weight=parseFloat(document.getElementById("currentWeight")?.value||74);
+  const goalW=parseFloat(document.getElementById("goalWeight")?.value||69);
+  const pace=document.getElementById("runPace")?.value||"-";
+  const energy=document.getElementById("energy")?.value||"-";
+  const battery=document.getElementById("bodyBattery")?.value||"-";
+  const completion=Math.min(100,Math.round((km/7)*100));
+  const pb=document.getElementById("progressBar");
+  if(pb)pb.style.width=completion+"%";
+  const out=document.getElementById("analysisOutput");
+  if(!out)return;
+  const wLeft=(weight-goalW).toFixed(1);
+  out.innerHTML='<div class="metric-grid">'
+    +'<div class="metric"><div class="metric-label">Wochen-km</div><div class="metric-value">'+km+'</div></div>'
+    +'<div class="metric"><div class="metric-label">Planerfuellung</div><div class="metric-value">'+completion+'%</div></div>'
+    +'<div class="metric"><div class="metric-label">Gewicht</div><div class="metric-value">'+weight+' kg</div></div>'
+    +'<div class="metric"><div class="metric-label">Rest bis Ziel</div><div class="metric-value">'+(parseFloat(wLeft)>0?wLeft+" kg":"Ziel!")+'</div></div>'
+    +'<div class="metric"><div class="metric-label">Letzte Pace</div><div class="metric-value">'+pace+'</div></div>'
+    +'<div class="metric"><div class="metric-label">Energie</div><div class="metric-value">'+energy+'/10</div></div>'
+    +'<div class="metric"><div class="metric-label">Body Battery</div><div class="metric-value">'+battery+'</div></div>'
+    +'</div>';
+}
+
+// ============================================================
+//  EXPORT
+// ============================================================
+function generateExport() {
+  const d=collectData();
+  const now=new Date().toLocaleDateString("de-DE");
+  const checks=["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal"];
+  const labels=["Protein","Gemuese","Omega3","Arginin","Kurkuma","Ingwer","Trinkziel"];
+  const nutrition=checks.map((c,i)=>labels[i]+": "+(d[c]?"ja":"nein")).join("  ");
+  const fMap={"sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht"};
+  const meals=[1,2,3,4].map(n=>{
+    const t=d["meal"+n+"Time"]; const note=d["meal"+n+"Note"];
+    if(!t&&!note)return null;
+    return "  "+(t||"??")+' Uhr - '+(note||"-");
+  }).filter(Boolean).join("\n");
+  const txt="COACH_BJOERN_REPORT\nDatum: "+now+"\nAthlet: Stefan\n"
+    +"================================\n\n"
+    +"-- ZIELE --\nGewicht:     "+d.currentWeight+" kg  ->  Ziel: "+d.goalWeight+" kg\n"
+    +"10km Pace:   "+d.current10kPace+"  ->  Ziel: "+d.goal10kPace+" min/km\n\n"
+    +"-- GARMIN CONNECT --\n"
+    +"Body Battery:    "+(d.bodyBattery||"-")+"\nSchlaf Garmin:   "+(d.garminSleep||"-")+" h\n"
+    +"Ruhepuls:        "+(d.garminRHR||"-")+" bpm\nHRV Status:      "+(d.garminHRV||"-")+"\n"
+    +"Training Status: "+(d.garminTrainingStatus||"-")+"\n\n"
+    +"-- TAGES-CHECK --\nEnergie: "+(d.energy||"-")+"/10  Motivation: "+(d.motivation||"-")+"/10\n"
+    +"Wade links: "+(d.calfLeft||"0")+"/10  Wade rechts: "+(d.calfRight||"0")+"/10\n\n"
+    +"-- LAUFTRAINING ("+d.runDate+") --\n"
+    +"km: "+(d.runKm||"-")+"  Zeit: "+(d.runTime||"-")+"  Pace: "+(d.runPace||"-")+"\n"
+    +"HF: "+(d.runHF||"-")+" bpm  Kadenz: "+(d.runCadence||"-")+" spm\n"
+    +"BKT: "+(d.runBKT||"-")+" ms  Hoehenmeter: "+(d.runElevation||"-")+" m\n"
+    +"RPE: "+(d.runRPE||"-")+"/10  Gefuehl: "+(fMap[d.runFeeling]||"-")+"\n\n"
+    +"-- RECOVERY ("+d.recoveryDate+") --\n"
+    +"Schlaf: "+(d.sleep||"-")+" h  Ruhepuls: "+(d.restingHR||"-")+" bpm\n"
+    +"Stress: "+(d.stress||"-")+"/10  Muskelkater: "+(d.soreness||"-")+"/10\n"
+    +(d.recoveryNotes?"Notizen: "+d.recoveryNotes+"\n":"")+"\n"
+    +"-- ERNAEHRUNG ("+d.nutritionDate+") --\n"+nutrition+"\n"
+    +(meals?"\nMahlzeiten:\n"+meals+"\n":"")+"\n"
+    +"================================";
+  document.getElementById("exportText").value=txt;
+}
+
+// ============================================================
+//  PLAN IMPORT
+// ============================================================
+function importPlan() {
+  const raw=document.getElementById("importPlanText").value.trim();
+  const statusEl=document.getElementById("importStatus");
+  if(!raw){statusEl.innerHTML='<span style="color:var(--warning)">Kein Text eingefuegt.</span>';return;}
+  let parsed;
+  try { parsed=JSON.parse(raw.replace(/```json|```/g,"").trim()); }
+  catch(e){statusEl.innerHTML='<span style="color:var(--danger)">Ungueltige JSON: '+e.message+'</span>';return;}
+  if(!Array.isArray(parsed)||parsed.length===0){statusEl.innerHTML='<span style="color:var(--danger)">Plan muss ein Array sein.</span>';return;}
+  const valid=parsed.every(w=>typeof w.week==="number"&&w.focus&&Array.isArray(w.days));
+  if(!valid){statusEl.innerHTML='<span style="color:var(--danger)">Struktur fehlerhaft.</span>';return;}
+  trainingPlan.length=0;
+  parsed.forEach(w=>trainingPlan.push(w));
+  localStorage.setItem(PLAN_STORAGE_KEY,JSON.stringify(trainingPlan));
+  renderPlan();
+  statusEl.innerHTML='<span style="color:var(--accent)">Plan mit '+parsed.length+' Wochen aktiviert!</span>';
+  showToast("Neuer Plan aktiviert!");
+}
+function resetPlan() {
+  trainingPlan.length=0;
+  originalPlan.forEach(w=>trainingPlan.push(w));
+  localStorage.removeItem(PLAN_STORAGE_KEY);
+  renderPlan();
+  document.getElementById("importPlanText").value="";
+  document.getElementById("importStatus").innerHTML='<span style="color:var(--muted)">Original-Plan wiederhergestellt.</span>';
+  showToast("Original-Plan aktiv");
+}
+function loadCustomPlan() {
+  const raw=localStorage.getItem(PLAN_STORAGE_KEY);
+  if(!raw)return;
+  try{const p=JSON.parse(raw);if(Array.isArray(p)&&p.length>0){trainingPlan.length=0;p.forEach(w=>trainingPlan.push(w));}}
+  catch(e){}
+}
+
+// ============================================================
+//  STARTSEITE
+// ============================================================
+const COACH_QUOTES = [
+  "Konsistenz schlaegt Perfektion. Jeden Tag ein kleiner Schritt vorwaerts.",
+  "Die Pace kommt von selbst, wenn der Motor sauber laeuft.",
+  "Weniger Gewicht, mehr Laufokonomie - das ist dein groesster Hebel.",
+  "Ein Ruhetag ist kein verlorener Tag. Er ist deine Investition in morgen.",
+  "Kadenz ueber 170 Schritte pro Minute - dein Ziel bei jedem Lauf.",
+  "Protein direkt nach dem Training. Kein Verhandeln.",
+  "Wade im gruenen Bereich? Dann volle Kraft voraus, Stefan!",
+  "Long Run auf Donnerstag - Struktur bringt Fortschritt."
+];
+
+function switchTab(tabId) {
+  document.querySelectorAll(".tab-page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  const page=document.getElementById(tabId);
+  if(page)page.classList.add("active");
+  const btn=document.querySelector('.tab-btn[data-tab="'+tabId+'"]');
+  if(btn)btn.classList.add("active");
+}
+
+function updateStartPage() {
+  const d=collectData();
+  const now=new Date();
+  const days=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  const months=["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  const dateEl=document.getElementById("heroDate");
+  if(dateEl)dateEl.textContent=days[now.getDay()]+", "+now.getDate()+". "+months[now.getMonth()]+" "+now.getFullYear();
+  const h=now.getHours();
+  const greet=h<12?"Guten Morgen":h<18?"Guten Tag":"Guten Abend";
+  const greetEl=document.querySelector(".hero-greeting");
+  if(greetEl)greetEl.textContent=greet+", Stefan";
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  set("tileEnergy",  d.energy||"-");
+  set("tileBattery", d.bodyBattery||"-");
+  set("tileSleep",   d.sleep||d.garminSleep||"-");
+  set("tilePace",    d.runPace||"-");
+  const weight=parseFloat(d.currentWeight||74);
+  const goalW=parseFloat(d.goalWeight||69);
+  set("tileWeight",   weight+" kg");
+  set("tileWeightSub",(weight-goalW).toFixed(1)+" kg bis Ziel");
+  const calfScore=Math.max(parseFloat(d.calfLeft||0),parseFloat(d.calfRight||0));
+  const wadeEl=document.getElementById("tileWade");
+  const wadeSubEl=document.getElementById("tileWadeSub");
+  if(wadeEl&&wadeSubEl){
+    if(calfScore<=2){wadeEl.textContent="Gruen";wadeEl.style.color="var(--accent)";wadeSubEl.textContent="Alles OK";}
+    else if(calfScore<=5){wadeEl.textContent="Gelb";wadeEl.style.color="var(--warning)";wadeSubEl.textContent="Vorsicht";}
+    else{wadeEl.textContent="Rot";wadeEl.style.color="var(--danger)";wadeSubEl.textContent="Schonen!";}
+  }
+  const dot=document.getElementById("heroStatusDot");
+  const stat=document.getElementById("heroStatusText");
+  const battery=parseInt(d.bodyBattery||100);
+  if(dot&&stat){
+    if(calfScore>=6){dot.style.background="#e53935";stat.textContent="Regeneration - Wade schonen";stat.style.color="var(--danger)";}
+    else if(battery<30||calfScore>=4){dot.style.background="#ffb300";stat.textContent="Moderat starten";stat.style.color="var(--warning)";}
+    else{dot.style.background="#4caf50";stat.textContent="Bereit - Gib alles, Stefan!";stat.style.color="var(--accent)";}
+  }
+  const km=parseFloat(d.runKm||0);
+  const completion=Math.min(100,Math.round((km/7)*100));
+  set("tileCompletion",completion+"%");
+  set("tileKm",km+" km diese Woche");
+  const spb=document.getElementById("startProgressBar");
+  if(spb)spb.style.width=completion+"%";
+  const hrv=d.garminHRV||"";
+  const hrvColors={balanced:"var(--accent)",low:"var(--warning)",unbalanced:"var(--warning)",poor:"var(--danger)"};
+  const hrvEl=document.getElementById("tileHRV");
+  if(hrvEl&&hrv){hrvEl.textContent="HRV: "+hrv;hrvEl.style.color=hrvColors[hrv]||"var(--muted)";}
+  const dayOrder=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  const todayIdx=now.getDay();
+  let nextFound=null;
+  outer:for(let w of trainingPlan){
+    if(!w.days||w.days.length===0)continue;
+    for(let dd of w.days){
+      const dIdx=dayOrder.indexOf(dd.day);
+      if(dIdx>=todayIdx){nextFound=Object.assign({week:w.week},dd);break outer;}
+    }
+  }
+  const titleEl=document.getElementById("heroNextTitle");
+  const detailEl=document.getElementById("heroNextDetail");
+  if(titleEl&&detailEl){
+    if(nextFound){
+      titleEl.textContent=nextFound.day+" - "+nextFound.type+(nextFound.title?" / "+nextFound.title:"");
+      const det=[nextFound.km?nextFound.km+" km":null,nextFound.pace?nextFound.pace+" /km":null,nextFound.workout].filter(Boolean).join(" / ");
+      detailEl.textContent=det||"Woche "+nextFound.week;
+    }else{titleEl.textContent="Naechste Woche geht's weiter!";detailEl.textContent="";}
+  }
+  const quoteEl=document.getElementById("coachQuote");
+  if(quoteEl)quoteEl.textContent=COACH_QUOTES[now.getDate()%COACH_QUOTES.length];
+}
+
+// ============================================================
+//  PWA INSTALL
+// ============================================================
+let _deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();
+  _deferredPrompt=e;
+  const btn=document.getElementById("installPwaBtn");
+  if(btn)btn.style.display="block";
+});
+window.addEventListener("appinstalled",()=>{
+  _deferredPrompt=null;
+  const btn=document.getElementById("installPwaBtn");
+  if(btn)btn.style.display="none";
+  showToast("App installiert!");
+});
+function triggerInstall(){
+  if(_deferredPrompt){
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.then(()=>{_deferredPrompt=null;});
+  }
+}
+
+// ============================================================
+//  SERVICE WORKER (inline blob)
+// ============================================================
+if("serviceWorker" in navigator){
+  const swCode=[
+    'const CACHE="coach-bjoern-v1";',
+    'self.addEventListener("install",()=>self.skipWaiting());',
+    'self.addEventListener("activate",e=>{',
+    '  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));',
+    '  self.clients.claim();',
+    '});',
+    'self.addEventListener("fetch",e=>{',
+    '  e.respondWith(caches.match(e.request).then(cached=>{',
+    '    if(cached)return cached;',
+    '    return fetch(e.request).then(resp=>{',
+    '      if(!resp||resp.status!==200||resp.type!=="basic")return resp;',
+    '      const clone=resp.clone();',
+    '      caches.open(CACHE).then(c=>c.put(e.request,clone));',
+    '      return resp;',
+    '    }).catch(()=>cached);',
+    '  }));',
+    '});'
+  ].join("\n");
+  const blob=new Blob([swCode],{type:"application/javascript"});
+  navigator.serviceWorker.register(URL.createObjectURL(blob))
+    .then(reg=>{
+      caches.open("coach-bjoern-v1").then(cache=>cache.add(window.location.href)).catch(()=>{});
+    }).catch(()=>{});
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+document.addEventListener("DOMContentLoaded",()=>{
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const t=btn.dataset.tab;
+      document.querySelectorAll(".tab-page").forEach(p=>p.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      document.getElementById(t).classList.add("active");
+      btn.classList.add("active");
+    });
+  });
+
+  loadCustomPlan();
+  renderPlan();
+  renderStrength();
+  loadData();
+  initFeelingButtons();
+
+  document.querySelectorAll("input, textarea, select").forEach(el=>{
+    el.addEventListener("change",()=>{saveData();updateAnalysis();updateStartPage();});
+    el.addEventListener("keyup",()=>saveData());
+  });
+
+  const today=new Date().toISOString().split("T")[0];
+  ["runDate","nutritionDate","recoveryDate"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el.value)el.value=today;
+  });
+
+  updateAnalysis();
+  updateStartPage();
+
+  document.getElementById("runCoachAnalysis").addEventListener("click",runCoachAnalysis);
+  document.getElementById("generateExport").addEventListener("click",generateExport);
+  document.getElementById("importPlanBtn").addEventListener("click",importPlan);
+  document.getElementById("resetPlanBtn").addEventListener("click",resetPlan);
+});
+</script>
+</body>
+</html>
