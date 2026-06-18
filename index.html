@@ -37,7 +37,30 @@
     });
   </script>
   <title>Coach Bjoern Dashboard V2.1</title>
-  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+  <script>
+    // Lade html5-qrcode mit Fallback ueber mehrere CDNs
+    (function loadScanner() {
+      var sources = [
+        "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js",
+        "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"
+      ];
+      var idx = 0;
+      function tryLoad() {
+        if (idx >= sources.length) {
+          window._scannerLoadFailed = true;
+          console.error("Alle Scanner-CDNs fehlgeschlagen");
+          return;
+        }
+        var s = document.createElement("script");
+        s.src = sources[idx];
+        s.onload = function() { window._scannerLoaded = true; };
+        s.onerror = function() { idx++; tryLoad(); };
+        document.head.appendChild(s);
+      }
+      tryLoad();
+    })();
+  </script>
   <style>
     :root {
       --bg:#121212; --surface:#1e1e1e; --surface-2:#262626; --surface-3:#2e2e2e;
@@ -407,7 +430,8 @@
         <button onclick="loadTrelloCards()" style="background:#0052cc;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;">Laden</button>
       </div>
       <div id="trelloStatus" style="font-size:0.75rem;color:#5a8ab0;margin-bottom:8px;">Einstellungen unten eingeben</div>
-      <div id="trelloCards" style="font-size:0.83rem;color:var(--text);max-height:180px;overflow-y:auto;"></div>
+      <input id="trelloSearchInput" placeholder="Rezept suchen..." oninput="filterTrelloCards()" style="margin-bottom:8px;background:#0a1520;border:1px solid #1a3a5c;font-size:0.85rem;padding:8px 10px;display:none;">
+      <div id="trelloCards" style="font-size:0.83rem;color:var(--text);max-height:280px;overflow-y:auto;"></div>
       <details style="margin-top:8px;">
         <summary style="font-size:0.75rem;color:#5a8ab0;cursor:pointer;">Trello Einstellungen</summary>
         <div style="margin-top:8px;">
@@ -482,12 +506,8 @@
 
     <!-- BARCODE SCANNER -->
     <div id="scannerContainer" style="display:none;margin-top:12px;">
-      <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;">
-        <video id="scannerVideo" style="width:100%;max-height:260px;object-fit:cover;display:block;"></video>
-        <!-- Scan-Linie Animation -->
-        <div style="position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(41,182,246,0.8);box-shadow:0 0 8px #29b6f6;pointer-events:none;animation:scanLine 2s linear infinite;"></div>
-        <!-- Fadenkreuz -->
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:100px;border:2px solid rgba(41,182,246,0.6);border-radius:8px;pointer-events:none;"></div>
+      <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;min-height:200px;">
+        <div id="scannerDiv" style="width:100%;"></div>
       </div>
       <div id="scannerStatus" style="font-size:0.82rem;color:#29b6f6;text-align:center;margin-top:8px;padding:6px;">Kamera wird gestartet...</div>
       <button onclick="stopBarcodeScanner()" style="width:100%;margin-top:8px;background:var(--danger);color:#fff;border:none;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;">Scanner stoppen</button>
@@ -1410,7 +1430,7 @@ if ("serviceWorker" in navigator) {
 // ============================================================
 // BARCODE SCANNER
 // ============================================================
-var _barcodeScanner = null;
+var _html5QrScanner = null;
 var _scannerActive  = false;
 
 function toggleBarcodeScanner() {
@@ -1418,83 +1438,135 @@ function toggleBarcodeScanner() {
   else { startBarcodeScanner(); }
 }
 
+function resetScanBtn() {
+  _scannerActive = false;
+  var scanBtn = document.getElementById("scanBtn");
+  if (scanBtn) scanBtn.style.background = "#29b6f6";
+}
+
+function waitForScannerLib(maxWaitMs) {
+  return new Promise(function(resolve, reject) {
+    var waited = 0;
+    var interval = setInterval(function() {
+      if (typeof Html5Qrcode !== "undefined") {
+        clearInterval(interval);
+        resolve(true);
+      } else if (window._scannerLoadFailed) {
+        clearInterval(interval);
+        reject(new Error("Scanner-Bibliothek konnte von keinem Server geladen werden."));
+      } else if (waited >= maxWaitMs) {
+        clearInterval(interval);
+        reject(new Error("Zeitueberschreitung beim Laden der Scanner-Bibliothek."));
+      }
+      waited += 200;
+    }, 200);
+  });
+}
+
 async function startBarcodeScanner() {
   var container = document.getElementById("scannerContainer");
   var statusEl  = document.getElementById("scannerStatus");
   var scanBtn   = document.getElementById("scanBtn");
   if (container) container.style.display = "block";
-  if (statusEl)  statusEl.textContent = "Kamera wird gestartet...";
+  if (statusEl)  statusEl.textContent = "Pruefe Voraussetzungen...";
   if (scanBtn)   scanBtn.style.background = "#e53935";
 
+  // Check 1: HTTPS required
+  if (location.protocol !== "https:" && location.hostname !== "localhost") {
+    if (statusEl) statusEl.textContent = "Kamera benoetigt HTTPS. Bitte ueber GitHub Pages oeffnen.";
+    resetScanBtn();
+    return;
+  }
+
+  // Check 2: getUserMedia available
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (statusEl) statusEl.textContent = "Dieser Browser unterstuetzt keinen Kamera-Zugriff.";
+    resetScanBtn();
+    return;
+  }
+
+  // Check 3: wait for scanner library (may still be loading)
+  if (statusEl) statusEl.textContent = "Lade Scanner-Bibliothek...";
   try {
-    if (typeof ZXing === "undefined") {
-      if (statusEl) statusEl.textContent = "Scanner-Bibliothek nicht geladen. Bitte GitHub Pages verwenden.";
-      return;
-    }
-    var hints = new Map();
-    var formats = [
-      ZXing.BarcodeFormat.EAN_13,
-      ZXing.BarcodeFormat.EAN_8,
-      ZXing.BarcodeFormat.UPC_A,
-      ZXing.BarcodeFormat.UPC_E,
-      ZXing.BarcodeFormat.CODE_128,
-      ZXing.BarcodeFormat.QR_CODE
-    ];
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    await waitForScannerLib(8000);
+  } catch(libErr) {
+    if (statusEl) statusEl.textContent = libErr.message + " Bitte Internetverbindung pruefen und Seite neu laden.";
+    resetScanBtn();
+    return;
+  }
 
-    _barcodeScanner = new ZXing.BrowserMultiFormatReader(hints);
-    _scannerActive  = true;
+  try {
+    // Request camera permission explicitly first (triggers browser prompt reliably)
+    if (statusEl) statusEl.textContent = "Bitte Kamera-Zugriff erlauben...";
+    var testStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } }
+    });
+    testStream.getTracks().forEach(function(t) { t.stop(); });
 
+    if (statusEl) statusEl.textContent = "Kamera wird gestartet...";
+    _scannerActive = true;
+
+    // html5-qrcode needs a div with an id, not a video element
     var videoEl = document.getElementById("scannerVideo");
+    if (videoEl) videoEl.style.display = "none";
+    var scanDiv = document.getElementById("scannerDiv");
+    if (scanDiv) scanDiv.style.display = "block";
 
-    // Get available cameras — prefer back camera
-    var devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-    var cameraId = null;
-    if (devices && devices.length > 0) {
-      // Try to find back camera
-      var back = devices.filter(function(d) {
-        return /back|rear|environment/i.test(d.label);
-      });
-      cameraId = back.length > 0 ? back[0].deviceId : devices[devices.length - 1].deviceId;
-    }
+    _html5QrScanner = new Html5Qrcode("scannerDiv");
+
+    var config = {
+      fps: 10,
+      qrbox: { width: 250, height: 150 },
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    };
+
+    await _html5QrScanner.start(
+      { facingMode: "environment" },
+      config,
+      function onScanSuccess(decodedText) {
+        if (statusEl) statusEl.textContent = "Barcode erkannt: " + decodedText + " - lade Produkt...";
+        stopBarcodeScanner();
+        lookupBarcode(decodedText);
+      },
+      function onScanFailure() { /* normal - no barcode in frame yet */ }
+    );
 
     if (statusEl) statusEl.textContent = "Barcode in den Rahmen halten...";
 
-    await _barcodeScanner.decodeFromVideoDevice(cameraId, videoEl, function(result, err) {
-      if (result) {
-        var barcode = result.getText();
-        if (statusEl) statusEl.textContent = "Barcode erkannt: " + barcode + " — lade Produkt...";
-        stopBarcodeScanner();
-        lookupBarcode(barcode);
-      }
-      // Ignore errors (no barcode found yet is normal)
-    });
-
   } catch(e) {
-    if (statusEl) statusEl.textContent = "Fehler: " + e.message;
-    _scannerActive = false;
-    var scanBtn2 = document.getElementById("scanBtn");
-    if (scanBtn2) scanBtn2.style.background = "#29b6f6";
+    var msg = "Fehler: " + e.message;
+    if (e.name === "NotAllowedError" || (e.message && e.message.indexOf("Permission") >= 0)) {
+      msg = "Kamera-Zugriff wurde verweigert. Bitte in den Browser-Einstellungen erlauben.";
+    }
+    if (e.name === "NotFoundError") msg = "Keine Kamera gefunden.";
+    if (e.name === "NotReadableError") msg = "Kamera wird bereits von einer anderen App verwendet.";
+    if (statusEl) statusEl.textContent = msg;
+    console.error("Scanner error:", e);
+    resetScanBtn();
   }
 }
 
 function stopBarcodeScanner() {
-  if (_barcodeScanner) {
-    try { _barcodeScanner.reset(); } catch(e) {}
-    _barcodeScanner = null;
+  if (_html5QrScanner) {
+    try {
+      _html5QrScanner.stop().then(function() {
+        try { _html5QrScanner.clear(); } catch(e) {}
+      }).catch(function() {});
+    } catch(e) {}
+    _html5QrScanner = null;
   }
   _scannerActive = false;
   var container = document.getElementById("scannerContainer");
-  var scanBtn   = document.getElementById("scanBtn");
-  var video     = document.getElementById("scannerVideo");
+  var scanBtn    = document.getElementById("scanBtn");
   if (container) container.style.display = "none";
   if (scanBtn)   scanBtn.style.background = "#29b6f6";
-  // Stop camera stream
-  if (video && video.srcObject) {
-    var tracks = video.srcObject.getTracks();
-    tracks.forEach(function(t) { t.stop(); });
-    video.srcObject = null;
-  }
 }
 
 async function lookupBarcode(barcode) {
@@ -1670,14 +1742,17 @@ async function searchFood() {
   if (statusEl) statusEl.textContent = "Suche...";
   if (resultsEl) resultsEl.innerHTML = "";
   try {
-    // Open Food Facts v2 API — CORS-kompatibel, kein Proxy nötig
-    var url = "https://world.openfoodfacts.org/api/v2/search?search_terms=" + encodeURIComponent(query)
-            + "&page_size=8&fields=product_name,brands,nutriments"
-            + "&cc=de&lc=de";
-    var resp = await fetch(url, {
-      headers: { "User-Agent": "CoachBjoernApp/1.0 (stefan@coachbjoern)" }
-    });
-    if (!resp.ok) throw new Error("API Fehler " + resp.status);
+    // Open Food Facts legacy search (cgi/search.pl) - haeufig zuverlaessiger als v2 fuer Browser-Fetch
+    var url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(query)
+            + "&search_simple=1&action=process&json=1&page_size=8"
+            + "&fields=product_name,brands,nutriments";
+    var resp;
+    try {
+      resp = await fetch(url);
+    } catch(fetchErr) {
+      throw new Error("Netzwerkfehler - pruefe Internetverbindung. (" + fetchErr.message + ")");
+    }
+    if (!resp.ok) throw new Error("Server antwortete mit Status " + resp.status);
     var data = await resp.json();
     var products = (data.products || []).filter(function(p) {
       return p.product_name && p.nutriments;
@@ -1826,10 +1901,13 @@ function restoreTrelloSettings() {
   if (document.getElementById("trelloListName")) document.getElementById("trelloListName").value = s.listName || "";
 }
 
+var _trelloCardsCache = [];
+
 async function loadTrelloCards() {
   var s = loadTrelloSettings();
   var statusEl = document.getElementById("trelloStatus");
   var cardsEl  = document.getElementById("trelloCards");
+  var searchInp = document.getElementById("trelloSearchInput");
   if (!s || !s.apiKey || !s.token || !s.boardId) {
     if (statusEl) statusEl.textContent = "Bitte erst Einstellungen speichern.";
     return;
@@ -1879,45 +1957,79 @@ async function loadTrelloCards() {
       return card.due.slice(0,10) === today;
     }) : allCards;
 
-    // 4. Render
-    if (statusEl) statusEl.textContent = todayCards.length + " Eintraege" + (today ? " fuer " + today : "");
-    if (cardsEl) {
-      var html = "";
-      todayCards.forEach(function(card) {
-        var labelHtml = "";
-        if (card.labels && card.labels.length > 0) {
-          card.labels.forEach(function(lbl) {
-            var colors = { green:"#4caf50", yellow:"#ffb300", red:"#e53935", blue:"#29b6f6", purple:"#9c27b0", orange:"#ff9800" };
-            var bg = colors[lbl.color] || "#555";
-            labelHtml += '<span style="background:' + bg + ';color:#000;font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:4px;">' + (lbl.name || lbl.color) + '</span>';
-          });
-        }
-        var descText = card.desc ? card.desc.slice(0,120) + (card.desc.length > 120 ? "..." : "") : "";
-        var cardName = card.name.replace(/'/g, "\\'");
-        html += '<div class="trello-card-draggable" draggable="true" data-card-name="' + card.name.replace(/"/g, '&quot;') + '" ondragstart="onTrelloDragStart(event)">';
-        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">';
-        html += '<span style="font-size:0.7rem;color:#3a6a8a;">&#9776;</span>';
-        html += '<span style="font-weight:600;font-size:0.85rem;">' + card.name + '</span></div>';
-        if (labelHtml) html += '<div style="margin-bottom:3px;">' + labelHtml + '</div>';
-        if (descText)  html += '<div style="font-size:0.78rem;color:var(--muted);">' + descText + '</div>';
-        // Check if card has nutrient data in description
-        var hasNutrients = parseTrelloNutrients(card.desc) !== null;
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">';
-        html += '<div style="font-size:0.7rem;color:#3a6a8a;">' + card._listName + (card.due ? " &middot; " + card.due.slice(0,10) : "") + '</div>';
-        if (hasNutrients) {
-          var nutJson = JSON.stringify(parseTrelloNutrients(card.desc)).replace(/"/g, '&quot;');
-          var encName = (card.name || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;");
-          html += '<button onclick="addTrelloNutrientsById(this)" data-name="' + encName + '" data-nut="' + nutJson + '" style="background:#1a2e1a;border:1px solid #4caf50;color:#4caf50;border-radius:6px;padding:2px 8px;font-size:0.7rem;font-weight:700;cursor:pointer;">+ N&auml;hrwerte</button>';
-        }
-        html += '</div></div>';
-      });
-      cardsEl.innerHTML = html || '<div style="color:var(--muted);font-size:0.82rem;">Keine Eintraege.</div>';
+    // Cache fuer Suche
+    _trelloCardsCache = todayCards;
+    if (searchInp) {
+      searchInp.style.display = "block";
+      searchInp.value = "";
     }
+
+    renderTrelloCards(todayCards);
+
   } catch(e) {
     if (statusEl) statusEl.textContent = "Fehler: " + e.message;
     console.error("Trello error:", e);
   }
 }
+
+function renderTrelloCards(cardsToShow) {
+  var statusEl = document.getElementById("trelloStatus");
+  var cardsEl  = document.getElementById("trelloCards");
+  if (statusEl) statusEl.textContent = cardsToShow.length + " Eintraege";
+  if (!cardsEl) return;
+
+  if (cardsToShow.length === 0) {
+    cardsEl.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;">Keine Eintraege gefunden.</div>';
+    return;
+  }
+
+  var html = "";
+  cardsToShow.forEach(function(card) {
+    var labelHtml = "";
+    if (card.labels && card.labels.length > 0) {
+      card.labels.forEach(function(lbl) {
+        var colors = { green:"#4caf50", yellow:"#ffb300", red:"#e53935", blue:"#29b6f6", purple:"#9c27b0", orange:"#ff9800" };
+        var bg = colors[lbl.color] || "#555";
+        labelHtml += '<span style="background:' + bg + ';color:#000;font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:4px;">' + (lbl.name || lbl.color) + '</span>';
+      });
+    }
+    var descText = card.desc ? card.desc.slice(0,120) + (card.desc.length > 120 ? "..." : "") : "";
+    html += '<div class="trello-card-draggable" draggable="true" data-card-name="' + card.name.replace(/"/g, '&quot;') + '" ondragstart="onTrelloDragStart(event)">';
+    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">';
+    html += '<span style="font-size:0.7rem;color:#3a6a8a;">&#9776;</span>';
+    html += '<span style="font-weight:600;font-size:0.85rem;">' + card.name + '</span></div>';
+    if (labelHtml) html += '<div style="margin-bottom:3px;">' + labelHtml + '</div>';
+    if (descText)  html += '<div style="font-size:0.78rem;color:var(--muted);">' + descText + '</div>';
+
+    var hasNutrients = parseTrelloNutrients(card.desc) !== null;
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">';
+    html += '<div style="font-size:0.7rem;color:#3a6a8a;">' + card._listName + (card.due ? " &middot; " + card.due.slice(0,10) : "") + '</div>';
+    if (hasNutrients) {
+      var nutJson = JSON.stringify(parseTrelloNutrients(card.desc)).replace(/"/g, '&quot;');
+      var encName = (card.name || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;");
+      html += '<button onclick="addTrelloNutrientsById(this)" data-name="' + encName + '" data-nut="' + nutJson + '" style="background:#1a2e1a;border:1px solid #4caf50;color:#4caf50;border-radius:6px;padding:2px 8px;font-size:0.7rem;font-weight:700;cursor:pointer;">+ N&auml;hrwerte</button>';
+    }
+    html += '</div></div>';
+  });
+
+  cardsEl.innerHTML = html;
+}
+
+function filterTrelloCards() {
+  var searchInp = document.getElementById("trelloSearchInput");
+  var query = searchInp ? searchInp.value.trim().toLowerCase() : "";
+  if (!query) {
+    renderTrelloCards(_trelloCardsCache);
+    return;
+  }
+  var filtered = _trelloCardsCache.filter(function(card) {
+    var nameMatch = card.name && card.name.toLowerCase().indexOf(query) >= 0;
+    var descMatch = card.desc && card.desc.toLowerCase().indexOf(query) >= 0;
+    return nameMatch || descMatch;
+  });
+  renderTrelloCards(filtered);
+}
+
 
 // ============================================================
 // DATUM-RESET: Felder leeren wenn neues Datum ohne Daten
