@@ -339,6 +339,7 @@
 <section id="today" class="tab-page">
   <div class="card">
     <h2>Tages-Check</h2>
+    <label>Datum</label><input id="todayDate" type="date">
     <label>Energie (1-10)</label><input id="energy" type="number" min="1" max="10" placeholder="z.B. 7">
     <label>Motivation (1-10)</label><input id="motivation" type="number" min="1" max="10" placeholder="z.B. 8">
     <label>Wade links (0-10)</label><input id="calfLeft" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
@@ -348,6 +349,7 @@
   <div class="garmin-card">
     <h2>Garmin Connect</h2>
     <p class="sub">Werte aus Garmin Connect App manuell uebertragen</p>
+    <label>Datum</label><input id="garminDate" type="date">
     <div class="garmin-grid">
       <div><label>Body Battery</label><input id="bodyBattery" type="number" min="0" max="100" placeholder="0-100"></div>
       <div><label>Schlaf (h)</label><input id="garminSleep" type="number" step="0.1" placeholder="z.B. 7.5"></div>
@@ -413,6 +415,12 @@
 
 <!-- KRAFT -->
 <section id="strength" class="tab-page">
+  <div class="card" style="background:#0d1b2a;border:1px solid #1a3a5c;">
+    <h2 style="color:#29b6f6;">Trainingswoche</h2>
+    <label>Datum (fuer aktuelle Trainingswoche)</label>
+    <input id="strengthDate" type="date">
+    <p style="font-size:0.75rem;color:#5a8ab0;margin-top:6px;">Bezieht sich auf die Kraftwerte dieser Woche</p>
+  </div>
   <div id="strengthContainer"></div>
 </section>
 
@@ -951,6 +959,12 @@ function renderStrength() {
     return h;
   }
   c.innerHTML = section("Kraft A", strengthA) + section("Kraft B", strengthB);
+
+  // strengthFields dynamisch befuellen fuer Datum-Reset
+  strengthFields = [];
+  strengthA.concat(strengthB).forEach(function(ex) {
+    strengthFields.push("str-" + ex.name.replace(/ /g, "-"));
+  });
 }
 
 // ============================================================
@@ -987,7 +1001,10 @@ function showToast(msg) {
 }
 function confirmSave(sec) {
   saveData();
+  if (sec === "today")     saveDateEntry("todayDate",     todayFields);
+  if (sec === "garmin")    saveDateEntry("garminDate",    garminFields);
   if (sec === "training")  saveDateEntry("runDate",       trainingFields);
+  if (sec === "strength")  saveDateEntry("strengthDate",  strengthFields);
   if (sec === "nutrition") saveDateEntry("nutritionDate", nutritionFields);
   if (sec === "recovery")  saveDateEntry("recoveryDate",  recoveryFields);
   var msgs = {
@@ -1569,57 +1586,8 @@ function stopBarcodeScanner() {
   if (scanBtn)   scanBtn.style.background = "#29b6f6";
 }
 
-async function lookupBarcode(barcode) {
-  var statusEl  = document.getElementById("foodSearchStatus");
-  var resultsEl = document.getElementById("foodSearchResults");
-  var searchInp = document.getElementById("foodSearchInput");
-  if (statusEl)  statusEl.textContent = "Suche Barcode " + barcode + "...";
-  if (resultsEl) resultsEl.innerHTML = "";
-  if (searchInp) searchInp.value = barcode;
-
-  try {
-    // CORS-kompatibler Endpoint ohne custom Headers
-    var url = "https://world.openfoodfacts.org/api/v0/product/" + barcode + ".json";
-    var resp = await fetch(url, { mode: "cors" });
-    if (!resp.ok) throw new Error("API Fehler " + resp.status);
-    var data = await resp.json();
-
-    if (data.status === 0 || !data.product) {
-      if (statusEl) statusEl.textContent = "Produkt nicht gefunden. Barcode: " + barcode;
-      return;
-    }
-
-    var p = data.product;
-    var n = p.nutriments || {};
-    var kcal    = Math.round(n['energy-kcal_100g'] || n['energy-kcal'] || (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0) || 0);
-    var protein = (n['proteins_100g']      || 0).toFixed(1);
-    var carbs   = (n['carbohydrates_100g'] || 0).toFixed(1);
-    var fat     = (n['fat_100g']           || 0).toFixed(1);
-    var fiber   = (n['fiber_100g']         || 0).toFixed(1);
-    var sugar   = (n['sugars_100g']        || 0).toFixed(1);
-    var name    = p.product_name || "Produkt";
-    var brand   = p.brands ? p.brands.split(',')[0].trim() : '';
-
-    if (statusEl) statusEl.textContent = "Gefunden: " + name;
-
-    var nutData = JSON.stringify({ kcal:kcal, protein:protein, carbs:carbs, fat:fat, fiber:fiber, sugar:sugar });
-    var html = '<div class="food-search-result" onclick="addFoodFromSearch(this)"'
-             + ' data-name="' + name.replace(/"/g, '&quot;') + '"'
-             + ' data-nut="' + nutData.replace(/"/g, '&quot;') + '">'
-             + '<div class="fs-name">' + name + ' <span style="font-size:0.7rem;color:var(--accent);">&#10003; Barcode</span></div>'
-             + (brand ? '<div class="fs-brand">' + brand + '</div>' : '')
-             + '<div class="fs-nut">' + kcal + ' kcal &middot; P: ' + protein + 'g &middot; KH: ' + carbs + 'g &middot; F: ' + fat + 'g'
-             + (parseFloat(fiber) > 0 ? ' &middot; BS: ' + fiber + 'g' : '') + ' <span style="color:var(--accent);font-size:0.7rem;">(pro 100g)</span></div>'
-             + '</div>';
-    if (resultsEl) resultsEl.innerHTML = html;
-
-  } catch(e) {
-    if (statusEl) statusEl.textContent = "Fehler beim Laden: " + e.message;
-  }
-}
-
 // ============================================================
-// NÄHRWERTE: Log + Open Food Facts + Trello Parser
+// NAEHRWERTE: Tages-Log
 // ============================================================
 var NUTRIENT_LOG_KEY = "coach_bjoern_nutrient_log";
 
@@ -1629,7 +1597,7 @@ function getNutrientLog() {
   if (!raw) return { date: today, entries: [] };
   try {
     var log = JSON.parse(raw);
-    if (log.date !== today) return { date: today, entries: [] }; // new day = fresh log
+    if (log.date !== today) return { date: today, entries: [] };
     return log;
   } catch(e) { return { date: today, entries: [] }; }
 }
@@ -1676,7 +1644,6 @@ function updateNutrientSummary() {
   setEl("sumFiber",   totals.fiber.toFixed(1));
   setEl("sumSugar",   totals.sugar.toFixed(1));
 
-  // Entry list
   var entriesEl = document.getElementById("nutrientEntries");
   if (entriesEl) {
     if (log.entries.length === 0) {
@@ -1711,28 +1678,54 @@ function clearNutrientLog() {
   showToast("Tageslog geleert");
 }
 
-// Parse Naehrwerte aus Trello-Karten-Beschreibung (Format: "Kalorien: 450, Protein: 35g, KH: 40g, Fett: 12g")
 function parseTrelloNutrients(desc) {
   if (!desc) return null;
   function extract(keys) {
     for (var i = 0; i < keys.length; i++) {
-      var re = new RegExp(keys[i] + '[:\s]+([\d.]+)', 'i');
+      var re = new RegExp(keys[i] + '[:\\s]+([\\d.]+)', 'i');
       var m = desc.match(re);
       if (m) return parseFloat(m[1]);
     }
     return 0;
   }
   var kcal    = extract(['kalorien','kcal','energie','calories']);
-  var protein = extract(['protein','eiweiss','eiwei\xdf']);
+  var protein = extract(['protein','eiweiss']);
   var carbs   = extract(['kohlenhydrate','carbs','kh']);
   var fat     = extract(['fett','fat']);
-  var fiber   = extract(['ballaststoffe','fiber','ballaststoff']);
+  var fiber   = extract(['ballaststoffe','fiber']);
   var sugar   = extract(['zucker','sugar']);
   if (kcal === 0 && protein === 0 && carbs === 0) return null;
   return { kcal: kcal, protein: protein, carbs: carbs, fat: fat, fiber: fiber, sugar: sugar };
 }
 
-// Open Food Facts API
+function addTrelloNutrients(name, nutJson) {
+  var per100;
+  try { per100 = JSON.parse(nutJson); } catch(e) { return; }
+  addNutrientEntry(name, per100, 100);
+}
+
+function addTrelloNutrientsById(btn) {
+  var name   = btn.dataset.name || "Trello-Eintrag";
+  var nutStr = btn.dataset.nut  || "{}";
+  var per100;
+  try { per100 = JSON.parse(nutStr); } catch(e) { return; }
+  addNutrientEntry(name, per100, 100);
+}
+
+
+async function fetchWithTimeout(url, ms) {
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, ms);
+  try {
+    var resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return resp;
+  } catch(e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
+}
+
 async function searchFood() {
   var query = document.getElementById("foodSearchInput") ? document.getElementById("foodSearchInput").value.trim() : "";
   var statusEl  = document.getElementById("foodSearchStatus");
@@ -1740,16 +1733,19 @@ async function searchFood() {
   if (!query) { if (statusEl) statusEl.textContent = "Bitte Lebensmittel eingeben."; return; }
   if (statusEl) statusEl.textContent = "Suche...";
   if (resultsEl) resultsEl.innerHTML = "";
+
+  var apiUrl = "https://world.openfoodfacts.org/cgi/search.pl?search_terms="
+             + encodeURIComponent(query)
+             + "&search_simple=1&action=process&json=1&page_size=6&fields=product_name,brands,nutriments";
+
+  var proxies = [
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl),
+    "https://corsproxy.io/?" + encodeURIComponent(apiUrl),
+    "https://thingproxy.freeboard.io/fetch/" + apiUrl
+  ];
+
   try {
-    // Nutze Open Food Facts ueber einen CORS-Proxy (allorigins)
-    var apiUrl = "https://world.openfoodfacts.org/cgi/search.pl?search_terms="
-               + encodeURIComponent(query)
-               + "&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,nutriments";
-    var proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(apiUrl);
-    var resp = await fetch(proxyUrl);
-    if (!resp.ok) throw new Error("Proxy Status " + resp.status);
-    var wrapper = await resp.json();
-    var data = JSON.parse(wrapper.contents);
+    var data = await raceFetchJSON(proxies, 6000);
     var products = (data.products || []).filter(function(p) {
       return p.product_name && p.nutriments;
     });
@@ -1767,6 +1763,43 @@ async function searchFood() {
   }
 }
 
+function raceFetchJSON(urls, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    var failedCount = 0;
+    var settled = false;
+    var timeoutId = setTimeout(function() {
+      if (!settled) { settled = true; reject(new Error("Zeitueberschreitung nach " + (timeoutMs/1000) + "s")); }
+    }, timeoutMs);
+
+    urls.forEach(function(url) {
+      fetch(url).then(function(resp) {
+        if (!resp.ok) throw new Error("Status " + resp.status);
+        return resp.text();
+      }).then(function(text) {
+        if (settled) return;
+        var data;
+        try {
+          data = JSON.parse(text);
+          if (data.contents) data = JSON.parse(data.contents);
+        } catch(parseErr) { throw parseErr; }
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeoutId);
+          resolve(data);
+        }
+      }).catch(function() {
+        failedCount++;
+        if (failedCount === urls.length && !settled) {
+          settled = true;
+          clearTimeout(timeoutId);
+          reject(new Error("Alle Proxies fehlgeschlagen"));
+        }
+      });
+    });
+  });
+}
+
+
 async function lookupBarcode(barcode) {
   var statusEl  = document.getElementById("foodSearchStatus");
   var resultsEl = document.getElementById("foodSearchResults");
@@ -1774,13 +1807,16 @@ async function lookupBarcode(barcode) {
   if (statusEl)  statusEl.textContent = "Suche Barcode " + barcode + "...";
   if (resultsEl) resultsEl.innerHTML = "";
   if (searchInp) searchInp.value = barcode;
+
+  var apiUrl = "https://world.openfoodfacts.org/api/v0/product/" + barcode + ".json";
+  var proxies = [
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl),
+    "https://corsproxy.io/?" + encodeURIComponent(apiUrl),
+    "https://thingproxy.freeboard.io/fetch/" + apiUrl
+  ];
+
   try {
-    var apiUrl = "https://world.openfoodfacts.org/api/v0/product/" + barcode + ".json";
-    var proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(apiUrl);
-    var resp = await fetch(proxyUrl);
-    if (!resp.ok) throw new Error("Status " + resp.status);
-    var wrapper = await resp.json();
-    var data = JSON.parse(wrapper.contents);
+    var data = await raceFetchJSON(proxies, 6000);
     if (data.status === 0 || !data.product) {
       if (statusEl) statusEl.textContent = "Produkt nicht gefunden. Barcode: " + barcode;
       showManualNutrientInput("Produkt " + barcode);
@@ -1788,23 +1824,17 @@ async function lookupBarcode(barcode) {
     }
     var p = data.product;
     var n = p.nutriments || {};
-    var kcal    = Math.round(n["energy-kcal_100g"] || n["energy-kcal"] || (n["energy_100g"] ? n["energy_100g"] / 4.184 : 0) || 0);
-    var protein = (n["proteins_100g"]      || 0).toFixed(1);
-    var carbs   = (n["carbohydrates_100g"] || 0).toFixed(1);
-    var fat     = (n["fat_100g"]           || 0).toFixed(1);
-    var fiber   = (n["fiber_100g"]         || 0).toFixed(1);
-    var sugar   = (n["sugars_100g"]        || 0).toFixed(1);
-    var name    = p.product_name || "Produkt";
-    var brand   = p.brands ? p.brands.split(",")[0].trim() : "";
+    var name  = p.product_name || "Produkt";
+    var brand = p.brands ? p.brands.split(",")[0].trim() : "";
     if (statusEl) statusEl.textContent = "Gefunden: " + name;
-    var products = [{ product_name: name, brands: brand, nutriments: n }];
-    renderFoodResults(products, resultsEl);
+    renderFoodResults([{ product_name: name, brands: brand, nutriments: n }], resultsEl);
   } catch(e) {
     if (statusEl) statusEl.textContent = "Produkt nicht gefunden. Barcode: " + barcode;
     showManualNutrientInput("Produkt " + barcode);
     console.error("Barcode lookup error:", e);
   }
 }
+
 
 function renderFoodResults(products, resultsEl) {
   if (!resultsEl) return;
@@ -1886,20 +1916,6 @@ function addFoodFromSearch(el) {
   }
 }
 
-// Search on Enter key
-function addTrelloNutrients(name, nutJson) {
-  var per100;
-  try { per100 = JSON.parse(nutJson); } catch(e) { return; }
-  addNutrientEntry(name, per100, 100);
-}
-
-function addTrelloNutrientsById(btn) {
-  var name   = btn.dataset.name || "Trello-Eintrag";
-  var nutStr = btn.dataset.nut  || "{}";
-  var per100;
-  try { per100 = JSON.parse(nutStr); } catch(e) { return; }
-  addNutrientEntry(name, per100, 100);
-}
 
 function initFoodSearchEnter() {
   var inp = document.getElementById("foodSearchInput");
@@ -1984,6 +2000,40 @@ function restoreTrelloSettings() {
 }
 
 var _trelloCardsCache = [];
+var TRELLO_CACHE_KEY = "coach_bjoern_trello_cache";
+var TRELLO_CACHE_MAX_AGE_MS = 60 * 60 * 1000; // 1 Stunde
+
+function saveTrelloCache(cards) {
+  var cacheData = { timestamp: Date.now(), date: document.getElementById("nutritionDate") ? document.getElementById("nutritionDate").value : "", cards: cards };
+  try { localStorage.setItem(TRELLO_CACHE_KEY, JSON.stringify(cacheData)); } catch(e) {}
+}
+
+function loadTrelloCache() {
+  var raw = localStorage.getItem(TRELLO_CACHE_KEY);
+  if (!raw) return null;
+  try {
+    var cacheData = JSON.parse(raw);
+    var age = Date.now() - cacheData.timestamp;
+    var currentDate = document.getElementById("nutritionDate") ? document.getElementById("nutritionDate").value : "";
+    // Cache nur gueltig wenn nicht zu alt UND gleiches Datum gewaehlt
+    if (age < TRELLO_CACHE_MAX_AGE_MS && cacheData.date === currentDate) {
+      return cacheData.cards;
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
+function tryRestoreTrelloFromCache() {
+  var cached = loadTrelloCache();
+  var searchInp = document.getElementById("trelloSearchInput");
+  if (cached && cached.length > 0) {
+    _trelloCardsCache = cached;
+    if (searchInp) { searchInp.style.display = "block"; }
+    renderTrelloCards(cached);
+    var statusEl = document.getElementById("trelloStatus");
+    if (statusEl) statusEl.textContent = cached.length + " Eintraege (zwischengespeichert)";
+  }
+}
 
 async function loadTrelloCards() {
   var s = loadTrelloSettings();
@@ -2039,8 +2089,9 @@ async function loadTrelloCards() {
       return card.due.slice(0,10) === today;
     }) : allCards;
 
-    // Cache fuer Suche
+    // Cache fuer Suche (RAM + localStorage)
     _trelloCardsCache = todayCards;
+    saveTrelloCache(todayCards);
     if (searchInp) {
       searchInp.style.display = "block";
       searchInp.value = "";
@@ -2116,9 +2167,12 @@ function filterTrelloCards() {
 // ============================================================
 // DATUM-RESET: Felder leeren wenn neues Datum ohne Daten
 // ============================================================
-var trainingFields = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling"];
+var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling"];
 var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
 var recoveryFields  = ["sleep","restingHR","stress","soreness","recoveryNotes"];
+var todayFields      = ["energy","motivation","calfLeft","calfRight"];
+var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus"];
+var strengthFields   = []; // wird dynamisch befuellt sobald Kraftuebungen gerendert sind
 
 function resetFieldGroup(fields) {
   fields.forEach(function(id) {
@@ -2235,13 +2289,20 @@ document.addEventListener("DOMContentLoaded", function() {
   loadData();
   initFeelingButtons();
 
-  // Datum-Reset fuer Training, Ernaehrung, Recovery
+  // Datum-Reset fuer alle Bereiche mit Tagesbezug
+  onDateChange("todayDate",     todayFields);
+  onDateChange("garminDate",    garminFields);
   onDateChange("runDate",       trainingFields);
+  onDateChange("strengthDate",  strengthFields);
   onDateChange("nutritionDate", nutritionFields);
   onDateChange("recoveryDate",  recoveryFields);
 
-  // Bei Speichern: Datum-Entry sichern
-  document.getElementById("runCoachAnalysis"); // dummy ref
+  // Alle Datumsfelder default auf "heute" setzen, falls noch leer
+  var todayISO = new Date().toISOString().slice(0,10);
+  ["todayDate","garminDate","runDate","strengthDate","nutritionDate","recoveryDate"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && !el.value) el.value = todayISO;
+  });
 
   var inputs = document.querySelectorAll("input, textarea, select");
   for (var i = 0; i < inputs.length; i++) {
@@ -2249,18 +2310,12 @@ document.addEventListener("DOMContentLoaded", function() {
     inputs[i].addEventListener("keyup",  function() { saveData(); });
   }
 
-  var today = new Date().toISOString().split("T")[0];
-  var dateFields = ["runDate","nutritionDate","recoveryDate"];
-  for (var i = 0; i < dateFields.length; i++) {
-    var el = document.getElementById(dateFields[i]);
-    if (el && !el.value) el.value = today;
-  }
-
   updateAnalysis();
   updateStartPage();
   updateRecoveryGarmin();
   updateGoalDiff();
   restoreTrelloSettings();
+  tryRestoreTrelloFromCache();
   initMealDropZones();
   initFoodSearchEnter();
   updateNutrientSummary();
