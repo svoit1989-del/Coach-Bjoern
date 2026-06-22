@@ -2183,37 +2183,42 @@ function getStoredDates() {
   try { return JSON.parse(raw); } catch(e) { return {}; }
 }
 
+function applyDateLogic(dateFieldId, fieldsToReset) {
+  var el = document.getElementById(dateFieldId);
+  if (!el) return;
+  var chosenDate = el.value;
+  if (!chosenDate) return;
+  var dateKey = "date_entry_" + dateFieldId + "_" + chosenDate;
+  var existing = localStorage.getItem(dateKey);
+  if (!existing) {
+    resetFieldGroup(fieldsToReset);
+  } else {
+    try {
+      var saved = JSON.parse(existing);
+      Object.keys(saved).forEach(function(k) {
+        var fel = document.getElementById(k);
+        if (!fel) return;
+        if (fel.type === "checkbox") fel.checked = saved[k];
+        else fel.value = saved[k];
+      });
+      if (saved.runFeeling) restoreFeeling(saved.runFeeling);
+    } catch(e) {}
+  }
+}
+
 function onDateChange(dateFieldId, fieldsToReset) {
   var el = document.getElementById(dateFieldId);
   if (!el) return;
   el.addEventListener("change", function() {
     var chosenDate = el.value;
     if (!chosenDate) return;
-    // Check if we have stored data for this date
-    var stored = getStoredDates();
-    var storedDate = stored[dateFieldId] || "";
-    // If chosen date differs from stored and no existing entry, reset
-    if (chosenDate !== storedDate) {
-      // Check localStorage for a saved entry with this date
-      var dateKey = "date_entry_" + dateFieldId + "_" + chosenDate;
-      var existing = localStorage.getItem(dateKey);
-      if (!existing) {
-        resetFieldGroup(fieldsToReset);
-        showToast("Neues Datum - Felder zurueckgesetzt");
-      } else {
-        // Restore saved values for this date
-        try {
-          var saved = JSON.parse(existing);
-          Object.keys(saved).forEach(function(k) {
-            var fel = document.getElementById(k);
-            if (!fel) return;
-            if (fel.type === "checkbox") fel.checked = saved[k];
-            else fel.value = saved[k];
-          });
-          if (saved.runFeeling) restoreFeeling(saved.runFeeling);
-          showToast("Daten vom " + chosenDate + " geladen");
-        } catch(e) {}
-      }
+    var dateKey = "date_entry_" + dateFieldId + "_" + chosenDate;
+    var existing = localStorage.getItem(dateKey);
+    applyDateLogic(dateFieldId, fieldsToReset);
+    if (!existing) {
+      showToast("Neues Datum - Felder zurueckgesetzt");
+    } else {
+      showToast("Daten vom " + chosenDate + " geladen");
     }
   });
 }
@@ -2281,7 +2286,15 @@ document.addEventListener("DOMContentLoaded", function() {
   loadData();
   initFeelingButtons();
 
-  // Datum-Reset fuer alle Bereiche mit Tagesbezug
+  // Alle Datumsfelder IMMER zwingend auf "heute" setzen beim Oeffnen der App.
+  // loadData() koennte sonst ein altes gespeichertes Datum wiederherstellen.
+  var todayISO = new Date().toISOString().slice(0,10);
+  ["todayDate","garminDate","runDate","strengthDate","nutritionDate","recoveryDate"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = todayISO;
+  });
+
+  // Datum-Reset fuer alle Bereiche mit Tagesbezug (greift bei manueller Aenderung)
   onDateChange("todayDate",     todayFields);
   onDateChange("garminDate",    garminFields);
   onDateChange("runDate",       trainingFields);
@@ -2289,12 +2302,14 @@ document.addEventListener("DOMContentLoaded", function() {
   onDateChange("nutritionDate", nutritionFields);
   onDateChange("recoveryDate",  recoveryFields);
 
-  // Alle Datumsfelder default auf "heute" setzen, falls noch leer
-  var todayISO = new Date().toISOString().slice(0,10);
-  ["todayDate","garminDate","runDate","strengthDate","nutritionDate","recoveryDate"].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el && !el.value) el.value = todayISO;
-  });
+  // Direkt beim Start pruefen: gibt es fuer "heute" schon gespeicherte Werte?
+  // Falls nicht, Felder leeren (z.B. nach Mitternacht von gestern auf heute).
+  applyDateLogic("todayDate",     todayFields);
+  applyDateLogic("garminDate",    garminFields);
+  applyDateLogic("runDate",       trainingFields);
+  applyDateLogic("strengthDate",  strengthFields);
+  applyDateLogic("nutritionDate", nutritionFields);
+  applyDateLogic("recoveryDate",  recoveryFields);
 
   var inputs = document.querySelectorAll("input, textarea, select");
   for (var i = 0; i < inputs.length; i++) {
