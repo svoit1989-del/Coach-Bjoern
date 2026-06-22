@@ -409,6 +409,8 @@
       <button type="button" class="feel-btn" data-feel="schlecht">Schlecht</button>
     </div>
     <input type="hidden" id="runFeeling" value="">
+    <label>Notizen (fuer Coach-Anpassung)</label>
+    <textarea id="runNotes" rows="3" placeholder="z.B. Knie hat gezwickt, Wetter war heiss, Strecke war huegeliger als gedacht..."></textarea>
     <button class="btn" onclick="confirmSave('training')">Training speichern</button>
   </div>
 </section>
@@ -533,22 +535,11 @@
 
 <!-- RECOVERY -->
 <section id="recovery" class="tab-page">
-  <div class="card" style="background:#0d1b2a;border:1px solid #1a3a5c;">
-    <h2 style="color:#29b6f6;">Garmin Heute (automatisch)</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
-      <div style="background:#0a1520;border-radius:10px;padding:10px;"><div style="font-size:0.7rem;color:#5a8ab0;text-transform:uppercase;">Body Battery</div><div id="recBattery" style="font-size:1.2rem;font-weight:800;color:#29b6f6;">-</div></div>
-      <div style="background:#0a1520;border-radius:10px;padding:10px;"><div style="font-size:0.7rem;color:#5a8ab0;text-transform:uppercase;">Schlaf</div><div id="recGarminSleep" style="font-size:1.2rem;font-weight:800;color:#29b6f6;">-</div></div>
-      <div style="background:#0a1520;border-radius:10px;padding:10px;"><div style="font-size:0.7rem;color:#5a8ab0;text-transform:uppercase;">Ruhepuls</div><div id="recRHR" style="font-size:1.2rem;font-weight:800;color:#29b6f6;">-</div></div>
-      <div style="background:#0a1520;border-radius:10px;padding:10px;"><div style="font-size:0.7rem;color:#5a8ab0;text-transform:uppercase;">HRV</div><div id="recHRV" style="font-size:1.1rem;font-weight:800;color:#29b6f6;">-</div></div>
-      <div style="background:#0a1520;border-radius:10px;padding:10px;grid-column:span 2;"><div style="font-size:0.7rem;color:#5a8ab0;text-transform:uppercase;">Trainingsstatus</div><div id="recTrainingStatus" style="font-size:1.1rem;font-weight:800;color:#29b6f6;">-</div></div>
-    </div>
-    <p style="font-size:0.75rem;color:#3a6a8a;margin-top:8px;">Aus dem Heute-Tab - Garmin Connect</p>
-  </div>
   <div class="card">
     <h2>Recovery</h2>
     <label>Datum</label><input id="recoveryDate" type="date">
     <label>Schlaf (h)</label><input id="sleep" type="number" step="0.1" placeholder="z.B. 7.5">
-    <label>Ruhepuls manuell (bpm)</label><input id="restingHR" type="number" placeholder="z.B. 52">
+    <label>Ruhepuls (bpm)</label><input id="restingHR" type="number" placeholder="z.B. 52">
     <label>Stress (1-10)</label><input id="stress" type="number" min="1" max="10" placeholder="z.B. 4">
     <label>Muskelkater (1-10)</label><input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3">
     <label>Notizen</label><textarea id="recoveryNotes" rows="2" placeholder="Besonderheiten..."></textarea>
@@ -1154,19 +1145,18 @@ function updateAnalysis() {
 // ============================================================
 function updateRecoveryGarmin() {
   var d = collectData();
-  function setEl(id, val, color) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = val || "-";
-    if (color) el.style.color = color;
+  // Garmin-Werte (Schlaf, Ruhepuls) automatisch in Recovery-Felder uebernehmen,
+  // aber nur wenn diese noch leer sind (kein Ueberschreiben manueller Eingaben)
+  var sleepEl = document.getElementById("sleep");
+  if (sleepEl && !sleepEl.value && d.garminSleep) {
+    sleepEl.value = d.garminSleep;
+    saveData();
   }
-  var battVal = parseInt(d.bodyBattery || 0);
-  var battColor = !d.bodyBattery ? "#29b6f6" : battVal >= 70 ? "var(--accent)" : battVal >= 40 ? "var(--warning)" : "var(--danger)";
-  setEl("recBattery",       d.bodyBattery ? d.bodyBattery + " / 100" : "-", battColor);
-  setEl("recGarminSleep",   d.garminSleep ? d.garminSleep + " h" : "-", "#29b6f6");
-  setEl("recRHR",           d.garminRHR   ? d.garminRHR + " bpm" : "-", "#29b6f6");
-  setEl("recHRV",           d.garminHRV   || "-", "#29b6f6");
-  setEl("recTrainingStatus",d.garminTrainingStatus || "-", "#29b6f6");
+  var rhrEl = document.getElementById("restingHR");
+  if (rhrEl && !rhrEl.value && d.garminRHR) {
+    rhrEl.value = d.garminRHR;
+    saveData();
+  }
 }
 
 // ============================================================
@@ -1196,7 +1186,8 @@ function generateExport() {
     + "-- LAUFTRAINING (" + (d.runDate||"-") + ") --\n"
     + "km: " + (d.runKm||"-") + " | Zeit: " + (d.runTime||"-") + " | Pace: " + (d.runPace||"-") + "\n"
     + "HF: " + (d.runHF||"-") + " | Kadenz: " + (d.runCadence||"-") + " | BKT: " + (d.runBKT||"-") + " ms\n"
-    + "RPE: " + (d.runRPE||"-") + " | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n\n"
+    + "RPE: " + (d.runRPE||"-") + " | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n"
+    + (d.runNotes ? "Notizen: " + d.runNotes + "\n" : "") + "\n"
     + "-- RECOVERY (" + (d.recoveryDate||"-") + ") --\n"
     + "Schlaf: " + (d.sleep||"-") + " h | Ruhepuls: " + (d.restingHR||"-") + " | Stress: " + (d.stress||"-") + " | Kater: " + (d.soreness||"-") + "\n\n"
     + "-- ERNAEHRUNG (" + (d.nutritionDate||"-") + ") --\n" + nutrition + "\n"
@@ -1230,7 +1221,8 @@ function importPlan() {
   for (var j = 0; j < parsed.length; j++) trainingPlan.push(parsed[j]);
   localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(trainingPlan));
   renderPlan();
-  statusEl.innerHTML = '<span style="color:var(--accent)">Plan mit ' + parsed.length + ' Wochen aktiviert!</span>';
+  document.getElementById("importPlanText").value = "";
+  statusEl.innerHTML = '<span style="color:var(--accent)">Plan mit ' + parsed.length + ' Wochen aktiviert! Feld geleert fuer naechsten Import.</span>';
   showToast("Neuer Plan aktiviert!");
 }
 
@@ -2167,7 +2159,7 @@ function filterTrelloCards() {
 // ============================================================
 // DATUM-RESET: Felder leeren wenn neues Datum ohne Daten
 // ============================================================
-var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling"];
+var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes"];
 var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
 var recoveryFields  = ["sleep","restingHR","stress","soreness","recoveryNotes"];
 var todayFields      = ["energy","motivation","calfLeft","calfRight"];
