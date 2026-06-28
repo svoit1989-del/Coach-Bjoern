@@ -661,6 +661,18 @@ const trainingPlan = [
   { week:12, focus:"Testwoche",       days:[] }
 ];
 
+// Platzhalter-Wochen nach dem 12-Wochen-Plan: warten auf naechsten Import.
+// Werden automatisch ergaenzt, damit der Plan nie "leer" endet.
+var PLACEHOLDER_WEEKS_COUNT = 4;
+for (var _pw = 1; _pw <= PLACEHOLDER_WEEKS_COUNT; _pw++) {
+  trainingPlan.push({
+    week: 12 + _pw,
+    focus: "Wartet auf neuen Plan",
+    days: [],
+    isPlaceholder: true
+  });
+}
+
 const strengthA = [
   { name:"Kniebeuge",               sets:"3 x 8",  link:"https://www.youtube.com/watch?v=ultWZbUMPL8" },
   { name:"Rumaenisches Kreuzheben", sets:"3 x 8",  link:"https://www.youtube.com/watch?v=JCXUYuzwNrM" },
@@ -877,17 +889,26 @@ function renderPlan() {
   for (var wi = 0; wi < trainingPlan.length; wi++) {
     var w = trainingPlan[wi];
     var hasDays = w.days.length > 0;
+    var isPlaceholder = w.isPlaceholder === true;
     var kwLabel = formatKWLabel(w.week);
-    html += '<div class="week-card">';
+    html += '<div class="week-card"' + (isPlaceholder ? ' style="opacity:0.7;border:1px dashed #444;"' : '') + '>';
     html += '<div class="week-header" onclick="toggleWeek(' + w.week + ')">';
     html += '<div><div style="display:flex;align-items:center;gap:6px;"><span>Woche ' + w.week + '</span><span class="week-kw">' + kwLabel + '</span></div>';
-    html += '<div style="margin-top:3px;"><span class="' + (hasDays ? "week-badge" : "week-focus-badge") + '">' + w.focus + '</span></div></div>';
+    var badgeClass = isPlaceholder ? "week-focus-badge" : (hasDays ? "week-badge" : "week-focus-badge");
+    var badgeStyle = isPlaceholder ? ' style="color:#ff9800;border:1px solid #ff9800;background:transparent;"' : '';
+    html += '<div style="margin-top:3px;"><span class="' + badgeClass + '"' + badgeStyle + '>' + (isPlaceholder ? "&#9888; " : "") + w.focus + '</span></div></div>';
     if (hasDays) {
       html += '<button class="ical-btn" onclick="event.stopPropagation();exportWeekICS(' + w.week + ')">&#128197; .ics</button>';
     }
     html += '</div>';
     html += '<div id="week-' + w.week + '" class="week-content">';
-    if (hasDays) {
+    if (isPlaceholder) {
+      html += '<div style="background:#2a1f0d;border:1px solid #ff9800;border-radius:10px;padding:12px;">'
+            + '<div style="color:#ff9800;font-weight:700;font-size:0.85rem;margin-bottom:6px;">&#9888; Noch kein Plan fuer diese Woche</div>'
+            + '<div style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Exportiere den Wochenreport und lass Coach Bjoern (ChatGPT) einen neuen Plan erstellen. Importiere ihn anschliessend im Reiter "Im/Export".</div>'
+            + '<button class="btn" style="margin:0;" onclick="switchTab(\'export\')">Zum Import-Bereich</button>'
+            + '</div>';
+    } else if (hasDays) {
       for (var di = 0; di < w.days.length; di++) {
         var d = w.days[di];
         var color = typeColors[d.type] || "var(--accent)";
@@ -1403,6 +1424,19 @@ function importPlan() {
   if (!valid) { statusEl.innerHTML = '<span style="color:var(--danger)">Struktur fehlerhaft.</span>'; return; }
   trainingPlan.length = 0;
   for (var j = 0; j < parsed.length; j++) trainingPlan.push(parsed[j]);
+
+  // Nach dem importierten Plan wieder Platzhalter-Wochen anhaengen,
+  // damit der Plan nie "leer" endet (Wochenzahl knuepft an die letzte importierte Woche an)
+  var lastWeekNum = parsed[parsed.length - 1].week;
+  for (var _pw2 = 1; _pw2 <= PLACEHOLDER_WEEKS_COUNT; _pw2++) {
+    trainingPlan.push({
+      week: lastWeekNum + _pw2,
+      focus: "Wartet auf neuen Plan",
+      days: [],
+      isPlaceholder: true
+    });
+  }
+
   localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(trainingPlan));
   renderPlan();
   document.getElementById("importPlanText").value = "";
@@ -1547,8 +1581,21 @@ function updateStartPage() {
       if (nextFound.dauer)   parts.push(nextFound.dauer);
       detailEl.textContent = parts.join(" | ") || "Woche " + nextFound.week;
     } else {
-      titleEl.textContent  = "Naechste Woche geht's weiter!";
-      detailEl.textContent = "";
+      // Pruefen ob die aktuelle Woche ein Platzhalter ist (Plan zu Ende)
+      var curRange = getWeekDateRange(now);
+      var inPlaceholder = false;
+      for (var pwi = 0; pwi < trainingPlan.length; pwi++) {
+        if (!trainingPlan[pwi].isPlaceholder) continue;
+        var pwInfo = getKWMonday(trainingPlan[pwi].week);
+        if (pwInfo.monday >= curRange.monday) { inPlaceholder = true; break; }
+      }
+      if (inPlaceholder) {
+        titleEl.innerHTML  = '<span style="color:#ff9800;">&#9888; Plan-Ende erreicht</span>';
+        detailEl.innerHTML = 'Neuen Plan importieren - <a href="#" onclick="switchTab(\'export\');return false;" style="color:#29b6f6;">zum Import</a>';
+      } else {
+        titleEl.textContent  = "Naechste Woche geht's weiter!";
+        detailEl.textContent = "";
+      }
     }
   }
 
