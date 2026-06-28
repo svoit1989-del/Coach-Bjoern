@@ -301,7 +301,7 @@
       <span class="dash-tile-icon">&#128716;</span>
       <span class="dash-tile-label">Schlaf</span>
       <span class="dash-tile-value" id="tileSleep">-</span>
-      <span class="dash-tile-sub">Stunden</span>
+      <span class="dash-tile-sub">Std:Min</span>
     </div>
     <div class="dash-tile" onclick="switchTab('training')">
       <span class="dash-tile-icon">&#128205;</span>
@@ -352,7 +352,7 @@
     <label>Datum</label><input id="garminDate" type="date">
     <div class="garmin-grid">
       <div><label>Body Battery</label><input id="bodyBattery" type="number" min="0" max="100" placeholder="0-100"></div>
-      <div><label>Schlaf (h)</label><input id="garminSleep" type="number" step="0.1" placeholder="z.B. 7.5"></div>
+      <div><label>Schlaf (Std:Min)</label><input id="garminSleep" type="time" placeholder="07:30"></div>
       <div><label>Ruhepuls (bpm)</label><input id="garminRHR" type="number" placeholder="z.B. 52"></div>
       <div>
         <label>HRV Status</label>
@@ -394,10 +394,10 @@
     <label>Kilometer</label><input id="runKm" type="number" step="0.1" placeholder="z.B. 7.2">
     <label>Zeit (mm:ss)</label><input id="runTime" placeholder="z.B. 44:30">
     <label>Pace (min/km)</label><input id="runPace" placeholder="z.B. 6:10">
+    <label>Hoehenmeter (m)</label><input id="runElevation" type="number" placeholder="z.B. 45">
     <label>Herzfrequenz (bpm)</label><input id="runHF" type="number" placeholder="z.B. 145">
     <label>Kadenz (spm)</label><input id="runCadence" type="number" placeholder="z.B. 172">
     <label>Bodenkontaktzeit BKT (ms)</label><input id="runBKT" type="number" placeholder="z.B. 265">
-    <label>Hoehenmeter (m)</label><input id="runElevation" type="number" placeholder="z.B. 45">
     <label>Vertikale Bewegung (cm)</label><input id="runVertical" type="number" step="0.1" placeholder="z.B. 8.4">
     <label>RPE (1-10)</label><input id="runRPE" type="number" min="1" max="10" placeholder="z.B. 6">
     <label>Wie hat sich das Training angefuehlt?</label>
@@ -538,7 +538,7 @@
   <div class="card">
     <h2>Recovery</h2>
     <label>Datum</label><input id="recoveryDate" type="date">
-    <label>Schlaf (h)</label><input id="sleep" type="number" step="0.1" placeholder="z.B. 7.5">
+    <label>Schlaf (Std:Min)</label><input id="sleep" type="time" placeholder="07:30">
     <label>Ruhepuls (bpm)</label><input id="restingHR" type="number" placeholder="z.B. 52">
     <label>Stress (1-10)</label><input id="stress" type="number" min="1" max="10" placeholder="z.B. 4">
     <label>Muskelkater (1-10)</label><input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3">
@@ -1024,13 +1024,20 @@ function calcEconomyScore(hf, cadence, bkt, weight) {
   if (weight < 70) s += 10;
   return Math.min(s, 100);
 }
-function calcCompletion(km) { return Math.round((km / 7) * 100); }
+function calcCompletion(km, targetKm) { return Math.round((km / (targetKm || 20)) * 100); }
 function weightProgress(cur, goal) {
   var d = cur - goal;
   if (d <= 0) return "Ziel erreicht!";
   if (d <= 2) return "Noch " + d.toFixed(1) + " kg";
   return d.toFixed(1) + " kg offen";
 }
+function sleepToHours(timeStr) {
+  // Wandelt "07:30" in 7.5 (Dezimalstunden) um, fuer Vergleiche/Berechnungen
+  if (!timeStr || timeStr.indexOf(":") === -1) return parseFloat(timeStr) || 0;
+  var parts = timeStr.split(":");
+  return parseInt(parts[0] || 0) + (parseInt(parts[1] || 0) / 60);
+}
+
 function getRecommendation(completion, calf, sleep) {
   if (calf >= 6) return "Wade kritisch. Long Run -20%. Kein Intervall. Fokus: Kraft + Regeneration.";
   if (completion >= 90 && calf <= 2 && sleep >= 7) return "Sehr gute Woche! Umfang +5%, Long Run +1 km. Protein leicht erhoehen.";
@@ -1043,12 +1050,12 @@ function runCoachAnalysis() {
   var goalW    = parseFloat(document.getElementById("goalWeight").value    || 69);
   var calfL    = parseFloat(document.getElementById("calfLeft").value      || 0);
   var calfR    = parseFloat(document.getElementById("calfRight").value     || 0);
-  var sleep    = parseFloat(document.getElementById("sleep").value         || 0);
+  var sleep    = sleepToHours(document.getElementById("sleep").value);
   var pace     = document.getElementById("runPace").value;
   var hf       = parseFloat(document.getElementById("runHF").value         || 0);
   var cadence  = parseFloat(document.getElementById("runCadence").value    || 0);
   var bkt      = parseFloat(document.getElementById("runBKT").value        || 0);
-  var km       = parseFloat(document.getElementById("runKm").value         || 0);
+  var km       = getWeeklyKm();
   var feeling  = document.getElementById("runFeeling").value;
   var hrv      = document.getElementById("garminHRV").value;
   var battery  = document.getElementById("bodyBattery").value;
@@ -1056,7 +1063,7 @@ function runCoachAnalysis() {
   var calfScore   = Math.max(calfL, calfR);
   var calfSt      = getCalfStatus(calfScore);
   var econScore   = calcEconomyScore(hf, cadence, bkt, weight);
-  var completion  = calcCompletion(km);
+  var completion  = calcCompletion(km, getPlanWeekTargetKm());
   var rec         = getRecommendation(completion, calfScore, sleep);
   var wt          = weightProgress(weight, goalW);
   var fMap = { "sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht" };
@@ -1068,7 +1075,7 @@ function runCoachAnalysis() {
     + '<div class="metric"><div class="metric-label">Gewicht</div><div class="metric-value">' + wt + '</div></div>'
     + '</div><hr>'
     + '<h3>Garmin</h3><p>Body Battery: <strong>' + (battery||"-") + '</strong> | HRV: <strong>' + (hrv||"-") + '</strong> | Status: <strong>' + (tStatus||"-") + '</strong></p>'
-    + '<h3>Letzte Einheit</h3><p>Pace: <strong>' + (pace||"-") + '</strong> | HF: <strong>' + (hf||"-") + ' bpm</strong> | Schlaf: <strong>' + (sleep||"-") + ' h</strong></p>'
+    + '<h3>Letzte Einheit</h3><p>Pace: <strong>' + (pace||"-") + '</strong> | HF: <strong>' + (hf||"-") + ' bpm</strong> | Schlaf: <strong>' + (document.getElementById("sleep").value||"-") + '</strong></p>'
     + '<p>Gefuehl: <strong>' + (fMap[feeling]||"-") + '</strong></p>'
     + '<h3>Empfehlung</h3><p>' + rec + '</p>';
 }
@@ -1116,14 +1123,75 @@ function updateHeaderStats() {
 // ============================================================
 // ANALYSIS
 // ============================================================
+function parseLocalDate(dateStr) {
+  // "YYYY-MM-DD" als lokale Zeit parsen (new Date(str) wuerde UTC nehmen -> Zeitzonen-Bug)
+  var parts = dateStr.split("-");
+  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+}
+
+function getWeekDateRange(refDate) {
+  // Montag bis Sonntag der Woche, die refDate (Date-Objekt) enthaelt
+  var d = new Date(refDate);
+  var dayNum = (d.getDay() + 6) % 7; // 0 = Montag
+  var monday = new Date(d);
+  monday.setDate(d.getDate() - dayNum);
+  monday.setHours(0,0,0,0);
+  var sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23,59,59,999);
+  return { monday: monday, sunday: sunday };
+}
+
+function getWeeklyKm() {
+  var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  var total = 0;
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (!key || key.indexOf("date_entry_runDate_") !== 0) continue;
+    var dateStr = key.replace("date_entry_runDate_", "");
+    var entryDate = parseLocalDate(dateStr);
+    if (entryDate >= range.monday && entryDate <= range.sunday) {
+      try {
+        var data = JSON.parse(localStorage.getItem(key));
+        var km = parseFloat(data.runKm) || 0;
+        total += km;
+      } catch(e) {}
+    }
+  }
+  return Math.round(total * 10) / 10;
+}
+
+function getPlanWeekTargetKm() {
+  // Ermittelt die Soll-km der Trainingswoche, die der aktuell gewaehlten KW entspricht
+  var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  var currentMonday = range.monday;
+
+  for (var i = 0; i < trainingPlan.length; i++) {
+    var info = getKWMonday(trainingPlan[i].week);
+    if (info.monday.getFullYear() === currentMonday.getFullYear() &&
+        info.monday.getMonth()    === currentMonday.getMonth() &&
+        info.monday.getDate()     === currentMonday.getDate()) {
+      var sumKm = 0;
+      trainingPlan[i].days.forEach(function(d) { sumKm += parseFloat(d.km) || 0; });
+      return sumKm > 0 ? sumKm : 20; // Fallback falls Woche keine km-Werte hat (z.B. nur Intervalle)
+    }
+  }
+  return 20; // Fallback wenn keine passende Plan-Woche gefunden wird
+}
+
 function updateAnalysis() {
-  var km     = parseFloat(document.getElementById("runKm") ? document.getElementById("runKm").value : 0) || 0;
+  var km     = getWeeklyKm();
   var weight = parseFloat(document.getElementById("currentWeight") ? document.getElementById("currentWeight").value : 74) || 74;
   var goalW  = parseFloat(document.getElementById("goalWeight") ? document.getElementById("goalWeight").value : 69) || 69;
   var pace   = document.getElementById("runPace") ? document.getElementById("runPace").value : "-";
   var energy = document.getElementById("energy") ? document.getElementById("energy").value : "-";
   var battery= document.getElementById("bodyBattery") ? document.getElementById("bodyBattery").value : "-";
-  var completion = Math.min(100, Math.round((km / 7) * 100));
+  var targetKm = getPlanWeekTargetKm();
+  var completion = Math.min(100, Math.round((km / targetKm) * 100));
   var pb = document.getElementById("progressBar");
   if (pb) pb.style.width = completion + "%";
   var out = document.getElementById("analysisOutput");
@@ -1162,36 +1230,152 @@ function updateRecoveryGarmin() {
 // ============================================================
 // EXPORT
 // ============================================================
+function getWeeklyTrainingDetails() {
+  var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  var fMap = { "sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht" };
+  var dayNames = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+
+  var entries = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (!key || key.indexOf("date_entry_runDate_") !== 0) continue;
+    var dateStr = key.replace("date_entry_runDate_", "");
+    var entryDate = parseLocalDate(dateStr);
+    if (entryDate >= range.monday && entryDate <= range.sunday) {
+      try {
+        var data = JSON.parse(localStorage.getItem(key));
+        entries.push({ date: dateStr, dateObj: entryDate, data: data });
+      } catch(e) {}
+    }
+  }
+
+  // Chronologisch sortieren (Montag zuerst)
+  entries.sort(function(a, b) { return a.dateObj - b.dateObj; });
+
+  if (entries.length === 0) return "  Keine Trainingseinheiten diese Woche erfasst.\n";
+
+  var out = "";
+  entries.forEach(function(entry) {
+    var d = entry.data;
+    var weekday = dayNames[entry.dateObj.getDay()];
+    out += "  " + weekday + " (" + entry.date + "):\n";
+    out += "    km: " + (d.runKm||"-") + " | Zeit: " + (d.runTime||"-") + " | Pace: " + (d.runPace||"-") + " | Hoehenmeter: " + (d.runElevation||"-") + " m\n";
+    out += "    HF: " + (d.runHF||"-") + " bpm | Kadenz: " + (d.runCadence||"-") + " spm | BKT: " + (d.runBKT||"-") + " ms | Vertikal: " + (d.runVertical||"-") + " cm\n";
+    out += "    RPE: " + (d.runRPE||"-") + "/10 | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n";
+    if (d.runNotes) out += "    Notizen: " + d.runNotes + "\n";
+    out += "\n";
+  });
+  return out;
+}
+
+function getWeeklyDailyDetails(dateFieldPrefix, range, formatFn) {
+  var entries = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (!key || key.indexOf("date_entry_" + dateFieldPrefix + "_") !== 0) continue;
+    var dateStr = key.replace("date_entry_" + dateFieldPrefix + "_", "");
+    var entryDate = parseLocalDate(dateStr);
+    if (entryDate >= range.monday && entryDate <= range.sunday) {
+      try {
+        var data = JSON.parse(localStorage.getItem(key));
+        entries.push({ date: dateStr, dateObj: entryDate, data: data });
+      } catch(e) {}
+    }
+  }
+  entries.sort(function(a, b) { return a.dateObj - b.dateObj; });
+  if (entries.length === 0) return "  Keine Eintraege diese Woche erfasst.\n";
+  var dayNames = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  var out = "";
+  entries.forEach(function(entry) {
+    var weekday = dayNames[entry.dateObj.getDay()];
+    out += "  " + weekday + " (" + entry.date + "):\n" + formatFn(entry.data);
+  });
+  return out;
+}
+
+function getWeeklyGarminDetails() {
+  var refDateStr = document.getElementById("garminDate") ? document.getElementById("garminDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  return getWeeklyDailyDetails("garminDate", range, function(d) {
+    return "    Body Battery: " + (d.bodyBattery||"-") + " | Schlaf: " + (d.garminSleep||"-") + " | Ruhepuls: " + (d.garminRHR||"-") + "\n"
+         + "    HRV: " + (d.garminHRV||"-") + " | Trainingsstatus: " + (d.garminTrainingStatus||"-") + "\n\n";
+  });
+}
+
+function getWeeklyTodayDetails() {
+  var refDateStr = document.getElementById("todayDate") ? document.getElementById("todayDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  return getWeeklyDailyDetails("todayDate", range, function(d) {
+    return "    Energie: " + (d.energy||"-") + "/10 | Motivation: " + (d.motivation||"-") + "/10 | Wade L: " + (d.calfLeft||"0") + " | Wade R: " + (d.calfRight||"0") + "\n\n";
+  });
+}
+
+function getWeeklyRecoveryDetails() {
+  var refDateStr = document.getElementById("recoveryDate") ? document.getElementById("recoveryDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  return getWeeklyDailyDetails("recoveryDate", range, function(d) {
+    var out = "    Schlaf: " + (d.sleep||"-") + " | Ruhepuls: " + (d.restingHR||"-") + " | Stress: " + (d.stress||"-") + "/10 | Muskelkater: " + (d.soreness||"-") + "/10\n";
+    if (d.recoveryNotes) out += "    Notizen: " + d.recoveryNotes + "\n";
+    return out + "\n";
+  });
+}
+
+function getWeeklyNutritionDetails() {
+  var refDateStr = document.getElementById("nutritionDate") ? document.getElementById("nutritionDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  var checks  = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium"];
+  var labels  = ["Protein","Gemuese","Omega3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium"];
+  return getWeeklyDailyDetails("nutritionDate", range, function(d) {
+    var nutr = "";
+    for (var i = 0; i < checks.length; i++) nutr += labels[i] + ": " + (d[checks[i]] ? "ja" : "nein") + "  ";
+    var out = "    " + nutr + "\n";
+    var meals = "";
+    for (var n = 1; n <= 4; n++) {
+      var t = d["meal" + n + "Time"]; var note = d["meal" + n + "Note"];
+      if (t || note) meals += "      " + (t||"??") + " - " + (note||"-") + "\n";
+    }
+    if (meals) out += "    Mahlzeiten:\n" + meals;
+    return out + "\n";
+  });
+}
+
+function getWeeklyStrengthDetails() {
+  var refDateStr = document.getElementById("strengthDate") ? document.getElementById("strengthDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  return getWeeklyDailyDetails("strengthDate", range, function(d) {
+    var out = "";
+    var allExercises = strengthA.concat(strengthB);
+    allExercises.forEach(function(ex) {
+      var fieldId = "str-" + ex.name.replace(/ /g, "-");
+      if (d[fieldId]) out += "    " + ex.name + " (Soll " + ex.sets + "): " + d[fieldId] + "\n";
+    });
+    return out ? out + "\n" : "    Keine Werte eingetragen.\n\n";
+  });
+}
+
 function generateExport() {
   var d = collectData();
   var now = new Date().toLocaleDateString("de-DE");
-  var checks  = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium"];
-  var labels  = ["Protein","Gemuese","Omega3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium"];
-  var nutrition = "";
-  for (var i = 0; i < checks.length; i++) nutrition += labels[i] + ": " + (d[checks[i]] ? "ja" : "nein") + "  ";
-  var fMap = { "sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht" };
-  var meals = "";
-  for (var n = 1; n <= 4; n++) {
-    var t = d["meal" + n + "Time"]; var note = d["meal" + n + "Note"];
-    if (t || note) meals += "  " + (t || "??") + " - " + (note || "-") + "\n";
-  }
+  var weeklyKm = getWeeklyKm();
+  var targetKm = getPlanWeekTargetKm();
+  var weeklyCompletion = Math.round((weeklyKm / targetKm) * 100);
   var txt = "COACH_BJOERN_REPORT\nDatum: " + now + "\nAthlet: Stefan\n"
     + "================================\n\n"
     + "-- ZIELE --\nGewicht: " + (d.currentWeight||"74") + " kg -> Ziel: " + (d.goalWeight||"69") + " kg\n"
     + "10km Pace: " + (d.current10kPace||"4:55") + " -> Ziel: " + (d.goal10kPace||"4:35") + " min/km\n\n"
-    + "-- GARMIN --\nBody Battery: " + (d.bodyBattery||"-") + " | Schlaf: " + (d.garminSleep||"-") + " h\n"
-    + "Ruhepuls: " + (d.garminRHR||"-") + " | HRV: " + (d.garminHRV||"-") + " | Status: " + (d.garminTrainingStatus||"-") + "\n\n"
-    + "-- TAGES-CHECK --\nEnergie: " + (d.energy||"-") + "/10 | Motivation: " + (d.motivation||"-") + "/10\n"
-    + "Wade L: " + (d.calfLeft||"0") + " | Wade R: " + (d.calfRight||"0") + "\n\n"
-    + "-- LAUFTRAINING (" + (d.runDate||"-") + ") --\n"
-    + "km: " + (d.runKm||"-") + " | Zeit: " + (d.runTime||"-") + " | Pace: " + (d.runPace||"-") + "\n"
-    + "HF: " + (d.runHF||"-") + " | Kadenz: " + (d.runCadence||"-") + " | BKT: " + (d.runBKT||"-") + " ms\n"
-    + "RPE: " + (d.runRPE||"-") + " | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n"
-    + (d.runNotes ? "Notizen: " + d.runNotes + "\n" : "") + "\n"
-    + "-- RECOVERY (" + (d.recoveryDate||"-") + ") --\n"
-    + "Schlaf: " + (d.sleep||"-") + " h | Ruhepuls: " + (d.restingHR||"-") + " | Stress: " + (d.stress||"-") + " | Kater: " + (d.soreness||"-") + "\n\n"
-    + "-- ERNAEHRUNG (" + (d.nutritionDate||"-") + ") --\n" + nutrition + "\n"
-    + (meals ? "\nMahlzeiten:\n" + meals : "")
+    + "-- WOCHENUEBERSICHT --\nGelaufen diese Woche: " + weeklyKm + " km (Soll: " + targetKm + " km, " + weeklyCompletion + "%)\n\n"
+    + "-- LAUFEINHEITEN DIESE WOCHE (einzeln) --\n" + getWeeklyTrainingDetails()
+    + "-- KRAFTTRAINING DIESE WOCHE (einzeln) --\n" + getWeeklyStrengthDetails()
+    + "-- TAGES-CHECK / GARMIN DIESE WOCHE (einzeln) --\n" + getWeeklyTodayDetails() + getWeeklyGarminDetails()
+    + "-- RECOVERY DIESE WOCHE (einzeln) --\n" + getWeeklyRecoveryDetails()
+    + "-- ERNAEHRUNG DIESE WOCHE (einzeln) --\n" + getWeeklyNutritionDetails()
     + "\n================================";
   document.getElementById("exportText").value = txt;
 }
@@ -1324,8 +1508,9 @@ function updateStartPage() {
     }
   }
 
-  var km = parseFloat(d.runKm || 0);
-  var completion = Math.min(100, Math.round((km / 7) * 100));
+  var km = getWeeklyKm();
+  var targetKm = getPlanWeekTargetKm();
+  var completion = Math.min(100, Math.round((km / targetKm) * 100));
   setEl("tileCompletion", completion + "%");
   setEl("tileKm", km + " km diese Woche");
   var spb = document.getElementById("startProgressBar");
