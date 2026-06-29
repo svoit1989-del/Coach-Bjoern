@@ -625,7 +625,28 @@
 // ============================================================
 // PLAN DATA
 // ============================================================
-const PLAN_START_KW = 26;
+// PLAN_START_KW / PLAN_START_YEAR: Referenzpunkt fuer Woche 1 des Plans.
+// Wird beim Import automatisch auf die echte Kalenderwoche der ersten importierten
+// Woche gesetzt, damit KW-Anzeige und .ics-Export nie von der Realitaet abweichen.
+function getStoredPlanStart() {
+  var raw = localStorage.getItem("coach_bjoern_plan_start");
+  if (raw) {
+    try { return JSON.parse(raw); } catch(e) {}
+  }
+  // Fallback: aktuelle Kalenderwoche als Start, wenn noch nichts gespeichert ist
+  var todayInfo = getISOWeekInfo(new Date());
+  return { kw: todayInfo.kw, year: todayInfo.year };
+}
+
+function setPlanStart(kw, year) {
+  localStorage.setItem("coach_bjoern_plan_start", JSON.stringify({ kw: kw, year: year }));
+  PLAN_START_KW = kw;
+  PLAN_START_YEAR = year;
+}
+
+var _planStart = getStoredPlanStart();
+var PLAN_START_KW = _planStart.kw;
+var PLAN_START_YEAR = _planStart.year;
 
 const trainingPlan = [
   { week:1, focus:"Laufokonomie", days:[
@@ -691,17 +712,33 @@ const strengthB = [
 // ============================================================
 // KW HELPERS
 // ============================================================
+function getISOWeekInfo(date) {
+  // Liefert {kw, year} fuer ein beliebiges Datum nach ISO-8601 Regeln
+  var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  var dayNum = (d.getDay() + 6) % 7; // 0 = Montag
+  d.setDate(d.getDate() - dayNum + 3); // zum Donnerstag dieser Woche springen (ISO-Regel)
+  var firstThursday = new Date(d.getFullYear(), 0, 4);
+  var fdNum = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - fdNum + 3);
+  var weekNum = 1 + Math.round((d - firstThursday) / (7 * 24 * 60 * 60 * 1000));
+  return { kw: weekNum, year: d.getFullYear() };
+}
+
 function getKWMonday(planWeek) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const jan4 = new Date(year, 0, 4);
-  const dow = (jan4.getDay() + 6) % 7;
-  const kw1Mon = new Date(jan4);
+  // Berechnet das tatsaechliche Kalenderdatum (Montag) fuer eine Plan-Woche,
+  // ausgehend von PLAN_START_KW im aktuellen (oder im PLAN_START_YEAR) Jahr.
+  // Echte Datumsarithmetik statt reiner KW-Zahlen-Addition -> Jahreswechsel korrekt.
+  var year = PLAN_START_YEAR;
+  var jan4 = new Date(year, 0, 4);
+  var dow = (jan4.getDay() + 6) % 7;
+  var kw1Mon = new Date(jan4);
   kw1Mon.setDate(jan4.getDate() - dow);
-  const targetKW = PLAN_START_KW + planWeek - 1;
-  const mon = new Date(kw1Mon);
-  mon.setDate(kw1Mon.getDate() + (targetKW - 1) * 7);
-  return { monday: mon, kw: targetKW };
+
+  var mon = new Date(kw1Mon);
+  mon.setDate(kw1Mon.getDate() + (PLAN_START_KW - 1 + planWeek - 1) * 7);
+
+  var isoInfo = getISOWeekInfo(mon);
+  return { monday: mon, kw: isoInfo.kw, year: isoInfo.year };
 }
 
 function formatKWLabel(planWeek) {
@@ -1446,15 +1483,31 @@ function importPlan() {
     if (typeof parsed[i].week !== "number" || !parsed[i].focus || !Array.isArray(parsed[i].days)) { valid = false; break; }
   }
   if (!valid) { statusEl.innerHTML = '<span style="color:var(--danger)">Struktur fehlerhaft.</span>'; return; }
+  // Die "week"-Werte aus dem JSON sind echte Kalenderwochen (z.B. week:27 = KW27).
+  // Intern arbeitet die App mit einem 1-basierten Plan-Zaehler (week:1 = erste Planwoche),
+  // PLAN_START_KW verankert dann week:1 an der echten KW. Deshalb hier umnummerieren:
+  var firstWeekNum = parsed[0].week;
   trainingPlan.length = 0;
-  for (var j = 0; j < parsed.length; j++) trainingPlan.push(parsed[j]);
+  for (var j = 0; j < parsed.length; j++) {
+    var wk = JSON.parse(JSON.stringify(parsed[j])); // deep copy, Original nicht mutieren
+    wk.week = parsed[j].week - firstWeekNum + 1; // auf 1-basierten Plan-Zaehler ummappen
+    trainingPlan.push(wk);
+  }
+
+  // PLAN_START_KW/YEAR kalibrieren: Plan-Woche 1 entspricht der echten KW aus dem JSON.
+  var now = new Date();
+  var nowInfo = getISOWeekInfo(now);
+  var targetYear = nowInfo.year;
+  // Falls die Ziel-KW schon weit in der Vergangenheit liegt (>8 Wochen), naechstes Jahr annehmen
+  if (firstWeekNum < nowInfo.kw - 8) targetYear = nowInfo.year + 1;
+  setPlanStart(firstWeekNum, targetYear);
 
   // Nach dem importierten Plan wieder Platzhalter-Wochen anhaengen,
-  // damit der Plan nie "leer" endet (Wochenzahl knuepft an die letzte importierte Woche an)
-  var lastWeekNum = parsed[parsed.length - 1].week;
+  // damit der Plan nie "leer" endet (Plan-Zaehler knuepft an die letzte importierte Woche an)
+  var lastInternalWeek = trainingPlan[trainingPlan.length - 1].week;
   for (var _pw2 = 1; _pw2 <= PLACEHOLDER_WEEKS_COUNT; _pw2++) {
     trainingPlan.push({
-      week: lastWeekNum + _pw2,
+      week: lastInternalWeek + _pw2,
       focus: "Wartet auf neuen Plan",
       days: [],
       isPlaceholder: true
@@ -1463,8 +1516,9 @@ function importPlan() {
 
   localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(trainingPlan));
   renderPlan();
+  updateStartPage();
   document.getElementById("importPlanText").value = "";
-  statusEl.innerHTML = '<span style="color:var(--accent)">Plan mit ' + parsed.length + ' Wochen aktiviert! Feld geleert fuer naechsten Import.</span>';
+  statusEl.innerHTML = '<span style="color:var(--accent)">Plan mit ' + parsed.length + ' Wochen aktiviert (ab KW ' + firstWeekNum + ' / ' + targetYear + ')! Feld geleert fuer naechsten Import.</span>';
   showToast("Neuer Plan aktiviert!");
 }
 
