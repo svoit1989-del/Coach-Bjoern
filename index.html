@@ -603,7 +603,8 @@
     <h2 style="color:#29b6f6;">Trainingsplan importieren</h2>
     <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">JSON-Plan aus ChatGPT einfuegen. Wird sofort im Plan-Tab aktiv.</p>
     <div style="background:#0d1b2a;border:1px solid #1a3a5c;border-radius:10px;padding:12px;margin:12px 0;font-size:0.78rem;color:#5a8ab0;line-height:1.7;">
-      Format: Array mit week, focus, days. Jeder Tag: day, type, optional km, pace, workout, title, dauer, desc.
+      Format: Array mit week, completed, phase, focus, goal, days.<br>
+      Jeder Tag: day, type ("run"/"strength"/"rest"), title, km, pace, dauer, workout, desc, priority ("hoch"/"mittel"/"niedrig"), weather.
     </div>
     <textarea id="importPlanText" rows="8" placeholder="JSON hier einfuegen..." style="font-family:'Courier New',monospace;font-size:0.78rem;color:#29b6f6;background:#0a0a0a;"></textarea>
     <div id="importStatus" style="font-size:0.82rem;margin-top:8px;min-height:20px;"></div>
@@ -884,19 +885,34 @@ function exportWeekICS(planWeek) {
 function renderPlan() {
   var c = document.getElementById("planContainer");
   if (!c) return;
-  var typeColors = { "Long Run":"#e91e63","Schwelle":"#ff9800","Locker":"#4caf50","Kraft A":"#29b6f6","Kraft B":"#29b6f6","Lauf":"#4caf50" };
+  var typeColors = {
+    "run":"#4caf50", "strength":"#29b6f6", "rest":"#9e9e9e",
+    "Long Run":"#e91e63","Schwelle":"#ff9800","Locker":"#4caf50","Kraft A":"#29b6f6","Kraft B":"#29b6f6","Lauf":"#4caf50"
+  };
+  var typeLabels = { "run":"Lauf", "strength":"Kraft", "rest":"Pause" };
+  var priorityColors = { "hoch":"#e53935", "mittel":"#ffb300", "niedrig":"#4caf50" };
   var html = "";
   for (var wi = 0; wi < trainingPlan.length; wi++) {
     var w = trainingPlan[wi];
     var hasDays = w.days.length > 0;
     var isPlaceholder = w.isPlaceholder === true;
     var kwLabel = formatKWLabel(w.week);
+    var isCompleted = w.completed === true;
+
     html += '<div class="week-card"' + (isPlaceholder ? ' style="opacity:0.7;border:1px dashed #444;"' : '') + '>';
     html += '<div class="week-header" onclick="toggleWeek(' + w.week + ')">';
-    html += '<div><div style="display:flex;align-items:center;gap:6px;"><span>Woche ' + w.week + '</span><span class="week-kw">' + kwLabel + '</span></div>';
+    html += '<div><div style="display:flex;align-items:center;gap:6px;">'
+          + '<span>Woche ' + w.week + '</span><span class="week-kw">' + kwLabel + '</span>'
+          + (isCompleted ? '<span style="color:#4caf50;font-size:0.85rem;">&#10003;</span>' : '')
+          + '</div>';
     var badgeClass = isPlaceholder ? "week-focus-badge" : (hasDays ? "week-badge" : "week-focus-badge");
     var badgeStyle = isPlaceholder ? ' style="color:#ff9800;border:1px solid #ff9800;background:transparent;"' : '';
-    html += '<div style="margin-top:3px;"><span class="' + badgeClass + '"' + badgeStyle + '>' + (isPlaceholder ? "&#9888; " : "") + w.focus + '</span></div></div>';
+    html += '<div style="margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+    html += '<span class="' + badgeClass + '"' + badgeStyle + '>' + (isPlaceholder ? "&#9888; " : "") + w.focus + '</span>';
+    if (w.phase) html += '<span class="week-focus-badge" style="background:#1a2e1a;color:#4caf50;">' + w.phase + '</span>';
+    html += '</div>';
+    if (w.goal) html += '<div style="font-size:0.75rem;color:var(--muted);margin-top:4px;">&#127919; ' + w.goal + '</div>';
+    html += '</div>';
     if (hasDays) {
       html += '<button class="ical-btn" onclick="event.stopPropagation();exportWeekICS(' + w.week + ')">&#128197; .ics</button>';
     }
@@ -912,23 +928,31 @@ function renderPlan() {
       for (var di = 0; di < w.days.length; di++) {
         var d = w.days[di];
         var color = typeColors[d.type] || "var(--accent)";
+        var typeLabel = typeLabels[d.type] || d.type;
         var dayId = "day-" + w.week + "-" + di;
         var parts = [];
         if (d.km) parts.push(d.km + " km");
-        if (d.pace) parts.push(d.pace + " /km");
-        if (d.workout) parts.push(d.workout);
+        if (d.pace) parts.push(d.pace);
+        if (d.workout && d.workout !== "...") parts.push(d.workout);
         if (d.dauer) parts.push(d.dauer);
         var summary = parts.join(" | ");
-        html += '<div class="day-card" style="border-left-color:' + color + ';" onclick="toggleDay(\'' + dayId + '\')">'; 
+        var prioColor = priorityColors[d.priority] || null;
+
+        html += '<div class="day-card" style="border-left-color:' + color + ';" onclick="toggleDay(\'' + dayId + '\')">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-        html += '<div><div class="day-title" style="color:' + color + '">' + d.day + '</div>';
-        html += '<div class="day-detail">' + d.type + (d.title ? " - " + d.title : "") + (summary ? " | " + summary : "") + '</div></div>';
+        html += '<div><div class="day-title" style="color:' + color + '">' + d.day
+              + (prioColor ? ' <span style="background:' + prioColor + ';color:#000;font-size:0.6rem;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:4px;">' + d.priority.toUpperCase() + '</span>' : '')
+              + '</div>';
+        html += '<div class="day-detail">' + typeLabel + (d.title ? " - " + d.title : "") + (summary ? " | " + summary : "") + '</div></div>';
         html += '<div style="color:' + color + ';font-size:1.1rem;">&#8964;</div></div>';
-        if (d.desc || d.workout) {
+
+        var hasExpand = (d.desc && d.desc !== "...") || (d.workout && d.workout !== "...") || d.weather;
+        if (hasExpand) {
           html += '<div id="' + dayId + '" class="day-expand">';
           if (d.dauer) html += '<div style="color:' + color + ';font-weight:700;margin-bottom:4px;">&#9201; ' + d.dauer + '</div>';
-          if (d.workout) html += '<div style="font-weight:700;margin-bottom:4px;">Einheit: ' + d.workout + (d.pace ? " @ " + d.pace + " min/km" : "") + '</div>';
-          if (d.desc) html += '<div>' + d.desc + '</div>';
+          if (d.workout && d.workout !== "...") html += '<div style="font-weight:700;margin-bottom:4px;">Einheit: ' + d.workout + (d.pace ? " @ " + d.pace : "") + '</div>';
+          if (d.desc && d.desc !== "...") html += '<div>' + d.desc + '</div>';
+          if (d.weather) html += '<div style="margin-top:6px;padding:6px 8px;background:#2a1f0d;border-radius:6px;font-size:0.8rem;color:#ff9800;">&#9728; ' + d.weather + '</div>';
           html += '</div>';
         }
         html += '</div>';
@@ -1573,7 +1597,7 @@ function updateStartPage() {
   var detailEl = document.getElementById("heroNextDetail");
   if (titleEl && detailEl) {
     if (nextFound) {
-      titleEl.textContent  = nextFound.day + " - " + nextFound.type + (nextFound.title ? " / " + nextFound.title : "");
+      titleEl.textContent  = nextFound.day + " - " + (({"run":"Lauf","strength":"Kraft","rest":"Pause"})[nextFound.type] || nextFound.type) + (nextFound.title ? " / " + nextFound.title : "");
       var parts = [];
       if (nextFound.km)      parts.push(nextFound.km + " km");
       if (nextFound.pace)    parts.push(nextFound.pace + " /km");
