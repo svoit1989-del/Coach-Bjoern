@@ -230,6 +230,51 @@
     .food-search-result .fs-brand { font-size: 0.72rem; color: var(--muted); }
     .food-search-result .fs-nut { font-size: 0.72rem; color: #29b6f6; margin-top: 2px; }
 
+    /* ATHLET-PROFIL */
+    .athlete-hero {
+      background: linear-gradient(145deg,#1a2e1a,#0f1f0f);
+      border: 1px solid #2d5a2d; border-radius: var(--radius);
+      padding: 20px 18px; margin-bottom: 12px; text-align: center;
+    }
+    .athlete-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg,#4caf50,#388e3c);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; font-weight: 800; color: #000;
+      margin: 0 auto 10px;
+    }
+    .athlete-name { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+    .athlete-tagline { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+    .discipline-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px; }
+    .discipline-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+      border-left: 4px solid var(--accent);
+    }
+    .discipline-card.placeholder { border-left-color: #444; opacity: 0.6; }
+    .discipline-icon { font-size: 1.6rem; }
+    .discipline-info { flex: 1; }
+    .discipline-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .discipline-status { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
+    .discipline-badge {
+      font-size: 0.65rem; font-weight: 800; padding: 3px 9px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .discipline-badge.active { background: #1a2e1a; color: #4caf50; border: 1px solid #4caf50; }
+    .discipline-badge.soon { background: #2a2a2a; color: #888; border: 1px solid #444; }
+
+    .progress-chart-placeholder {
+      background: var(--surface-2); border-radius: 10px; padding: 18px;
+      text-align: center; color: var(--muted); font-size: 0.82rem;
+      border: 1px dashed #444; margin-top: 10px;
+    }
+
+    .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #2a2a2a; }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row-label { font-size: 0.84rem; color: var(--muted); }
+    .stat-row-value { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+
     @media(min-width:600px){.metric-grid{grid-template-columns:repeat(4,1fr);}.garmin-grid{grid-template-columns:repeat(3,1fr);}}
     ::-webkit-scrollbar{width:5px;}
     ::-webkit-scrollbar-track{background:var(--bg);}
@@ -255,7 +300,7 @@
   <button class="tab-btn" data-tab="training"><span class="ni">&#127939;</span>Training</button>
   <button class="tab-btn" data-tab="strength"><span class="ni">&#128170;</span>Kraft</button>
   <button class="tab-btn" data-tab="nutrition"><span class="ni">&#129367;</span>Ern&auml;hrung</button>
-  <button class="tab-btn" data-tab="recovery"><span class="ni">&#128716;</span>Recovery</button>
+  <button class="tab-btn" data-tab="athlete"><span class="ni">&#128100;</span>Athlet</button>
   <button class="tab-btn" data-tab="analysis"><span class="ni">&#129302;</span>Auswertung</button>
   <button class="tab-btn" data-tab="export"><span class="ni">&#128228;</span>Im/Export</button>
 </nav>
@@ -297,7 +342,7 @@
       <span class="dash-tile-value" id="tileWade">-</span>
       <span class="dash-tile-sub" id="tileWadeSub">-</span>
     </div>
-    <div class="dash-tile" onclick="switchTab('recovery')">
+    <div class="dash-tile" onclick="switchTab('today')">
       <span class="dash-tile-icon">&#128716;</span>
       <span class="dash-tile-label">Schlaf</span>
       <span class="dash-tile-value" id="tileSleep">-</span>
@@ -344,6 +389,10 @@
     <label>Motivation (1-10)</label><input id="motivation" type="number" min="1" max="10" placeholder="z.B. 8">
     <label>Wade links (0-10)</label><input id="calfLeft" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
     <label>Wade rechts (0-10)</label><input id="calfRight" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
+    <label>Ruhepuls (bpm)</label><input id="restingHR" type="number" placeholder="z.B. 52">
+    <label>Stress (1-10)</label><input id="stress" type="number" min="1" max="10" placeholder="z.B. 4">
+    <label>Muskelkater (1-10)</label><input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3">
+    <label>Notizen</label><textarea id="recoveryNotes" rows="2" placeholder="Besonderheiten, Schmerzen, Befinden..."></textarea>
     <button class="btn" onclick="confirmSave('today')">Tages-Check speichern</button>
   </div>
   <div class="garmin-card">
@@ -533,18 +582,72 @@
 
 </section>
 
-<!-- RECOVERY -->
-<section id="recovery" class="tab-page">
-  <div class="card">
-    <h2>Recovery</h2>
-    <label>Datum</label><input id="recoveryDate" type="date">
-    <label>Schlaf (Std:Min)</label><input id="sleep" type="time" placeholder="07:30">
-    <label>Ruhepuls (bpm)</label><input id="restingHR" type="number" placeholder="z.B. 52">
-    <label>Stress (1-10)</label><input id="stress" type="number" min="1" max="10" placeholder="z.B. 4">
-    <label>Muskelkater (1-10)</label><input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3">
-    <label>Notizen</label><textarea id="recoveryNotes" rows="2" placeholder="Besonderheiten..."></textarea>
-    <button class="btn" onclick="confirmSave('recovery')">Recovery speichern</button>
+<!-- ATHLET -->
+<section id="athlete" class="tab-page">
+
+  <div class="athlete-hero">
+    <div class="athlete-avatar">S</div>
+    <div class="athlete-name">Stefan</div>
+    <div class="athlete-tagline">Triathlon-Aufbau &middot; Fokus: 10km-Pace &amp; Gewicht</div>
   </div>
+
+  <div class="card">
+    <h2>&#127942; Profil</h2>
+    <div class="stat-row"><span class="stat-row-label">Aktuelles Gewicht</span><span class="stat-row-value" id="athProfileWeight">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Zielgewicht</span><span class="stat-row-value" id="athProfileGoalWeight">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">10km Pace aktuell</span><span class="stat-row-value" id="athProfilePace">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">10km Pace Ziel</span><span class="stat-row-value" id="athProfileGoalPace">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Aktuelle Trainingsphase</span><span class="stat-row-value" id="athProfilePhase">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Coach Memory Version</span><span class="stat-row-value" id="athProfileMemVersion">-</span></div>
+  </div>
+
+  <div class="card">
+    <h2>&#128201; Fortschritt</h2>
+    <div class="stat-row"><span class="stat-row-label">Wochen-km (aktuell)</span><span class="stat-row-value" id="athProgressKm">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Planerfuellung</span><span class="stat-row-value" id="athProgressCompletion">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Restgewicht bis Ziel</span><span class="stat-row-value" id="athProgressWeightLeft">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Trainingseinheiten gesamt</span><span class="stat-row-value" id="athProgressTotalSessions">-</span></div>
+    <div class="progress-chart-placeholder">
+      &#128200; Diagramme folgen hier (Gewichtsverlauf, Pace-Entwicklung, Wochenvolumen)
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>&#127939; Disziplinen</h2>
+    <div class="discipline-grid">
+      <div class="discipline-card">
+        <span class="discipline-icon">&#127939;</span>
+        <div class="discipline-info">
+          <div class="discipline-title">Laufen</div>
+          <div class="discipline-status">3 Einheiten / Woche &middot; Hauptfokus</div>
+        </div>
+        <span class="discipline-badge active">Aktiv</span>
+      </div>
+      <div class="discipline-card placeholder">
+        <span class="discipline-icon">&#128692;</span>
+        <div class="discipline-info">
+          <div class="discipline-title">Radfahren</div>
+          <div class="discipline-status">Triathlon-Vorbereitung &middot; noch nicht gestartet</div>
+        </div>
+        <span class="discipline-badge soon">Demnaechst</span>
+      </div>
+      <div class="discipline-card placeholder">
+        <span class="discipline-icon">&#127946;</span>
+        <div class="discipline-info">
+          <div class="discipline-title">Schwimmen</div>
+          <div class="discipline-status">Triathlon-Vorbereitung &middot; noch nicht gestartet</div>
+        </div>
+        <span class="discipline-badge soon">Demnaechst</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>&#128170; Kraft &amp; Verletzungen</h2>
+    <div class="stat-row"><span class="stat-row-label">Aktuelle Kraftuebungen</span><span class="stat-row-value" id="athStrengthCount">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Wadenstatus</span><span class="stat-row-value" id="athCalfStatus">-</span></div>
+  </div>
+
 </section>
 
 <!-- AUSWERTUNG -->
@@ -599,9 +702,43 @@
 
 <!-- IMPORT / EXPORT -->
 <section id="export" class="tab-page">
+
+  <!-- COACH MEMORY (YAML) -->
+  <div class="card" style="border:1px solid #2d5a2d;">
+    <h2 style="color:#4caf50;">&#129504; Coach Memory</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Langfristiges Gedaechtnis des Coaches. Wird nicht jede Woche aktualisiert.</p>
+
+    <div id="memoryStatusBanner" style="border-radius:10px;padding:10px 12px;margin:10px 0;font-size:0.82rem;"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Memory-Version</div>
+        <div id="memoryVersionDisplay" style="font-size:1.1rem;font-weight:800;color:#4caf50;">-</div>
+      </div>
+      <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Naechstes Update</div>
+        <div id="memoryCountdownDisplay" style="font-size:1.1rem;font-weight:800;color:#ffb300;">-</div>
+      </div>
+    </div>
+
+    <label>Aktuelles Memory (YAML)</label>
+    <textarea id="coachMemoryText" rows="14" placeholder="Noch kein Memory gespeichert. Wird beim ersten Export erzeugt." style="font-family:'Courier New',monospace;font-size:0.76rem;color:#4caf50;background:#0a0a0a;"></textarea>
+
+    <button class="btn" id="exportMemoryBtn" style="background:#4caf50;color:#000;">Memory aus aktuellen Daten erzeugen</button>
+    <button class="btn secondary" id="saveMemoryBtn" style="margin-top:8px;">Bearbeitetes Memory speichern</button>
+
+    <div style="margin-top:14px;padding:10px 12px;background:#0d1b0d;border:1px solid #2d5a2d;border-radius:10px;font-size:0.78rem;color:var(--muted);line-height:1.7;">
+      <strong style="color:#4caf50;">Workflow:</strong><br>
+      1. Memory + Wochenreport an ChatGPT/Coach Bjoern geben<br>
+      2. Coach liefert ggf. aktualisiertes Memory zurueck -&gt; hier einfuegen &amp; speichern<br>
+      3. Coach liefert 4-Wochen-Plan als JSON -&gt; unten importieren
+    </div>
+  </div>
+
+  <!-- TRAININGSPLAN IMPORT -->
   <div class="card" style="border:1px solid #1a3a5c;">
     <h2 style="color:#29b6f6;">Trainingsplan importieren</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">JSON-Plan aus ChatGPT einfuegen. Wird sofort im Plan-Tab aktiv.</p>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Rollierender 4-Wochen-Plan vom Coach (vergangene Woche + aktuelle + 2 Vorschau). Ersetzt den bisherigen Plan komplett.</p>
     <div style="background:#0d1b2a;border:1px solid #1a3a5c;border-radius:10px;padding:12px;margin:12px 0;font-size:0.78rem;color:#5a8ab0;line-height:1.7;">
       Format: Array mit week, completed, phase, focus, goal, days.<br>
       Jeder Tag: day, type ("run"/"strength"/"rest"), title, km, pace, dauer, workout, desc, priority ("hoch"/"mittel"/"niedrig"), weather.
@@ -613,7 +750,7 @@
   </div>
   <div class="card">
     <h2>&#128228; Wochenreport exportieren</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Fuer ChatGPT Coach-Analyse</p>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Zusammen mit Coach Memory an ChatGPT geben</p>
     <button class="btn" id="generateExport">Wochenreport erzeugen</button>
     <textarea id="exportText" rows="22" placeholder="Report erscheint hier..."></textarea>
   </div>
@@ -1079,11 +1216,10 @@ function confirmSave(sec) {
   if (sec === "training")  saveDateEntry("runDate",       trainingFields);
   if (sec === "strength")  saveDateEntry("strengthDate",  strengthFields);
   if (sec === "nutrition") saveDateEntry("nutritionDate", nutritionFields);
-  if (sec === "recovery")  saveDateEntry("recoveryDate",  recoveryFields);
   var msgs = {
     today:"Tages-Check gespeichert", garmin:"Garmin-Daten gespeichert",
     training:"Training gespeichert",  strength:"Kraftwerte gespeichert",
-    nutrition:"Ernaehrung gespeichert", recovery:"Recovery gespeichert",
+    nutrition:"Ernaehrung gespeichert",
     goals:"Ziele gespeichert"
   };
   showToast(msgs[sec] || "Gespeichert");
@@ -1132,7 +1268,7 @@ function runCoachAnalysis() {
   var goalW    = parseFloat(document.getElementById("goalWeight").value    || 69);
   var calfL    = parseFloat(document.getElementById("calfLeft").value      || 0);
   var calfR    = parseFloat(document.getElementById("calfRight").value     || 0);
-  var sleep    = sleepToHours(document.getElementById("sleep").value);
+  var sleep    = sleepToHours(document.getElementById("garminSleep").value);
   var pace     = document.getElementById("runPace").value;
   var hf       = parseFloat(document.getElementById("runHF").value         || 0);
   var cadence  = parseFloat(document.getElementById("runCadence").value    || 0);
@@ -1157,7 +1293,7 @@ function runCoachAnalysis() {
     + '<div class="metric"><div class="metric-label">Gewicht</div><div class="metric-value">' + wt + '</div></div>'
     + '</div><hr>'
     + '<h3>Garmin</h3><p>Body Battery: <strong>' + (battery||"-") + '</strong> | HRV: <strong>' + (hrv||"-") + '</strong> | Status: <strong>' + (tStatus||"-") + '</strong></p>'
-    + '<h3>Letzte Einheit</h3><p>Pace: <strong>' + (pace||"-") + '</strong> | HF: <strong>' + (hf||"-") + ' bpm</strong> | Schlaf: <strong>' + (document.getElementById("sleep").value||"-") + '</strong></p>'
+    + '<h3>Letzte Einheit</h3><p>Pace: <strong>' + (pace||"-") + '</strong> | HF: <strong>' + (hf||"-") + ' bpm</strong> | Schlaf: <strong>' + (document.getElementById("garminSleep").value||"-") + '</strong></p>'
     + '<p>Gefuehl: <strong>' + (fMap[feeling]||"-") + '</strong></p>'
     + '<h3>Empfehlung</h3><p>' + rec + '</p>';
 }
@@ -1295,13 +1431,8 @@ function updateAnalysis() {
 // ============================================================
 function updateRecoveryGarmin() {
   var d = collectData();
-  // Garmin-Werte (Schlaf, Ruhepuls) automatisch in Recovery-Felder uebernehmen,
-  // aber nur wenn diese noch leer sind (kein Ueberschreiben manueller Eingaben)
-  var sleepEl = document.getElementById("sleep");
-  if (sleepEl && !sleepEl.value && d.garminSleep) {
-    sleepEl.value = d.garminSleep;
-    saveData();
-  }
+  // Garmin-Ruhepuls automatisch in Tages-Check uebernehmen,
+  // aber nur wenn das Feld noch leer ist (kein Ueberschreiben manueller Eingaben)
   var rhrEl = document.getElementById("restingHR");
   if (rhrEl && !rhrEl.value && d.garminRHR) {
     rhrEl.value = d.garminRHR;
@@ -1392,16 +1523,8 @@ function getWeeklyTodayDetails() {
   var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
   var range = getWeekDateRange(refDate);
   return getWeeklyDailyDetails("todayDate", range, function(d) {
-    return "    Energie: " + (d.energy||"-") + "/10 | Motivation: " + (d.motivation||"-") + "/10 | Wade L: " + (d.calfLeft||"0") + " | Wade R: " + (d.calfRight||"0") + "\n\n";
-  });
-}
-
-function getWeeklyRecoveryDetails() {
-  var refDateStr = document.getElementById("recoveryDate") ? document.getElementById("recoveryDate").value : "";
-  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
-  var range = getWeekDateRange(refDate);
-  return getWeeklyDailyDetails("recoveryDate", range, function(d) {
-    var out = "    Schlaf: " + (d.sleep||"-") + " | Ruhepuls: " + (d.restingHR||"-") + " | Stress: " + (d.stress||"-") + "/10 | Muskelkater: " + (d.soreness||"-") + "/10\n";
+    var out = "    Energie: " + (d.energy||"-") + "/10 | Motivation: " + (d.motivation||"-") + "/10 | Wade L: " + (d.calfLeft||"0") + " | Wade R: " + (d.calfRight||"0") + "\n";
+    out += "    Ruhepuls: " + (d.restingHR||"-") + " | Stress: " + (d.stress||"-") + "/10 | Muskelkater: " + (d.soreness||"-") + "/10\n";
     if (d.recoveryNotes) out += "    Notizen: " + d.recoveryNotes + "\n";
     return out + "\n";
   });
@@ -1442,10 +1565,284 @@ function getWeeklyStrengthDetails() {
   });
 }
 
+// ============================================================
+// COACH MEMORY (YAML) - Baustein 2 der V3-Architektur
+// ============================================================
+var MEMORY_STORAGE_KEY = "coach_bjoern_memory";
+
+function getStoredMemory() {
+  var raw = localStorage.getItem(MEMORY_STORAGE_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
+
+function saveStoredMemory(memObj) {
+  localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(memObj));
+}
+
+function toYamlValue(val) {
+  if (typeof val === "string") return '"' + val.replace(/"/g, '\\"') + '"';
+  if (typeof val === "boolean" || typeof val === "number") return String(val);
+  return '"' + String(val) + '"';
+}
+
+function objectToYaml(obj, indent) {
+  indent = indent || 0;
+  var pad = "  ".repeat(indent);
+  var lines = [];
+  Object.keys(obj).forEach(function(key) {
+    var val = obj[key];
+    if (val === null || val === undefined) return;
+    if (Array.isArray(val)) {
+      lines.push(pad + key + ":");
+      val.forEach(function(item) {
+        lines.push(pad + "  - " + (typeof item === "object" ? "" : toYamlValue(item)));
+      });
+    } else if (typeof val === "object") {
+      lines.push(pad + key + ":");
+      lines.push(objectToYaml(val, indent + 1));
+    } else {
+      lines.push(pad + key + ": " + toYamlValue(val));
+    }
+  });
+  return lines.join("\n");
+}
+
+function buildMemoryFromCurrentState(previousMemory) {
+  var d = collectData();
+  var prev = previousMemory || {};
+  var version = (prev.version || 0) + 1;
+
+  // Strength-Uebungen aus dem aktuellen Plan ableiten
+  var currentExercises = strengthA.concat(strengthB).map(function(ex) { return ex.name; });
+
+  // Trainingsphase / Block aus der aktuell relevanten Plan-Woche ableiten
+  var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  var currentPlanWeek = null;
+  for (var i = 0; i < trainingPlan.length; i++) {
+    var info = getKWMonday(trainingPlan[i].week);
+    if (info.monday.getFullYear() === range.monday.getFullYear() &&
+        info.monday.getMonth()    === range.monday.getMonth() &&
+        info.monday.getDate()     === range.monday.getDate()) {
+      currentPlanWeek = trainingPlan[i];
+      break;
+    }
+  }
+
+  var memory = {
+    version: version,
+    created: new Date().toISOString().slice(0,10),
+    athlete: { name: "Stefan" },
+    goals: {
+      weight: parseFloat(d.goalWeight) || 69,
+      pace10k: d.goal10kPace || "4:35"
+    },
+    training: {
+      phase: currentPlanWeek ? currentPlanWeek.phase || currentPlanWeek.focus || "-" : (prev.training ? prev.training.phase : "-"),
+      block: prev.training ? (prev.training.block || 1) : 1,
+      weekInBlock: prev.training ? (prev.training.weekInBlock || 1) : 1
+    },
+    running: { sessionsPerWeek: 3 },
+    strength: {
+      sessionsPerWeek: 2,
+      currentExercises: currentExercises
+    },
+    zones: {
+      easyHr: prev.zones ? prev.zones.easyHr : "140-150",
+      thresholdHr: prev.zones ? prev.zones.thresholdHr : "160-168"
+    },
+    injury: {
+      calves: (parseFloat(d.calfLeft||0) >= 4 || parseFloat(d.calfRight||0) >= 4) ? "aktuell beachten" : "recovered"
+    },
+    planning: {
+      nextDeload: prev.planning ? prev.planning.nextDeload : (currentPlanWeek ? currentPlanWeek.week + 4 : 4),
+      nextTest: prev.planning ? prev.planning.nextTest : (currentPlanWeek ? currentPlanWeek.week + 8 : 8)
+    },
+    sync: {
+      nextMemoryExport: 3 // Default: in 3 Wochen wieder aktualisieren
+    }
+  };
+  return memory;
+}
+
+function renderMemoryUI() {
+  var mem = getStoredMemory();
+  var versionEl   = document.getElementById("memoryVersionDisplay");
+  var countdownEl = document.getElementById("memoryCountdownDisplay");
+  var bannerEl    = document.getElementById("memoryStatusBanner");
+  var textEl      = document.getElementById("coachMemoryText");
+
+  if (!mem) {
+    if (versionEl)   versionEl.textContent = "-";
+    if (countdownEl) countdownEl.textContent = "-";
+    if (bannerEl) {
+      bannerEl.style.background = "#1a2e1a";
+      bannerEl.style.border = "1px solid #4caf50";
+      bannerEl.style.color = "#4caf50";
+      bannerEl.textContent = "Noch kein Memory vorhanden - mit \"Memory erzeugen\" starten.";
+    }
+    return;
+  }
+
+  if (versionEl) versionEl.textContent = "v" + mem.version;
+  var countdown = mem.sync && typeof mem.sync.nextMemoryExport === "number" ? mem.sync.nextMemoryExport : 0;
+  if (countdownEl) countdownEl.textContent = countdown <= 0 ? "Jetzt!" : countdown + " Wo.";
+
+  if (bannerEl) {
+    if (countdown <= 0) {
+      bannerEl.style.background = "#2a1f0d";
+      bannerEl.style.border = "1px solid #ff9800";
+      bannerEl.style.color = "#ff9800";
+      bannerEl.innerHTML = "&#9888; Memory-Update faellig! Bitte neues Memory erzeugen und an den Coach geben.";
+    } else {
+      bannerEl.style.background = "#1a2e1a";
+      bannerEl.style.border = "1px solid #4caf50";
+      bannerEl.style.color = "#4caf50";
+      bannerEl.innerHTML = "&#10003; Memory aktuell (v" + mem.version + "). Naechstes Update in " + countdown + " Wochen.";
+    }
+  }
+
+  if (textEl && !textEl.value) {
+    textEl.value = objectToYaml(mem);
+  }
+}
+
+function exportMemory() {
+  var prev = getStoredMemory();
+  var mem = buildMemoryFromCurrentState(prev);
+  saveStoredMemory(mem);
+  var textEl = document.getElementById("coachMemoryText");
+  if (textEl) textEl.value = objectToYaml(mem);
+  renderMemoryUI();
+  showToast("Coach Memory v" + mem.version + " erzeugt");
+}
+
+function saveEditedMemory() {
+  var textEl = document.getElementById("coachMemoryText");
+  if (!textEl || !textEl.value.trim()) {
+    showToast("Kein Memory-Text vorhanden");
+    return;
+  }
+  // Einfacher YAML-Parser fuer die erwartete Struktur (kein Vollparser, reicht fuer dieses Schema)
+  try {
+    var parsed = parseSimpleYaml(textEl.value);
+    saveStoredMemory(parsed);
+    renderMemoryUI();
+    showToast("Memory gespeichert");
+  } catch(e) {
+    showToast("Konnte YAML nicht parsen - bitte Format pruefen");
+    console.error("YAML parse error:", e);
+  }
+}
+
+function parseSimpleYaml(yamlStr) {
+  // Minimaler YAML-Parser fuer das Coach-Memory-Schema (verschachtelte Objekte, einfache Listen)
+  var lines = yamlStr.split("\n");
+  var root = {};
+  var stack = [{ indent: -1, obj: root }];
+  var currentListKey = null;
+
+  lines.forEach(function(rawLine) {
+    if (!rawLine.trim() || rawLine.trim().indexOf("#") === 0) return;
+    var indent = rawLine.search(/\S/);
+    var line = rawLine.trim();
+
+    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
+      stack.pop();
+    }
+    var parent = stack[stack.length - 1].obj;
+
+    if (line.indexOf("- ") === 0) {
+      var item = line.slice(2).trim().replace(/^"(.*)"$/, "$1");
+      if (Array.isArray(parent)) parent.push(item);
+      return;
+    }
+
+    var colonIdx = line.indexOf(":");
+    if (colonIdx === -1) return;
+    var key = line.slice(0, colonIdx).trim();
+    var value = line.slice(colonIdx + 1).trim();
+
+    if (value === "") {
+      // Koennte ein Objekt oder eine Liste sein - schauen wir bei der naechsten Zeile
+      var nextObj = {};
+      parent[key] = nextObj;
+      stack.push({ indent: indent, obj: nextObj });
+    } else {
+      var cleanVal = value.replace(/^"(.*)"$/, "$1");
+      if (cleanVal === "true") cleanVal = true;
+      else if (cleanVal === "false") cleanVal = false;
+      else if (/^-?\d+(\.\d+)?$/.test(cleanVal)) cleanVal = parseFloat(cleanVal);
+      parent[key] = cleanVal;
+    }
+  });
+
+  // Nachbearbeitung: Objekte die nur Listen-Items als Kinder bekommen haben, in Arrays umwandeln
+  function convertEmptyObjectsWithListChildren(obj) {
+    if (typeof obj !== "object" || obj === null) return;
+    Object.keys(obj).forEach(function(k) {
+      if (typeof obj[k] === "object" && !Array.isArray(obj[k])) {
+        convertEmptyObjectsWithListChildren(obj[k]);
+      }
+    });
+  }
+
+  // Da unser Parser bei Listen direkt in ein leeres Objekt schreibt, muessen wir
+  // erkennen ob "- " Zeilen folgten und das Objekt nachtraeglich zum Array machen.
+  // Einfacher Re-Parse-Ansatz: zweite Pass-Erkennung ueber Rohzeilen.
+  reparseListsFromRaw(yamlStr, root);
+
+  return root;
+}
+
+function reparseListsFromRaw(yamlStr, root) {
+  var lines = yamlStr.split("\n");
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (!line.trim() || line.trim().indexOf(":") === -1) continue;
+    var indent = line.search(/\S/);
+    var key = line.trim().split(":")[0].trim();
+    var nextLine = lines[i+1];
+    if (nextLine && nextLine.trim().indexOf("- ") === 0) {
+      var listItems = [];
+      var j = i + 1;
+      while (j < lines.length && lines[j].trim().indexOf("- ") === 0) {
+        listItems.push(lines[j].trim().slice(2).replace(/^"(.*)"$/, "$1"));
+        j++;
+      }
+      // Pfad zum Key finden und Liste setzen (nur fuer bekannte verschachtelte Pfade)
+      setNestedListByKey(root, key, listItems);
+    }
+  }
+}
+
+function setNestedListByKey(obj, key, list) {
+  if (typeof obj !== "object" || obj === null) return false;
+  if (obj.hasOwnProperty(key)) {
+    obj[key] = list;
+    return true;
+  }
+  for (var k in obj) {
+    if (typeof obj[k] === "object" && setNestedListByKey(obj[k], key, list)) return true;
+  }
+  return false;
+}
+
+function checkMemoryMilestone() {
+  // Reduziert den Countdown automatisch, wenn eine neue Plan-Woche beginnt
+  // (wird beim Plan-Import aufgerufen, da das ein natuerlicher Wochenwechsel ist)
+  var mem = getStoredMemory();
+  if (!mem || !mem.sync) return;
+  mem.sync.nextMemoryExport = Math.max(0, (mem.sync.nextMemoryExport || 3) - 1);
+  saveStoredMemory(mem);
+  renderMemoryUI();
+}
+
+
 function generateExport() {
   var d = collectData();
-  var now = new Date().toLocaleDateString("de-DE");
-  var weeklyKm = getWeeklyKm();
   var targetKm = getPlanWeekTargetKm();
   var weeklyCompletion = Math.round((weeklyKm / targetKm) * 100);
   var txt = "COACH_BJOERN_REPORT\nDatum: " + now + "\nAthlet: Stefan\n"
@@ -1455,8 +1852,7 @@ function generateExport() {
     + "-- WOCHENUEBERSICHT --\nGelaufen diese Woche: " + weeklyKm + " km (Soll: " + targetKm + " km, " + weeklyCompletion + "%)\n\n"
     + "-- LAUFEINHEITEN DIESE WOCHE (einzeln) --\n" + getWeeklyTrainingDetails()
     + "-- KRAFTTRAINING DIESE WOCHE (einzeln) --\n" + getWeeklyStrengthDetails()
-    + "-- TAGES-CHECK / GARMIN DIESE WOCHE (einzeln) --\n" + getWeeklyTodayDetails() + getWeeklyGarminDetails()
-    + "-- RECOVERY DIESE WOCHE (einzeln) --\n" + getWeeklyRecoveryDetails()
+    + "-- TAGES-CHECK / RECOVERY / GARMIN DIESE WOCHE (einzeln) --\n" + getWeeklyTodayDetails() + getWeeklyGarminDetails()
     + "-- ERNAEHRUNG DIESE WOCHE (einzeln) --\n" + getWeeklyNutritionDetails()
     + "\n================================";
   document.getElementById("exportText").value = txt;
@@ -1520,6 +1916,7 @@ function importPlan() {
   document.getElementById("importPlanText").value = "";
   statusEl.innerHTML = '<span style="color:var(--accent)">Plan mit ' + parsed.length + ' Wochen aktiviert (ab KW ' + firstWeekNum + ' / ' + targetYear + ')! Feld geleert fuer naechsten Import.</span>';
   showToast("Neuer Plan aktiviert!");
+  checkMemoryMilestone();
 }
 
 function resetPlan() {
@@ -1584,7 +1981,7 @@ function updateStartPage() {
   function setEl(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
 
   setEl("tileEnergy", d.energy || "-");
-  setEl("tileSleep",  d.sleep  || d.garminSleep || "-");
+  setEl("tileSleep",  d.garminSleep || "-");
   setEl("tilePace",   d.runPace || "-");
 
   var battVal = parseInt(d.bodyBattery || 0);
@@ -2471,8 +2868,7 @@ function filterTrelloCards() {
 // ============================================================
 var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes"];
 var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
-var recoveryFields  = ["sleep","restingHR","stress","soreness","recoveryNotes"];
-var todayFields      = ["energy","motivation","calfLeft","calfRight"];
+var todayFields      = ["energy","motivation","calfLeft","calfRight","restingHR","stress","soreness","recoveryNotes"];
 var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus"];
 var strengthFields   = []; // wird dynamisch befuellt sobald Kraftuebungen gerendert sind
 
@@ -2547,6 +2943,66 @@ function saveDateEntry(dateFieldId, fields) {
 }
 
 
+function updateAthleteTab() {
+  var d = collectData();
+  var setEl = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+
+  // Profil
+  var weight  = parseFloat(d.currentWeight || 74);
+  var goalW   = parseFloat(d.goalWeight    || 69);
+  setEl("athProfileWeight",     weight + " kg");
+  setEl("athProfileGoalWeight", goalW + " kg");
+  setEl("athProfilePace",       d.current10kPace || "-");
+  setEl("athProfileGoalPace",   d.goal10kPace || "-");
+
+  // Trainingsphase aus aktuell relevanter Plan-Woche
+  var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  var currentPlanWeek = null;
+  for (var i = 0; i < trainingPlan.length; i++) {
+    var info = getKWMonday(trainingPlan[i].week);
+    if (info.monday.getFullYear() === range.monday.getFullYear() &&
+        info.monday.getMonth()    === range.monday.getMonth() &&
+        info.monday.getDate()     === range.monday.getDate()) {
+      currentPlanWeek = trainingPlan[i];
+      break;
+    }
+  }
+  setEl("athProfilePhase", currentPlanWeek ? (currentPlanWeek.phase || currentPlanWeek.focus || "-") : "-");
+
+  var mem = getStoredMemory();
+  setEl("athProfileMemVersion", mem ? "v" + mem.version : "Noch kein Memory");
+
+  // Fortschritt
+  var km = getWeeklyKm();
+  var targetKm = getPlanWeekTargetKm();
+  var completion = Math.round((km / targetKm) * 100);
+  setEl("athProgressKm", km + " / " + targetKm + " km");
+  setEl("athProgressCompletion", completion + "%");
+  var weightLeft = (weight - goalW).toFixed(1);
+  setEl("athProgressWeightLeft", parseFloat(weightLeft) > 0 ? weightLeft + " kg" : "Ziel erreicht!");
+
+  // Gesamtzahl aller jemals erfassten Trainingseinheiten (ueber alle date_entry_runDate_* hinweg)
+  var totalSessions = 0;
+  for (var li = 0; li < localStorage.length; li++) {
+    var key = localStorage.key(li);
+    if (key && key.indexOf("date_entry_runDate_") === 0) totalSessions++;
+  }
+  setEl("athProgressTotalSessions", totalSessions);
+
+  // Kraft & Verletzungen
+  var allExercises = strengthA.concat(strengthB);
+  setEl("athStrengthCount", allExercises.length + " Uebungen aktiv");
+  var calfScore = Math.max(parseFloat(d.calfLeft||0), parseFloat(d.calfRight||0));
+  var calfEl = document.getElementById("athCalfStatus");
+  if (calfEl) {
+    if (calfScore <= 2)      { calfEl.textContent = "Gruen - alles OK"; calfEl.style.color = "var(--accent)"; }
+    else if (calfScore <= 5) { calfEl.textContent = "Gelb - Vorsicht"; calfEl.style.color = "var(--warning)"; }
+    else                     { calfEl.textContent = "Rot - Schonen!"; calfEl.style.color = "var(--danger)"; }
+  }
+}
+
 function updateGoalDiff() {
   var curW  = parseFloat(document.getElementById("currentWeight") ? document.getElementById("currentWeight").value : 74) || 74;
   var goalW = parseFloat(document.getElementById("goalWeight")    ? document.getElementById("goalWeight").value    : 69) || 69;
@@ -2587,6 +3043,7 @@ document.addEventListener("DOMContentLoaded", function() {
       for (var b = 0; b < btns.length;  b++) btns[b].classList.remove("active");
       document.getElementById(t).classList.add("active");
       this.classList.add("active");
+      if (t === "athlete") updateAthleteTab();
     });
   }
 
@@ -2599,7 +3056,7 @@ document.addEventListener("DOMContentLoaded", function() {
   // Alle Datumsfelder IMMER zwingend auf "heute" setzen beim Oeffnen der App.
   // loadData() koennte sonst ein altes gespeichertes Datum wiederherstellen.
   var todayISO = new Date().toISOString().slice(0,10);
-  ["todayDate","garminDate","runDate","strengthDate","nutritionDate","recoveryDate"].forEach(function(id) {
+  ["todayDate","garminDate","runDate","strengthDate","nutritionDate"].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = todayISO;
   });
@@ -2610,7 +3067,6 @@ document.addEventListener("DOMContentLoaded", function() {
   onDateChange("runDate",       trainingFields);
   onDateChange("strengthDate",  strengthFields);
   onDateChange("nutritionDate", nutritionFields);
-  onDateChange("recoveryDate",  recoveryFields);
 
   // Direkt beim Start pruefen: gibt es fuer "heute" schon gespeicherte Werte?
   // Falls nicht, Felder leeren (z.B. nach Mitternacht von gestern auf heute).
@@ -2619,11 +3075,10 @@ document.addEventListener("DOMContentLoaded", function() {
   applyDateLogic("runDate",       trainingFields);
   applyDateLogic("strengthDate",  strengthFields);
   applyDateLogic("nutritionDate", nutritionFields);
-  applyDateLogic("recoveryDate",  recoveryFields);
 
   var inputs = document.querySelectorAll("input, textarea, select");
   for (var i = 0; i < inputs.length; i++) {
-    inputs[i].addEventListener("change", function() { saveData(); updateAnalysis(); updateStartPage(); updateRecoveryGarmin(); updateGoalDiff(); });
+    inputs[i].addEventListener("change", function() { saveData(); updateAnalysis(); updateStartPage(); updateRecoveryGarmin(); updateGoalDiff(); updateAthleteTab(); });
     inputs[i].addEventListener("keyup",  function() { saveData(); });
   }
 
@@ -2631,6 +3086,7 @@ document.addEventListener("DOMContentLoaded", function() {
   updateStartPage();
   updateRecoveryGarmin();
   updateGoalDiff();
+  updateAthleteTab();
   restoreTrelloSettings();
   tryRestoreTrelloFromCache();
   initMealDropZones();
@@ -2641,6 +3097,9 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("generateExport").addEventListener("click", generateExport);
   document.getElementById("importPlanBtn").addEventListener("click", importPlan);
   document.getElementById("resetPlanBtn").addEventListener("click", resetPlan);
+  document.getElementById("exportMemoryBtn").addEventListener("click", exportMemory);
+  document.getElementById("saveMemoryBtn").addEventListener("click", saveEditedMemory);
+  renderMemoryUI();
 });
 </script>
 </body>
