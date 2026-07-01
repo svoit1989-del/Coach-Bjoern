@@ -389,7 +389,6 @@
     <label>Motivation (1-10)</label><input id="motivation" type="number" min="1" max="10" placeholder="z.B. 8">
     <label>Wade links (0-10)</label><input id="calfLeft" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
     <label>Wade rechts (0-10)</label><input id="calfRight" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
-    <label>Ruhepuls (bpm)</label><input id="restingHR" type="number" placeholder="z.B. 52">
     <label>Stress (1-10)</label><input id="stress" type="number" min="1" max="10" placeholder="z.B. 4">
     <label>Muskelkater (1-10)</label><input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3">
     <label>Notizen</label><textarea id="recoveryNotes" rows="2" placeholder="Besonderheiten, Schmerzen, Befinden..."></textarea>
@@ -482,8 +481,34 @@
     <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px;">Dr.-Feil-Protokoll</p>
     <label>Datum</label><input id="nutritionDate" type="date">
 
+    <div style="margin-top:14px;">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Eingenommen</div>
+      <div class="check-grid">
+        <label class="check-item"><input type="checkbox" id="protein"><span>Protein</span></label>
+        <label class="check-item"><input type="checkbox" id="vegetables"><span>Gemuese</span></label>
+        <label class="check-item"><input type="checkbox" id="omega3"><span>Omega 3</span></label>
+        <label class="check-item"><input type="checkbox" id="arginine"><span>Arginin</span></label>
+        <label class="check-item"><input type="checkbox" id="turmeric"><span>Kurkuma</span></label>
+        <label class="check-item"><input type="checkbox" id="ginger"><span>Ingwer</span></label>
+        <label class="check-item"><input type="checkbox" id="waterGoal"><span>Trinkziel</span></label>
+        <label class="check-item"><input type="checkbox" id="kreatin"><span>Kreatin</span></label>
+        <label class="check-item"><input type="checkbox" id="magnesium"><span>Magnesium</span></label>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Wann &amp; Was</div>
+      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 1</div>
+        <div class="nutrition-time-row"><input class="time-input" id="meal1Time" type="time"><input class="note-input meal-drop-zone" id="meal1Note" data-meal="1" placeholder="z.B. Haferflocken, Protein"></div></div>
+      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 2</div>
+        <div class="nutrition-time-row"><input class="time-input" id="meal2Time" type="time"><input class="note-input meal-drop-zone" id="meal2Note" data-meal="2" placeholder="z.B. Salat, Huehnchen"></div></div>
+      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 3</div>
+        <div class="nutrition-time-row"><input class="time-input" id="meal3Time" type="time"><input class="note-input meal-drop-zone" id="meal3Note" data-meal="3" placeholder="z.B. Abendessen"></div></div>
+      <div><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Snack / Supplement</div>
+        <div class="nutrition-time-row"><input class="time-input" id="meal4Time" type="time"><input class="note-input meal-drop-zone" id="meal4Note" data-meal="4" placeholder="z.B. Kreatin, Magnesium"></div></div>
+    </div>
+
     <!-- TRELLO -->
-    <div style="background:#0d1b2a;border:1px solid #0052cc;border-radius:10px;padding:12px;margin-top:14px;">
+    <div style="background:#0d1b2a;border:1px solid #0052cc;border-radius:10px;padding:12px;margin-top:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span style="color:#29b6f6;font-weight:700;font-size:0.88rem;">&#128203; Trello Essen</span>
         <button onclick="loadTrelloCards()" style="background:#0052cc;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;">Laden</button>
@@ -510,31 +535,7 @@
         </div>
       </details>
     </div>
-    <div style="margin-top:14px;">
-      <div style="font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Eingenommen</div>
-      <div class="check-grid">
-        <label class="check-item"><input type="checkbox" id="protein"><span>Protein</span></label>
-        <label class="check-item"><input type="checkbox" id="vegetables"><span>Gemuese</span></label>
-        <label class="check-item"><input type="checkbox" id="omega3"><span>Omega 3</span></label>
-        <label class="check-item"><input type="checkbox" id="arginine"><span>Arginin</span></label>
-        <label class="check-item"><input type="checkbox" id="turmeric"><span>Kurkuma</span></label>
-        <label class="check-item"><input type="checkbox" id="ginger"><span>Ingwer</span></label>
-        <label class="check-item"><input type="checkbox" id="waterGoal"><span>Trinkziel</span></label>
-        <label class="check-item"><input type="checkbox" id="kreatin"><span>Kreatin</span></label>
-        <label class="check-item"><input type="checkbox" id="magnesium"><span>Magnesium</span></label>
-      </div>
-    </div>
-    <div style="margin-top:16px;">
-      <div style="font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Wann &amp; Was</div>
-      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 1</div>
-        <div class="nutrition-time-row"><input class="time-input" id="meal1Time" type="time"><input class="note-input meal-drop-zone" id="meal1Note" data-meal="1" placeholder="z.B. Haferflocken, Protein"></div></div>
-      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 2</div>
-        <div class="nutrition-time-row"><input class="time-input" id="meal2Time" type="time"><input class="note-input meal-drop-zone" id="meal2Note" data-meal="2" placeholder="z.B. Salat, Huehnchen"></div></div>
-      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 3</div>
-        <div class="nutrition-time-row"><input class="time-input" id="meal3Time" type="time"><input class="note-input meal-drop-zone" id="meal3Note" data-meal="3" placeholder="z.B. Abendessen"></div></div>
-      <div><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Snack / Supplement</div>
-        <div class="nutrition-time-row"><input class="time-input" id="meal4Time" type="time"><input class="note-input meal-drop-zone" id="meal4Note" data-meal="4" placeholder="z.B. Kreatin, Magnesium"></div></div>
-    </div>
+
     <button class="btn" onclick="confirmSave('nutrition')">Ernaehrung speichern</button>
   </div>
 
@@ -861,6 +862,41 @@ function getISOWeekInfo(date) {
   return { kw: weekNum, year: d.getFullYear() };
 }
 
+var RUN_PREP_BUFFER_MIN = 15; // Auf-/Abwaermen: pauschal 15 min zusaetzlich pro Laufeinheit
+
+function isRunType(type) {
+  var runTypes = ["run", "Long Run", "Locker", "Schwelle", "Lauf"];
+  return runTypes.indexOf(type) !== -1;
+}
+
+function parseDauerMinutes(dauerStr) {
+  if (!dauerStr) return 0;
+  var m = dauerStr.match(/[0-9]+/);
+  return m ? parseInt(m[0]) : 0;
+}
+
+function getEffectiveDauerMinutes(day) {
+  // Liefert die tatsaechliche Dauer inkl. 15 min Puffer bei Laufeinheiten
+  var baseMinutes = parseDauerMinutes(day.dauer);
+  if (baseMinutes === 0) {
+    // Fallback falls "dauer" fehlt, wie bisher im iCal-Export
+    if (day.type === "Long Run") baseMinutes = 90;
+    else if (day.type === "Schwelle") baseMinutes = 50;
+    else baseMinutes = 45;
+  }
+  if (isRunType(day.type)) return baseMinutes + RUN_PREP_BUFFER_MIN;
+  return baseMinutes;
+}
+
+function formatDauerDisplay(day) {
+  // Anzeige-String fuer die Plan-Uebersicht, inkl. Puffer-Hinweis bei Laufeinheiten
+  var total = getEffectiveDauerMinutes(day);
+  if (isRunType(day.type) && day.dauer) {
+    return total + " min (inkl. 15 min Auf-/Abwaermen)";
+  }
+  return day.dauer || (total + " min");
+}
+
 function getKWMonday(planWeek) {
   // Berechnet das tatsaechliche Kalenderdatum (Montag) fuer eine Plan-Woche,
   // ausgehend von PLAN_START_KW im aktuellen (oder im PLAN_START_YEAR) Jahr.
@@ -988,15 +1024,8 @@ function exportWeekICS(planWeek) {
     var isKraft = d.type.indexOf("Kraft") >= 0;
     var startHour = 12; // Mittags - leichter im Kalender verschiebbar
 
-    // Parse duration from dauer string e.g. "ca. 45 min" -> 45
-    var durNum = 45;
-    if (d.dauer) {
-      var m = d.dauer.match(/[0-9]+/);
-      if (m) durNum = parseInt(m[0]);
-    } else {
-      if (d.type === "Long Run") durNum = 90;
-      else if (d.type === "Schwelle") durNum = 50;
-    }
+    // Dauer inkl. 15 min Auf-/Abwaermen bei Laufeinheiten
+    var durNum = getEffectiveDauerMinutes(d);
 
     // Build start/end as local Berlin time, exported as UTC
     // Berlin summer time = UTC+2 (KW26 onwards)
@@ -1108,7 +1137,7 @@ function renderPlan() {
         if (d.km) parts.push(d.km + " km");
         if (d.pace) parts.push(d.pace);
         if (d.workout && d.workout !== "...") parts.push(d.workout);
-        if (d.dauer) parts.push(d.dauer);
+        if (d.dauer) parts.push(getEffectiveDauerMinutes(d) + " min");
         var summary = parts.join(" | ");
         var prioColor = priorityColors[d.priority] || null;
 
@@ -1123,7 +1152,7 @@ function renderPlan() {
         var hasExpand = (d.desc && d.desc !== "...") || (d.workout && d.workout !== "...") || d.weather;
         if (hasExpand) {
           html += '<div id="' + dayId + '" class="day-expand">';
-          if (d.dauer) html += '<div style="color:' + color + ';font-weight:700;margin-bottom:4px;">&#9201; ' + d.dauer + '</div>';
+          if (d.dauer) html += '<div style="color:' + color + ';font-weight:700;margin-bottom:4px;">&#9201; ' + formatDauerDisplay(d) + '</div>';
           if (d.workout && d.workout !== "...") html += '<div style="font-weight:700;margin-bottom:4px;">Einheit: ' + d.workout + (d.pace ? " @ " + d.pace : "") + '</div>';
           if (d.desc && d.desc !== "...") html += '<div>' + d.desc + '</div>';
           if (d.weather) html += '<div style="margin-top:6px;padding:6px 8px;background:#2a1f0d;border-radius:6px;font-size:0.8rem;color:#ff9800;">&#9728; ' + d.weather + '</div>';
@@ -1430,14 +1459,9 @@ function updateAnalysis() {
 // RECOVERY GARMIN MIRROR
 // ============================================================
 function updateRecoveryGarmin() {
-  var d = collectData();
-  // Garmin-Ruhepuls automatisch in Tages-Check uebernehmen,
-  // aber nur wenn das Feld noch leer ist (kein Ueberschreiben manueller Eingaben)
-  var rhrEl = document.getElementById("restingHR");
-  if (rhrEl && !rhrEl.value && d.garminRHR) {
-    rhrEl.value = d.garminRHR;
-    saveData();
-  }
+  // Ruhepuls wird jetzt ausschliesslich ueber Garmin (garminRHR) erfasst,
+  // kein separates Feld mehr im Tages-Check noetig. Funktion bleibt als
+  // No-Op bestehen, um bestehende Aufrufstellen nicht aendern zu muessen.
 }
 
 // ============================================================
@@ -1524,7 +1548,7 @@ function getWeeklyTodayDetails() {
   var range = getWeekDateRange(refDate);
   return getWeeklyDailyDetails("todayDate", range, function(d) {
     var out = "    Energie: " + (d.energy||"-") + "/10 | Motivation: " + (d.motivation||"-") + "/10 | Wade L: " + (d.calfLeft||"0") + " | Wade R: " + (d.calfRight||"0") + "\n";
-    out += "    Ruhepuls: " + (d.restingHR||"-") + " | Stress: " + (d.stress||"-") + "/10 | Muskelkater: " + (d.soreness||"-") + "/10\n";
+    out += "    Stress: " + (d.stress||"-") + "/10 | Muskelkater: " + (d.soreness||"-") + "/10\n";
     if (d.recoveryNotes) out += "    Notizen: " + d.recoveryNotes + "\n";
     return out + "\n";
   });
@@ -2868,7 +2892,7 @@ function filterTrelloCards() {
 // ============================================================
 var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes"];
 var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
-var todayFields      = ["energy","motivation","calfLeft","calfRight","restingHR","stress","soreness","recoveryNotes"];
+var todayFields      = ["energy","motivation","calfLeft","calfRight","stress","soreness","recoveryNotes"];
 var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus"];
 var strengthFields   = []; // wird dynamisch befuellt sobald Kraftuebungen gerendert sind
 
