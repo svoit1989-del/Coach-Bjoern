@@ -2100,8 +2100,9 @@ function updateCoachBriefing(now) {
   }
 
   var coach = week && week.coach ? week.coach : null;
+  var coachMessage = coach ? (coach.message || coach.weekMessage) : null;
 
-  if (!coach || !coach.message) {
+  if (!coach || !coachMessage) {
     // Kein Coach-Briefing fuer diese oder die naechste Woche vorhanden -> altes Motivationszitat zeigen
     briefingCard.style.display = "none";
     fallbackCard.style.display = "block";
@@ -2124,7 +2125,7 @@ function updateCoachBriefing(now) {
   };
 
   var msgEl = document.getElementById("coachBriefingMessage");
-  if (msgEl) msgEl.textContent = coach.message;
+  if (msgEl) msgEl.textContent = coachMessage;
 
   setSection("coachBriefingWeather",    "coachBriefingWeatherText",    coach.weather);
   setSection("coachBriefingHydration",  "coachBriefingHydrationText",  coach.hydration);
