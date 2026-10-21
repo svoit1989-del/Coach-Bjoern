@@ -414,13 +414,13 @@
   <div class="card">
     <h2>Tages-Check</h2>
     <label>Datum</label><input id="todayDate" type="date">
-    <label>Aktuelles Gewicht (kg)</label><input id="currentWeight" type="number" step="0.1" placeholder="z.B. 74.0">
-    <label>Energie (1-10)</label><input id="energy" type="number" min="1" max="10" placeholder="z.B. 7">
-    <label>Motivation (1-10)</label><input id="motivation" type="number" min="1" max="10" placeholder="z.B. 8">
-    <label>Wade links (0-10)</label><input id="calfLeft" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
-    <label>Wade rechts (0-10)</label><input id="calfRight" type="number" min="0" max="10" placeholder="0 = kein Schmerz">
-    <label>Stress (1-10)</label><input id="stress" type="number" min="1" max="10" placeholder="z.B. 4">
-    <label>Muskelkater (1-10)</label><input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3">
+    <label>Aktuelles Gewicht (kg)</label><input id="currentWeight" type="number" step="0.1" placeholder="z.B. 74.0" inputmode="decimal">
+    <label>Energie (1-10)</label><input id="energy" type="number" min="1" max="10" placeholder="z.B. 7" inputmode="numeric">
+    <label>Motivation (1-10)</label><input id="motivation" type="number" min="1" max="10" placeholder="z.B. 8" inputmode="numeric">
+    <label>Wade links (0-10)</label><input id="calfLeft" type="number" min="0" max="10" placeholder="0 = kein Schmerz" inputmode="numeric">
+    <label>Wade rechts (0-10)</label><input id="calfRight" type="number" min="0" max="10" placeholder="0 = kein Schmerz" inputmode="numeric">
+    <label>Stress (1-10)</label><input id="stress" type="number" min="1" max="10" placeholder="z.B. 4" inputmode="numeric">
+    <label>Muskelkater (1-10)</label><input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3" inputmode="numeric">
     <label>Notizen</label><textarea id="recoveryNotes" rows="2" placeholder="Besonderheiten, Schmerzen, Befinden..."></textarea>
     <button class="btn" onclick="confirmSave('today')">Tages-Check speichern</button>
   </div>
@@ -429,9 +429,9 @@
     <p class="sub">Werte aus Garmin Connect App manuell uebertragen</p>
     <label>Datum</label><input id="garminDate" type="date">
     <div class="garmin-grid">
-      <div><label>Body Battery</label><input id="bodyBattery" type="number" min="0" max="100" placeholder="0-100"></div>
+      <div><label>Body Battery</label><input id="bodyBattery" type="number" min="0" max="100" placeholder="0-100" inputmode="numeric"></div>
       <div><label>Schlaf (Std:Min)</label><input id="garminSleep" type="time" placeholder="07:30"></div>
-      <div><label>Ruhepuls (bpm)</label><input id="garminRHR" type="number" placeholder="z.B. 52"></div>
+      <div><label>Ruhepuls (bpm)</label><input id="garminRHR" type="number" placeholder="z.B. 52" inputmode="numeric"></div>
       <div>
         <label>HRV Status</label>
         <select id="garminHRV">
@@ -467,17 +467,43 @@
 <!-- TRAINING -->
 <section id="training" class="tab-page">
   <div class="card">
-    <h2>Lauferfassung</h2>
+    <h2 id="trainingCardTitle">Trainingserfassung</h2>
     <label>Training vom</label><input id="runDate" type="date">
-    <label>Kilometer</label><input id="runKm" type="number" step="0.1" placeholder="z.B. 7.2">
-    <label>Zeit (mm:ss)</label><input id="runTime" placeholder="z.B. 44:30">
-    <label>Pace (min/km)</label><input id="runPace" placeholder="z.B. 6:10">
-    <label>Hoehenmeter (m)</label><input id="runElevation" type="number" placeholder="z.B. 45">
-    <label>Herzfrequenz (bpm)</label><input id="runHF" type="number" placeholder="z.B. 145">
-    <label>Kadenz (spm)</label><input id="runCadence" type="number" placeholder="z.B. 172">
-    <label>Bodenkontaktzeit BKT (ms)</label><input id="runBKT" type="number" placeholder="z.B. 265">
-    <label>Vertikale Bewegung (cm)</label><input id="runVertical" type="number" step="0.1" placeholder="z.B. 8.4">
-    <label>RPE (1-10)</label><input id="runRPE" type="number" min="1" max="10" placeholder="z.B. 6">
+    <div style="margin-top:12px;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Einheiten an diesem Tag</div>
+      <div id="sessionChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+
+    <label>Disziplin</label>
+    <div class="feeling-row" id="disciplineRow" style="margin-top:6px;">
+      <button type="button" class="feel-btn discipline-btn" data-discipline="run">&#127939; Laufen</button>
+      <button type="button" class="feel-btn discipline-btn" data-discipline="bike">&#128692; Radfahren</button>
+    </div>
+    <input type="hidden" id="trainingDiscipline" value="run">
+
+    <label>Kilometer</label><input id="runKm" type="number" step="0.1" placeholder="z.B. 7.2" inputmode="decimal">
+    <label>Zeit (HH:MM:SS)</label><input id="runTime" inputmode="numeric" placeholder="z.B. 00:44:30">
+
+    <!-- LAUF-SPEZIFISCHE FELDER -->
+    <div id="runOnlyFields">
+      <label>Pace (min/km)</label><input id="runPace" inputmode="numeric" placeholder="z.B. 6:10">
+      <label>Hoehenmeter (m)</label><input id="runElevation" type="number" placeholder="z.B. 45" inputmode="numeric">
+      <label>Kadenz (spm)</label><input id="runCadence" type="number" placeholder="z.B. 172" inputmode="numeric">
+      <label>Bodenkontaktzeit BKT (ms)</label><input id="runBKT" type="number" placeholder="z.B. 265" inputmode="numeric">
+      <label>Vertikale Bewegung (cm)</label><input id="runVertical" type="number" step="0.1" placeholder="z.B. 8.4" inputmode="decimal">
+    </div>
+
+    <!-- RAD-SPEZIFISCHE FELDER -->
+    <div id="bikeOnlyFields" style="display:none;">
+      <label>Geschwindigkeit Ø (km/h)</label><input id="bikeSpeed" type="number" step="0.1" placeholder="z.B. 24.5" inputmode="decimal">
+      <label>Trittfrequenz (rpm)</label><input id="bikeCadence" type="number" placeholder="z.B. 85" inputmode="numeric">
+      <label>Hoehenmeter (m)</label><input id="bikeElevation" type="number" placeholder="z.B. 120" inputmode="numeric">
+      <label>Leistung Ø (Watt, optional)</label><input id="bikePower" type="number" placeholder="z.B. 180" inputmode="numeric">
+    </div>
+
+    <!-- GEMEINSAME FELDER -->
+    <label>Herzfrequenz (bpm)</label><input id="runHF" type="number" placeholder="z.B. 145" inputmode="numeric">
+    <label>RPE (1-10)</label><input id="runRPE" type="number" min="1" max="10" placeholder="z.B. 6" inputmode="numeric">
     <label>Wie hat sich das Training angefuehlt?</label>
     <div class="feeling-row" id="feelingRow">
       <button type="button" class="feel-btn" data-feel="sehr-gut">Sehr gut</button>
@@ -487,18 +513,21 @@
       <button type="button" class="feel-btn" data-feel="schlecht">Schlecht</button>
     </div>
     <input type="hidden" id="runFeeling" value="">
-    <label style="display:flex;align-items:center;gap:10px;margin-top:16px;background:var(--surface-2);border-radius:10px;padding:10px 12px;cursor:pointer;">
-      <input type="checkbox" id="thuleChariot" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
-      <span style="font-size:0.9rem;">&#128663; Thule Chariot mitgenommen</span>
-    </label>
-    <div id="thuleChildWeightRow" style="display:none;">
-      <label>Gewicht Kind (kg)</label>
-      <input id="thuleChildWeight" type="number" step="0.5" placeholder="z.B. 18">
-      <div id="thuleTotalDisplay" style="font-size:0.8rem;color:#29b6f6;margin-top:6px;"></div>
+    <div id="thuleSection">
+      <label style="display:flex;align-items:center;gap:10px;margin-top:16px;background:var(--surface-2);border-radius:10px;padding:10px 12px;cursor:pointer;">
+        <input type="checkbox" id="thuleChariot" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
+        <span style="font-size:0.9rem;">&#128663; Thule Chariot mitgenommen</span>
+      </label>
+      <div id="thuleChildWeightRow" style="display:none;">
+        <label>Gewicht Kind (kg)</label>
+        <input id="thuleChildWeight" type="number" step="0.5" placeholder="z.B. 18" inputmode="decimal">
+        <div id="thuleTotalDisplay" style="font-size:0.8rem;color:#29b6f6;margin-top:6px;"></div>
+      </div>
     </div>
     <label>Notizen (fuer Coach-Anpassung)</label>
     <textarea id="runNotes" rows="3" placeholder="z.B. Knie hat gezwickt, Wetter war heiss, Strecke war huegeliger als gedacht..."></textarea>
-    <button class="btn" onclick="confirmSave('training')">Training speichern</button>
+    <button class="btn" id="saveSessionBtn" onclick="confirmSave('training')">Einheit speichern</button>
+    <button class="btn secondary" id="deleteSessionBtn" onclick="deleteTrainingSession()" style="margin-top:8px;display:none;">Einheit loeschen</button>
   </div>
 </section>
 
@@ -615,7 +644,7 @@
       @keyframes scanLine { 0%{top:20%} 50%{top:80%} 100%{top:20%} }
     </style>
     <label style="margin-top:10px;">Menge (g)</label>
-    <input id="foodAmount" type="number" value="100" placeholder="100">
+    <input id="foodAmount" type="number" value="100" placeholder="100" inputmode="numeric">
     <div id="foodSearchStatus" style="font-size:0.78rem;color:var(--muted);margin-top:6px;"></div>
     <div id="foodSearchResults" style="margin-top:8px;max-height:220px;overflow-y:auto;"></div>
   </div>
@@ -670,13 +699,13 @@
         </div>
         <span class="discipline-badge active">Aktiv</span>
       </div>
-      <div class="discipline-card placeholder">
+      <div class="discipline-card">
         <span class="discipline-icon">&#128692;</span>
         <div class="discipline-info">
           <div class="discipline-title">Radfahren</div>
-          <div class="discipline-status">Triathlon-Vorbereitung &middot; noch nicht gestartet</div>
+          <div class="discipline-status" id="bikeDisciplineStatus">Wieder aufgenommen</div>
         </div>
-        <span class="discipline-badge soon">Demnaechst</span>
+        <span class="discipline-badge active">Aktiv</span>
       </div>
       <div class="discipline-card placeholder">
         <span class="discipline-icon">&#127946;</span>
@@ -725,12 +754,12 @@
         <tr style="border-bottom:1px solid #2a2a2a;">
           <td style="padding:10px 6px;color:var(--muted);">&#9878; Gewicht</td>
           <td style="padding:10px 6px;text-align:center;"><span id="currentWeightDisplay" style="font-weight:700;">-</span><div style="font-size:0.65rem;color:#3a6a8a;">im Heute-Tab</div></td>
-          <td style="padding:10px 6px;text-align:center;"><input id="goalWeight" type="number" step="0.1" value="69" style="width:80px;text-align:center;padding:6px;font-size:0.95rem;"></td>
+          <td style="padding:10px 6px;text-align:center;"><input id="goalWeight" type="number" step="0.1" value="69" style="width:80px;text-align:center;padding:6px;font-size:0.95rem;" inputmode="decimal"></td>
         </tr>
         <tr style="border-bottom:1px solid #2a2a2a;">
           <td style="padding:10px 6px;color:var(--muted);">&#128205; 10km Pace</td>
-          <td style="padding:10px 6px;text-align:center;"><input id="current10kPace" value="4:55" style="width:80px;text-align:center;padding:6px;font-size:0.95rem;"></td>
-          <td style="padding:10px 6px;text-align:center;"><input id="goal10kPace" value="4:35" style="width:80px;text-align:center;padding:6px;font-size:0.95rem;"></td>
+          <td style="padding:10px 6px;text-align:center;"><input id="current10kPace" value="4:55" inputmode="numeric" style="width:80px;text-align:center;padding:6px;font-size:0.95rem;"></td>
+          <td style="padding:10px 6px;text-align:center;"><input id="goal10kPace" value="4:35" inputmode="numeric" style="width:80px;text-align:center;padding:6px;font-size:0.95rem;"></td>
         </tr>
         <tr style="border-bottom:1px solid #2a2a2a;">
           <td style="padding:10px 6px;color:var(--muted);">&#10067; Differenz</td>
@@ -749,6 +778,30 @@
 
 <!-- IMPORT / EXPORT -->
 <section id="export" class="tab-page">
+
+  <!-- KOMPLETT-BACKUP -->
+  <div class="card" style="border:1px solid #444;">
+    <h2>&#128190; Komplett-Backup</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Sichert alle App-Daten (Trainingshistorie, Plan, Memory, Ziele, Trello-Einstellungen etc.) als Datei. Vor einem App-Update empfohlen, damit bei einer neuen Version nichts verloren geht.</p>
+    <button class="btn" id="backupExportBtn">&#11015; Backup herunterladen</button>
+    <button class="btn secondary" id="backupImportBtn" style="margin-top:8px;">&#11014; Backup wiederherstellen</button>
+    <input type="file" id="backupFileInput" accept="application/json" style="display:none;">
+    <div id="backupStatus" style="font-size:0.78rem;color:var(--muted);margin-top:8px;"></div>
+  </div>
+
+  <!-- GOOGLE SHEET -->
+  <div class="card" style="border:1px solid #1e6b3a;">
+    <h2 style="color:#34a853;">&#128202; Google Sheet</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">Spiegelt jede gespeicherte Eingabe in ein Google Sheet. Die App bleibt fuehrend. Tabs: Training, Tagescheck, Garmin, Ernaehrung, Kraft, Plaene.</p>
+    <div id="sheetsStatus" style="font-size:0.8rem;margin:8px 0;"></div>
+    <label>OAuth Client-ID</label>
+    <input id="sheetsClientId" placeholder="....apps.googleusercontent.com">
+    <label>Sheet-ID oder Sheet-URL</label>
+    <input id="sheetsSheetId" placeholder="https://docs.google.com/spreadsheets/d/...">
+    <button class="btn secondary" id="sheetsSaveBtn">Einstellungen speichern</button>
+    <button class="btn" id="sheetsSyncBtn" style="background:linear-gradient(180deg,#4fc26b 0%,#34a853 55%,#2a8a44 100%);">Verbinden &amp; alles synchronisieren</button>
+    <button class="btn secondary" id="sheetsDisconnectBtn" style="margin-top:8px;">Verbindung trennen</button>
+  </div>
 
   <!-- COACH MEMORY (YAML) -->
   <div class="card" style="border:1px solid #2d5a2d;">
@@ -1292,11 +1345,181 @@ function getThuleTotalWeight() {
   return THULE_BASE_WEIGHT_KG + childWeight;
 }
 
+function setTrainingDiscipline(discipline) {
+  var hiddenInput = document.getElementById("trainingDiscipline");
+  if (hiddenInput) hiddenInput.value = discipline;
+
+  var runFields  = document.getElementById("runOnlyFields");
+  var bikeFields = document.getElementById("bikeOnlyFields");
+  var thuleSection = document.getElementById("thuleSection");
+  var titleEl = document.getElementById("trainingCardTitle");
+
+  var isBike = discipline === "bike";
+  if (runFields)  runFields.style.display  = isBike ? "none" : "block";
+  if (bikeFields) bikeFields.style.display = isBike ? "block" : "none";
+  // Thule Chariot ist ein Laufzubehoer - ergibt beim Radfahren keinen Sinn
+  if (thuleSection) thuleSection.style.display = isBike ? "none" : "block";
+  if (titleEl) titleEl.textContent = isBike ? "Radfahrterfassung" : "Lauferfassung";
+
+  document.querySelectorAll(".discipline-btn").forEach(function(btn) {
+    btn.classList.toggle("selected", btn.dataset.discipline === discipline);
+  });
+}
+
+function initDisciplineButtons() {
+  document.querySelectorAll(".discipline-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      setTrainingDiscipline(this.dataset.discipline);
+      saveData();
+    });
+  });
+  var stored = document.getElementById("trainingDiscipline");
+  setTrainingDiscipline(stored && stored.value ? stored.value : "run");
+}
+
+// ============================================================
+// MEHRERE TRAININGSEINHEITEN PRO TAG
+// Speicherformat: date_entry_runDate_<Datum> = { runDate, sessions: [ {...}, {...} ] }
+// Alte Eintraege (ein Objekt pro Tag) werden automatisch als Einheit 1 gelesen.
+// ============================================================
+var _sessionIdx = 0;
+
+function getTrainingSessions(date) {
+  if (!date) return [];
+  var raw = localStorage.getItem("date_entry_runDate_" + date);
+  if (!raw) return [];
+  try {
+    var o = JSON.parse(raw);
+    if (o && Array.isArray(o.sessions)) return o.sessions;
+    if (o && typeof o === "object") return [o]; // Altformat
+  } catch(e) {}
+  return [];
+}
+
+function setTrainingSessions(date, sessions) {
+  var key = "date_entry_runDate_" + date;
+  if (!sessions.length) localStorage.removeItem(key);
+  else localStorage.setItem(key, JSON.stringify({ runDate: date, sessions: sessions }));
+}
+
+function collectTrainingSessions(range) {
+  // Alle Einheiten (optional nur innerhalb von range {monday, sunday}), chronologisch
+  var out = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (!key || key.indexOf("date_entry_runDate_") !== 0) continue;
+    var date = key.replace("date_entry_runDate_", "");
+    var dateObj = parseLocalDate(date);
+    if (range && (dateObj < range.monday || dateObj > range.sunday)) continue;
+    getTrainingSessions(date).forEach(function(s, idx) {
+      out.push({ date: date, dateObj: dateObj, index: idx, data: s });
+    });
+  }
+  out.sort(function(a, b) { return a.date === b.date ? a.index - b.index : a.date.localeCompare(b.date); });
+  return out;
+}
+
+function readTrainingForm() {
+  var data = {};
+  trainingFields.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    data[id] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  if (!data.trainingDiscipline) data.trainingDiscipline = "run";
+  return data;
+}
+
+function resetTrainingForm() {
+  resetFieldGroup(trainingFields);
+  setTrainingDiscipline("run");
+  updateThuleDisplay();
+}
+
+function fillTrainingForm(s) {
+  resetFieldGroup(trainingFields);
+  trainingFields.forEach(function(id) {
+    if (!(id in s)) return;
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = !!s[id];
+    else el.value = s[id];
+  });
+  if (s.runFeeling) restoreFeeling(s.runFeeling);
+  setTrainingDiscipline(s.trainingDiscipline === "bike" ? "bike" : "run");
+  updateThuleDisplay();
+}
+
+function renderSessionChips() {
+  var box = document.getElementById("sessionChips");
+  var dateEl = document.getElementById("runDate");
+  if (!box || !dateEl) return;
+  var sessions = getTrainingSessions(dateEl.value);
+  var html = "";
+  sessions.forEach(function(s, i) {
+    var icon = s.trainingDiscipline === "bike" ? "&#128692;" : "&#127939;";
+    var label = (i + 1) + ". " + icon + " " + (s.runKm ? s.runKm + " km" : "ohne km");
+    html += '<button type="button" class="feel-btn session-chip' + (i === _sessionIdx ? ' selected' : '') + '" style="flex:0 0 auto;min-width:0;padding:8px 12px;" onclick="selectTrainingSession(' + i + ')">' + label + '</button>';
+  });
+  var isNew = _sessionIdx >= sessions.length;
+  html += '<button type="button" class="feel-btn session-chip' + (isNew ? ' selected' : '') + '" style="flex:0 0 auto;min-width:0;padding:8px 12px;" onclick="newTrainingSession()">+ ' + (sessions.length ? (sessions.length + 1) + '. Einheit' : 'Neue Einheit') + '</button>';
+  box.innerHTML = html;
+
+  var delBtn = document.getElementById("deleteSessionBtn");
+  if (delBtn) delBtn.style.display = isNew ? "none" : "block";
+  var saveBtn = document.getElementById("saveSessionBtn");
+  if (saveBtn) saveBtn.textContent = isNew ? "Einheit " + (sessions.length + 1) + " speichern" : "Einheit " + (_sessionIdx + 1) + " aktualisieren";
+}
+
+function loadTrainingSessionsForDate(selectIdx) {
+  var dateEl = document.getElementById("runDate");
+  var sessions = getTrainingSessions(dateEl ? dateEl.value : "");
+  _sessionIdx = (typeof selectIdx === "number") ? selectIdx : 0;
+  if (sessions[_sessionIdx]) fillTrainingForm(sessions[_sessionIdx]);
+  else { _sessionIdx = sessions.length; resetTrainingForm(); }
+  renderSessionChips();
+}
+
+function selectTrainingSession(i) { loadTrainingSessionsForDate(i); }
+
+function newTrainingSession() {
+  var dateEl = document.getElementById("runDate");
+  _sessionIdx = getTrainingSessions(dateEl ? dateEl.value : "").length;
+  resetTrainingForm();
+  renderSessionChips();
+}
+
+function saveTrainingSession() {
+  var dateEl = document.getElementById("runDate");
+  if (!dateEl || !dateEl.value) return;
+  var sessions = getTrainingSessions(dateEl.value);
+  var data = readTrainingForm();
+  if (_sessionIdx < sessions.length) sessions[_sessionIdx] = data;
+  else { sessions.push(data); _sessionIdx = sessions.length - 1; }
+  setTrainingSessions(dateEl.value, sessions);
+  renderSessionChips();
+}
+
+function deleteTrainingSession() {
+  var dateEl = document.getElementById("runDate");
+  if (!dateEl || !dateEl.value) return;
+  var sessions = getTrainingSessions(dateEl.value);
+  if (_sessionIdx >= sessions.length) return;
+  if (!confirm("Einheit " + (_sessionIdx + 1) + " vom " + dateEl.value + " loeschen?")) return;
+  sessions.splice(_sessionIdx, 1);
+  setTrainingSessions(dateEl.value, sessions);
+  loadTrainingSessionsForDate(Math.max(0, _sessionIdx - 1));
+  saveData();
+  updateAnalysis(); updateStartPage(); updateAthleteTab();
+  showToast("Einheit geloescht");
+  sheetsSyncTrainingAll(); // Nummerierung der Einheiten im Sheet neu aufbauen
+}
+
 function initFeelingButtons() {
-  var btns = document.querySelectorAll(".feel-btn");
+  var btns = document.querySelectorAll("#feelingRow .feel-btn");
   for (var i = 0; i < btns.length; i++) {
     btns[i].addEventListener("click", function() {
-      var btns2 = document.querySelectorAll(".feel-btn");
+      var btns2 = document.querySelectorAll("#feelingRow .feel-btn");
       for (var j = 0; j < btns2.length; j++) btns2[j].classList.remove("selected");
       this.classList.add("selected");
       document.getElementById("runFeeling").value = this.dataset.feel;
@@ -1306,7 +1529,7 @@ function initFeelingButtons() {
 }
 function restoreFeeling(val) {
   if (!val) return;
-  var btns = document.querySelectorAll(".feel-btn");
+  var btns = document.querySelectorAll("#feelingRow .feel-btn");
   for (var i = 0; i < btns.length; i++) {
     btns[i].classList.toggle("selected", btns[i].dataset.feel === val);
   }
@@ -1325,9 +1548,10 @@ function confirmSave(sec) {
   saveData();
   if (sec === "today")     saveDateEntry("todayDate",     todayFields);
   if (sec === "garmin")    saveDateEntry("garminDate",    garminFields);
-  if (sec === "training")  saveDateEntry("runDate",       trainingFields);
+  if (sec === "training")  saveTrainingSession();
   if (sec === "strength")  saveDateEntry("strengthDate",  strengthFields);
   if (sec === "nutrition") saveDateEntry("nutritionDate", nutritionFields);
+  sheetsSyncSection(sec);
   var msgs = {
     today:"Tages-Check gespeichert", garmin:"Garmin-Daten gespeichert",
     training:"Training gespeichert",  strength:"Kraftwerte gespeichert",
@@ -1477,20 +1701,13 @@ function getWeeklyKm() {
   var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
   var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
   var range = getWeekDateRange(refDate);
+  // Nur Lauf-Einheiten zaehlen: diese Funktion treibt die Laufplan-Erfuellung,
+  // Rad-km wuerden den Lauf-Fortschritt sonst faelschlich aufblaehen.
   var total = 0;
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (!key || key.indexOf("date_entry_runDate_") !== 0) continue;
-    var dateStr = key.replace("date_entry_runDate_", "");
-    var entryDate = parseLocalDate(dateStr);
-    if (entryDate >= range.monday && entryDate <= range.sunday) {
-      try {
-        var data = JSON.parse(localStorage.getItem(key));
-        var km = parseFloat(data.runKm) || 0;
-        total += km;
-      } catch(e) {}
-    }
-  }
+  collectTrainingSessions(range).forEach(function(s) {
+    if (s.data.trainingDiscipline === "bike") return;
+    total += parseFloat(s.data.runKm) || 0;
+  });
   return Math.round(total * 10) / 10;
 }
 
@@ -1507,6 +1724,18 @@ function findPlanWeekForDate(mondayDate) {
     }
   }
   return null;
+}
+
+function getWeeklyBikeKm() {
+  var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
+  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
+  var range = getWeekDateRange(refDate);
+  var total = 0;
+  collectTrainingSessions(range).forEach(function(s) {
+    if (s.data.trainingDiscipline !== "bike") return;
+    total += parseFloat(s.data.runKm) || 0;
+  });
+  return Math.round(total * 10) / 10;
 }
 
 function getPlanWeekTargetKm() {
@@ -1565,37 +1794,33 @@ function getWeeklyTrainingDetails() {
   var fMap = { "sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht" };
   var dayNames = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
 
-  var entries = [];
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (!key || key.indexOf("date_entry_runDate_") !== 0) continue;
-    var dateStr = key.replace("date_entry_runDate_", "");
-    var entryDate = parseLocalDate(dateStr);
-    if (entryDate >= range.monday && entryDate <= range.sunday) {
-      try {
-        var data = JSON.parse(localStorage.getItem(key));
-        entries.push({ date: dateStr, dateObj: entryDate, data: data });
-      } catch(e) {}
-    }
-  }
-
-  // Chronologisch sortieren (Montag zuerst)
-  entries.sort(function(a, b) { return a.dateObj - b.dateObj; });
-
+  var entries = collectTrainingSessions(range); // chronologisch, mehrere Einheiten pro Tag moeglich
   if (entries.length === 0) return "  Keine Trainingseinheiten diese Woche erfasst.\n";
+
+  var perDay = {};
+  entries.forEach(function(e) { perDay[e.date] = (perDay[e.date] || 0) + 1; });
 
   var out = "";
   entries.forEach(function(entry) {
     var d = entry.data;
     var weekday = dayNames[entry.dateObj.getDay()];
-    out += "  " + weekday + " (" + entry.date + "):\n";
-    out += "    km: " + (d.runKm||"-") + " | Zeit: " + (d.runTime||"-") + " | Pace: " + (d.runPace||"-") + " | Hoehenmeter: " + (d.runElevation||"-") + " m\n";
-    out += "    HF: " + (d.runHF||"-") + " bpm | Kadenz: " + (d.runCadence||"-") + " spm | BKT: " + (d.runBKT||"-") + " ms | Vertikal: " + (d.runVertical||"-") + " cm\n";
-    out += "    RPE: " + (d.runRPE||"-") + "/10 | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n";
-    if (d.thuleChariot) {
-      var childW = parseFloat(d.thuleChildWeight || 0) || 0;
-      var totalW = THULE_BASE_WEIGHT_KG + childW;
-      out += "    Thule Chariot System: " + THULE_BASE_WEIGHT_KG + " kg (Thule) + " + childW + " kg (Kind) = " + totalW + " kg gesamt\n";
+    out += "  " + weekday + " (" + entry.date + ")" + (perDay[entry.date] > 1 ? " - Einheit " + (entry.index + 1) : "") + ":\n";
+    var discipline = d.trainingDiscipline === "bike" ? "bike" : "run";
+    if (discipline === "bike") {
+      out += "    Disziplin: Radfahren\n";
+      out += "    km: " + (d.runKm||"-") + " | Zeit: " + (d.runTime||"-") + " | Geschwindigkeit: " + (d.bikeSpeed||"-") + " km/h | Hoehenmeter: " + (d.bikeElevation||"-") + " m\n";
+      out += "    HF: " + (d.runHF||"-") + " bpm | Trittfrequenz: " + (d.bikeCadence||"-") + " rpm" + (d.bikePower ? " | Leistung: " + d.bikePower + " W" : "") + "\n";
+      out += "    RPE: " + (d.runRPE||"-") + "/10 | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n";
+    } else {
+      out += "    Disziplin: Laufen\n";
+      out += "    km: " + (d.runKm||"-") + " | Zeit: " + (d.runTime||"-") + " | Pace: " + (d.runPace||"-") + " | Hoehenmeter: " + (d.runElevation||"-") + " m\n";
+      out += "    HF: " + (d.runHF||"-") + " bpm | Kadenz: " + (d.runCadence||"-") + " spm | BKT: " + (d.runBKT||"-") + " ms | Vertikal: " + (d.runVertical||"-") + " cm\n";
+      out += "    RPE: " + (d.runRPE||"-") + "/10 | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n";
+      if (d.thuleChariot) {
+        var childW = parseFloat(d.thuleChildWeight || 0) || 0;
+        var totalW = THULE_BASE_WEIGHT_KG + childW;
+        out += "    Thule Chariot System: " + THULE_BASE_WEIGHT_KG + " kg (Thule) + " + childW + " kg (Kind) = " + totalW + " kg gesamt\n";
+      }
     }
     if (d.runNotes) out += "    Notizen: " + d.runNotes + "\n";
     out += "\n";
@@ -1974,6 +2199,504 @@ function generateExport() {
 // ============================================================
 // PLAN IMPORT
 // ============================================================
+// ============================================================
+// KOMPLETT-BACKUP: alle App-Daten als JSON sichern/wiederherstellen
+// ============================================================
+function getAllAppStorageKeys() {
+  // Erfasst generisch ALLE App-relevanten Keys, nicht nur eine feste Liste -
+  // so sind auch zukuenftig neu hinzukommende Keys automatisch im Backup enthalten.
+  var keys = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (key && key !== SHEETS_TOKEN_KEY && (key.indexOf("coach_bjoern") === 0 || key.indexOf("date_entry_") === 0)) {
+      keys.push(key);
+    }
+  }
+  return keys;
+}
+
+function backupExport() {
+  var statusEl = document.getElementById("backupStatus");
+  var keys = getAllAppStorageKeys();
+  var data = {};
+  keys.forEach(function(k) { data[k] = localStorage.getItem(k); });
+
+  var backup = {
+    appVersion: "coach-bjoern-v21",
+    exportedAt: new Date().toISOString(),
+    keyCount: keys.length,
+    data: data
+  };
+
+  var content = JSON.stringify(backup, null, 2);
+  var blob = new Blob([content], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  var dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = "coach-bjoern-backup-" + dateStr + ".json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent)">' + keys.length + ' Eintraege gesichert.</span>';
+  showToast("Backup heruntergeladen (" + keys.length + " Eintraege)");
+}
+
+function backupImportFromFile(file) {
+  var statusEl = document.getElementById("backupStatus");
+  if (!file) return;
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var backup = JSON.parse(e.target.result);
+      if (!backup.data || typeof backup.data !== "object") {
+        throw new Error("Ungueltiges Backup-Format (kein 'data'-Feld gefunden)");
+      }
+      var restoredCount = 0;
+      Object.keys(backup.data).forEach(function(key) {
+        localStorage.setItem(key, backup.data[key]);
+        restoredCount++;
+      });
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent)">' + restoredCount + ' Eintraege wiederhergestellt. Seite wird neu geladen...</span>';
+      showToast(restoredCount + " Eintraege wiederhergestellt");
+      // Neu laden, damit alle UI-Teile die wiederhergestellten Daten korrekt anzeigen
+      setTimeout(function() { location.reload(); }, 1200);
+    } catch(err) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">Fehler: ' + err.message + '</span>';
+      showToast("Backup konnte nicht gelesen werden");
+    }
+  };
+  reader.onerror = function() {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">Datei konnte nicht gelesen werden.</span>';
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// GOOGLE SHEETS SYNC - App bleibt fuehrend, Sheet ist Spiegel
+// ============================================================
+var SHEETS_CONFIG_KEY = "coach_bjoern_sheets";
+var SHEETS_TOKEN_KEY  = "coach_bjoern_sheets_token";
+var SHEETS_SCOPE      = "https://www.googleapis.com/auth/spreadsheets";
+
+var SHEET_TABS = {
+  "Training":   { keyCols: 2, headers: ["Datum","Einheit","Disziplin","km","Zeit","Pace","Geschwindigkeit km/h","HF","Kadenz spm","Trittfrequenz rpm","BKT ms","Vertikal cm","Hoehenmeter","Leistung W","RPE","Gefuehl","Thule kg gesamt","Notizen"] },
+  "Tagescheck": { keyCols: 1, headers: ["Datum","Gewicht kg","Energie","Motivation","Wade links","Wade rechts","Stress","Muskelkater","Notizen"] },
+  "Garmin":     { keyCols: 1, headers: ["Datum","Body Battery","Schlaf","Ruhepuls","HRV","Trainingsstatus"] },
+  "Ernaehrung": { keyCols: 1, headers: ["Datum","Protein","Gemuese","Omega 3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Mahlzeit 1","Mahlzeit 2","Mahlzeit 3","Snack/Supplement","kcal","Protein g","KH g","Fett g","Ballaststoffe g","Zucker g"] },
+  "Kraft":      { keyCols: 2, headers: ["Datum","Uebung","Soll","Ist"] },
+  "Plaene":     { keyCols: 2, headers: ["KW","Jahr","Phase","Fokus","Ziel","Coach-Nachricht","Wetter","Hydration","Ernaehrung","Einheiten","Abgeschlossen"] }
+};
+
+var SECTION_SYNC_MAP = {
+  training:  { tab: "Training",   prefix: "runDate" },
+  today:     { tab: "Tagescheck", prefix: "todayDate" },
+  garmin:    { tab: "Garmin",     prefix: "garminDate" },
+  nutrition: { tab: "Ernaehrung", prefix: "nutritionDate" },
+  strength:  { tab: "Kraft",      prefix: "strengthDate" }
+};
+
+// ---------- Konfiguration & Status ----------
+function getSheetsConfig() {
+  try { return JSON.parse(localStorage.getItem(SHEETS_CONFIG_KEY)) || {}; } catch(e) { return {}; }
+}
+function saveSheetsConfigObj(cfg) { localStorage.setItem(SHEETS_CONFIG_KEY, JSON.stringify(cfg)); }
+function sheetsConfigured() { var c = getSheetsConfig(); return !!(c.clientId && c.sheetId); }
+
+function setSheetsStatus(msg, kind) {
+  var el = document.getElementById("sheetsStatus");
+  if (!el) return;
+  var colors = { ok: "var(--accent)", err: "var(--danger)", warn: "var(--warning)", info: "var(--muted)" };
+  el.style.color = colors[kind || "info"];
+  el.textContent = msg;
+}
+
+function renderSheetsStatus() {
+  var c = getSheetsConfig();
+  if (!c.clientId || !c.sheetId) { setSheetsStatus("Nicht eingerichtet - Client-ID und Sheet eintragen.", "info"); return; }
+  if (c.lastSync) setSheetsStatus("Zuletzt synchronisiert: " + new Date(c.lastSync).toLocaleString("de-DE"), "ok");
+  else setSheetsStatus("Eingerichtet, noch nicht synchronisiert.", "warn");
+}
+
+function restoreSheetsSettings() {
+  var c = getSheetsConfig();
+  var cidEl = document.getElementById("sheetsClientId");
+  var sidEl = document.getElementById("sheetsSheetId");
+  if (cidEl && c.clientId) cidEl.value = c.clientId;
+  if (sidEl && c.sheetId) sidEl.value = c.sheetId;
+}
+
+function saveSheetsSettings() {
+  var cid = (document.getElementById("sheetsClientId").value || "").trim();
+  var sid = (document.getElementById("sheetsSheetId").value || "").trim();
+  var m = sid.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) sid = m[1];
+  var cfg = getSheetsConfig();
+  if (cfg.sheetId !== sid || cfg.clientId !== cid) {
+    _sheetsStructureOk = false;
+    _gisTokenClient = null;
+    localStorage.removeItem(SHEETS_TOKEN_KEY);
+  }
+  cfg.clientId = cid;
+  cfg.sheetId = sid;
+  saveSheetsConfigObj(cfg);
+  document.getElementById("sheetsSheetId").value = sid;
+  preloadGis();
+  renderSheetsStatus();
+  showToast("Sheet-Einstellungen gespeichert");
+}
+
+// ---------- Google-Anmeldung (Google Identity Services) ----------
+var _gisTokenClient = null;
+var _pendingTokenCbs = [];
+
+function getStoredSheetsToken() {
+  try {
+    var t = JSON.parse(localStorage.getItem(SHEETS_TOKEN_KEY));
+    return (t && t.expires > Date.now() + 60000) ? t : null;
+  } catch(e) { return null; }
+}
+
+function gisReady() { return !!(window.google && google.accounts && google.accounts.oauth2); }
+
+function preloadGis() {
+  // Die Bibliothek muss VOR dem Tippen auf "Speichern" geladen sein, sonst blockiert
+  // der Browser das Google-Anmeldefenster (Popups nur direkt nach einer Nutzeraktion).
+  if (!sheetsConfigured()) return;
+  if (gisReady()) { initGisTokenClient(); return; }
+  if (document.getElementById("gisScript")) return;
+  var s = document.createElement("script");
+  s.id = "gisScript";
+  s.src = "https://accounts.google.com/gsi/client";
+  s.async = true;
+  s.onload = initGisTokenClient;
+  s.onerror = function() { setSheetsStatus("Google-Bibliothek konnte nicht geladen werden (Internet?).", "err"); };
+  document.head.appendChild(s);
+}
+
+function initGisTokenClient() {
+  var c = getSheetsConfig();
+  if (!c.clientId || !gisReady()) return;
+  _gisTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: c.clientId,
+    scope: SHEETS_SCOPE,
+    callback: function(resp) {
+      if (resp.error) {
+        setSheetsStatus("Anmeldung fehlgeschlagen: " + resp.error, "err");
+        _pendingTokenCbs = [];
+        return;
+      }
+      localStorage.setItem(SHEETS_TOKEN_KEY, JSON.stringify({
+        access_token: resp.access_token,
+        expires: Date.now() + (resp.expires_in || 3600) * 1000
+      }));
+      var cbs = _pendingTokenCbs;
+      _pendingTokenCbs = [];
+      cbs.forEach(function(cb) { cb(resp.access_token); });
+    },
+    error_callback: function(err) {
+      setSheetsStatus("Google-Anmeldung abgebrochen (" + ((err && err.type) || "Fehler") + ").", "warn");
+      _pendingTokenCbs = [];
+    }
+  });
+}
+
+function withSheetsToken(cb) {
+  var t = getStoredSheetsToken();
+  if (t) { cb(t.access_token); return; }
+  if (!_gisTokenClient) initGisTokenClient();
+  if (!_gisTokenClient) {
+    setSheetsStatus("Google-Anmeldung noch nicht bereit - kurz warten und erneut tippen.", "warn");
+    preloadGis();
+    return;
+  }
+  var isFirst = _pendingTokenCbs.length === 0;
+  _pendingTokenCbs.push(cb);
+  if (isFirst) _gisTokenClient.requestAccessToken({ prompt: "" });
+}
+
+function sheetsDisconnect() {
+  var t = getStoredSheetsToken();
+  if (t && gisReady()) { try { google.accounts.oauth2.revoke(t.access_token, function(){}); } catch(e) {} }
+  localStorage.removeItem(SHEETS_TOKEN_KEY);
+  var cfg = getSheetsConfig();
+  delete cfg.lastSync;
+  saveSheetsConfigObj(cfg);
+  renderSheetsStatus();
+  showToast("Google-Verbindung getrennt");
+}
+
+// ---------- Sheets API ----------
+async function sheetsApi(token, method, path, body) {
+  var c = getSheetsConfig();
+  var url = "https://sheets.googleapis.com/v4/spreadsheets/" + c.sheetId + path;
+  var opts = { method: method, headers: { "Authorization": "Bearer " + token } };
+  if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  var resp = await fetch(url, opts);
+  var data = null;
+  try { data = await resp.json(); } catch(e) {}
+  if (!resp.ok) {
+    var msg = (data && data.error && data.error.message) || ("HTTP " + resp.status);
+    if (resp.status === 401) { localStorage.removeItem(SHEETS_TOKEN_KEY); msg = "Anmeldung abgelaufen - bitte erneut synchronisieren."; }
+    else if (resp.status === 403) { msg = "Kein Zugriff: " + msg + " (Sheets-API im Cloud-Projekt aktiviert? Sheet mit diesem Konto erstellt?)"; }
+    else if (resp.status === 404) { msg = "Sheet nicht gefunden - Sheet-ID pruefen."; }
+    throw new Error(msg);
+  }
+  return data || {};
+}
+
+function sheetRange(tab, a1) { return "'" + tab + "'!" + a1; }
+
+function colLetter(n) {
+  var s = "";
+  while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
+var _sheetsStructureOk = false;
+
+async function ensureSheetStructure(token) {
+  // Legt fehlende Tabs an und schreibt die Kopfzeilen (idempotent, einmal pro Sitzung)
+  if (_sheetsStructureOk) return;
+  var meta = await sheetsApi(token, "GET", "?fields=sheets.properties.title");
+  var existing = (meta.sheets || []).map(function(s) { return s.properties.title; });
+  var missing = Object.keys(SHEET_TABS).filter(function(t) { return existing.indexOf(t) === -1; });
+  if (missing.length) {
+    await sheetsApi(token, "POST", ":batchUpdate", {
+      requests: missing.map(function(t) { return { addSheet: { properties: { title: t, gridProperties: { frozenRowCount: 1 } } } }; })
+    });
+  }
+  var headerData = Object.keys(SHEET_TABS).map(function(t) {
+    var h = SHEET_TABS[t].headers;
+    return { range: sheetRange(t, "A1:" + colLetter(h.length) + "1"), values: [h] };
+  });
+  await sheetsApi(token, "POST", "/values:batchUpdate", { valueInputOption: "RAW", data: headerData });
+  _sheetsStructureOk = true;
+}
+
+async function sheetsUpsert(token, tab, rows) {
+  // Aktualisiert vorhandene Zeilen (gleicher Schluessel) oder haengt neue an -
+  // so entstehen beim erneuten Speichern keine Duplikate.
+  if (!rows.length) return 0;
+  var def = SHEET_TABS[tab];
+  var lastCol = colLetter(def.headers.length);
+  var keyRes = await sheetsApi(token, "GET", "/values/" + encodeURIComponent(sheetRange(tab, "A2:" + colLetter(def.keyCols))));
+  var index = {};
+  (keyRes.values || []).forEach(function(r, i) { index[r.slice(0, def.keyCols).map(String).join("|")] = i + 2; });
+  var updates = [], appends = [];
+  rows.forEach(function(r) {
+    var k = r.slice(0, def.keyCols).map(String).join("|");
+    if (index[k]) updates.push({ range: sheetRange(tab, "A" + index[k] + ":" + lastCol + index[k]), values: [r] });
+    else appends.push(r);
+  });
+  if (updates.length) await sheetsApi(token, "POST", "/values:batchUpdate", { valueInputOption: "RAW", data: updates });
+  if (appends.length) await sheetsApi(token, "POST", "/values/" + encodeURIComponent(sheetRange(tab, "A1")) + ":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS", { values: appends });
+  return rows.length;
+}
+
+// ---------- Zeilen aufbauen ----------
+function sNum(v) {
+  if (v === undefined || v === null || v === "") return "";
+  var n = parseFloat(String(v).replace(",", "."));
+  return isNaN(n) ? String(v) : n;
+}
+function sStr(v) { return (v === undefined || v === null) ? "" : String(v); }
+
+var SHEET_FEEL_LABELS = { "sehr-gut":"Sehr gut", "gut":"Gut", "okay":"Okay", "schwer":"Schwer", "schlecht":"Schlecht" };
+
+function buildTrainingRow(date, d, unitNo) {
+  var bike = d.trainingDiscipline === "bike";
+  var thule = "";
+  if (!bike && d.thuleChariot) thule = THULE_BASE_WEIGHT_KG + (parseFloat(d.thuleChildWeight) || 0);
+  return [
+    date, unitNo || 1, bike ? "Radfahren" : "Laufen", sNum(d.runKm), sStr(d.runTime),
+    bike ? "" : sStr(d.runPace), bike ? sNum(d.bikeSpeed) : "", sNum(d.runHF),
+    bike ? "" : sNum(d.runCadence), bike ? sNum(d.bikeCadence) : "",
+    bike ? "" : sNum(d.runBKT), bike ? "" : sNum(d.runVertical),
+    sNum(bike ? d.bikeElevation : d.runElevation), bike ? sNum(d.bikePower) : "",
+    sNum(d.runRPE), SHEET_FEEL_LABELS[d.runFeeling] || "", thule, sStr(d.runNotes)
+  ];
+}
+
+function buildTodayRow(date, d) {
+  return [date, sNum(d.currentWeight), sNum(d.energy), sNum(d.motivation), sNum(d.calfLeft), sNum(d.calfRight), sNum(d.stress), sNum(d.soreness), sStr(d.recoveryNotes)];
+}
+
+function buildGarminRow(date, d) {
+  return [date, sNum(d.bodyBattery), sStr(d.garminSleep), sNum(d.garminRHR), sStr(d.garminHRV), sStr(d.garminTrainingStatus)];
+}
+
+function getNutrientTotalsForDate(date) {
+  try {
+    var log = JSON.parse(localStorage.getItem(NUTRIENT_LOG_KEY));
+    if (!log || log.date !== date || !log.entries || !log.entries.length) return null;
+    var t = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0 };
+    log.entries.forEach(function(e) { Object.keys(t).forEach(function(k) { t[k] += parseFloat(e[k]) || 0; }); });
+    Object.keys(t).forEach(function(k) { t[k] = Math.round(t[k] * 10) / 10; });
+    return t;
+  } catch(e) { return null; }
+}
+
+function buildNutritionRow(date, d) {
+  var checks = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium"];
+  var row = [date];
+  checks.forEach(function(c) { row.push(d[c] ? "ja" : "nein"); });
+  for (var n = 1; n <= 4; n++) {
+    var t = d["meal" + n + "Time"], note = d["meal" + n + "Note"];
+    row.push(t || note ? ((t ? t + " " : "") + (note || "")).trim() : "");
+  }
+  var tot = getNutrientTotalsForDate(date);
+  row.push(tot ? tot.kcal : "", tot ? tot.protein : "", tot ? tot.carbs : "", tot ? tot.fat : "", tot ? tot.fiber : "", tot ? tot.sugar : "");
+  return row;
+}
+
+function buildStrengthRows(date, d) {
+  var rows = [];
+  strengthA.concat(strengthB).forEach(function(ex) {
+    var val = d["str-" + ex.name.replace(/ /g, "-")];
+    if (val) rows.push([date, ex.name, ex.sets, sStr(val)]);
+  });
+  return rows;
+}
+
+function buildPlanRows() {
+  var labels = { "run":"Lauf", "strength":"Kraft", "rest":"Pause" };
+  var rows = [];
+  trainingPlan.forEach(function(w) {
+    if (w.isPlaceholder) return;
+    var info = getKWMonday(w.week);
+    var coach = w.coach || {};
+    var units = (w.days || []).map(function(d) {
+      var parts = [(d.day || "").slice(0, 2) + ": " + (labels[d.type] || d.type || "")];
+      if (d.title) parts.push(d.title);
+      if (d.km) parts.push(d.km + " km");
+      if (d.workout && d.workout !== "...") parts.push(d.workout);
+      return parts.join(" ");
+    }).join("; ");
+    rows.push([
+      info.kw, info.year, sStr(w.phase), sStr(w.focus), sStr(w.goal),
+      sStr(coach.message || coach.weekMessage), sStr(coach.weather), sStr(coach.hydration), sStr(coach.nutrition),
+      units, w.completed ? "ja" : "nein"
+    ]);
+  });
+  return rows;
+}
+
+function rowsForTab(tab, entries) {
+  var rows = [];
+  entries.forEach(function(e) {
+    if (tab === "Training")        rows.push(buildTrainingRow(e.date, e.data, (e.index || 0) + 1));
+    else if (tab === "Tagescheck") rows.push(buildTodayRow(e.date, e.data));
+    else if (tab === "Garmin")     rows.push(buildGarminRow(e.date, e.data));
+    else if (tab === "Ernaehrung") rows.push(buildNutritionRow(e.date, e.data));
+    else if (tab === "Kraft")      rows = rows.concat(buildStrengthRows(e.date, e.data));
+  });
+  return rows;
+}
+
+function collectDateEntries(prefix) {
+  var out = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (!k || k.indexOf("date_entry_" + prefix + "_") !== 0) continue;
+    try { out.push({ date: k.replace("date_entry_" + prefix + "_", ""), data: JSON.parse(localStorage.getItem(k)) }); } catch(e) {}
+  }
+  out.sort(function(a, b) { return a.date.localeCompare(b.date); });
+  return out;
+}
+
+// ---------- Sync-Ablauf ----------
+var _sheetsChain = Promise.resolve();
+
+function sheetsRun(label, workFn, showDoneToast) {
+  // Anfragen werden nacheinander ausgefuehrt, damit sich zwei Speichervorgaenge nicht ueberholen
+  if (!sheetsConfigured()) return;
+  withSheetsToken(function(token) {
+    _sheetsChain = _sheetsChain.then(function() {
+      setSheetsStatus(label + " ...", "info");
+      return ensureSheetStructure(token).then(function() { return workFn(token); });
+    }).then(function(count) {
+      var cfg = getSheetsConfig();
+      cfg.lastSync = Date.now();
+      saveSheetsConfigObj(cfg);
+      renderSheetsStatus();
+      if (showDoneToast) showToast("Sheet: " + count + " Zeilen synchronisiert");
+    }).catch(function(err) {
+      setSheetsStatus("Sync-Fehler: " + err.message, "err");
+      console.error("Sheets sync error:", err);
+    });
+  });
+}
+
+function sheetsSyncSection(sec) {
+  var m = SECTION_SYNC_MAP[sec];
+  if (!m || !sheetsConfigured()) return;
+  var dateEl = document.getElementById(m.prefix);
+  if (!dateEl || !dateEl.value) return;
+  var date = dateEl.value;
+  var rows;
+  if (m.tab === "Training") {
+    // alle Einheiten dieses Tages schreiben (Schluessel: Datum + Einheit)
+    rows = rowsForTab("Training", getTrainingSessions(date).map(function(s, i) { return { date: date, index: i, data: s }; }));
+  } else {
+    var raw = localStorage.getItem("date_entry_" + m.prefix + "_" + date);
+    if (!raw) return;
+    var data;
+    try { data = JSON.parse(raw); } catch(e) { return; }
+    rows = rowsForTab(m.tab, [{ date: date, data: data }]);
+  }
+  if (!rows.length) return;
+  sheetsRun("Sheet: " + m.tab, function(token) { return sheetsUpsert(token, m.tab, rows); }, false);
+}
+
+async function sheetsClearTab(token, tab) {
+  var def = SHEET_TABS[tab];
+  await sheetsApi(token, "POST", "/values/" + encodeURIComponent(sheetRange(tab, "A2:" + colLetter(def.headers.length))) + ":clear", {});
+}
+
+function sheetsSyncTrainingAll() {
+  // Tab "Training" komplett neu aufbauen - noetig nach dem Loeschen einer Einheit,
+  // weil sich dabei die Einheiten-Nummern verschieben.
+  if (!sheetsConfigured()) return;
+  sheetsRun("Sheet: Training", async function(token) {
+    await sheetsClearTab(token, "Training");
+    return sheetsUpsert(token, "Training", rowsForTab("Training", collectTrainingSessions()));
+  }, false);
+}
+
+function sheetsSyncPlans() {
+  if (!sheetsConfigured()) return;
+  var rows = buildPlanRows();
+  sheetsRun("Sheet: Plaene", function(token) { return sheetsUpsert(token, "Plaene", rows); }, false);
+}
+
+function sheetsFullSync() {
+  if (!sheetsConfigured()) { setSheetsStatus("Bitte erst Client-ID und Sheet speichern.", "warn"); return; }
+  sheetsRun("Vollstaendige Synchronisation", async function(token) {
+    var total = 0;
+    var sections = Object.keys(SECTION_SYNC_MAP);
+    for (var i = 0; i < sections.length; i++) {
+      var m = SECTION_SYNC_MAP[sections[i]];
+      var entries;
+      if (m.tab === "Training") {
+        // Training und Kraft komplett neu schreiben: die App ist fuehrend, so verschwinden
+        // auch geloeschte Einheiten/Werte und alte Zeilen ohne Spalte "Einheit".
+        await sheetsClearTab(token, "Training");
+        entries = collectTrainingSessions();
+      } else {
+        if (m.tab === "Kraft") await sheetsClearTab(token, "Kraft");
+        entries = collectDateEntries(m.prefix);
+      }
+      total += await sheetsUpsert(token, m.tab, rowsForTab(m.tab, entries));
+    }
+    total += await sheetsUpsert(token, "Plaene", buildPlanRows());
+    return total;
+  }, true);
+}
+
 function importPlan() {
   var raw = document.getElementById("importPlanText").value.trim();
   var statusEl = document.getElementById("importStatus");
@@ -2030,6 +2753,7 @@ function importPlan() {
   statusEl.innerHTML = '<span style="color:var(--accent)">Plan mit ' + parsed.length + ' Wochen aktiviert (ab KW ' + firstWeekNum + ' / ' + targetYear + ')! Feld geleert fuer naechsten Import.</span>';
   showToast("Neuer Plan aktiviert!");
   checkMemoryMilestone();
+  sheetsSyncPlans();
 }
 
 function resetPlan() {
@@ -2718,12 +3442,12 @@ function showManualNutrientInput(name) {
     '<div style="background:var(--surface-2);border-radius:10px;padding:12px;margin-top:6px;">'
     + '<div style="font-size:0.82rem;color:var(--text);font-weight:700;margin-bottom:10px;">Manuell eingeben: ' + name + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
-    + '<div><div style="font-size:0.72rem;color:var(--muted);">Kalorien (kcal)</div><input id="manKcal" type="number" placeholder="0" style="padding:6px;font-size:0.88rem;"></div>'
-    + '<div><div style="font-size:0.72rem;color:var(--muted);">Protein (g)</div><input id="manProtein" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;"></div>'
-    + '<div><div style="font-size:0.72rem;color:var(--muted);">Kohlenhydrate (g)</div><input id="manCarbs" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;"></div>'
-    + '<div><div style="font-size:0.72rem;color:var(--muted);">Fett (g)</div><input id="manFat" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;"></div>'
-    + '<div><div style="font-size:0.72rem;color:var(--muted);">Ballaststoffe (g)</div><input id="manFiber" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;"></div>'
-    + '<div><div style="font-size:0.72rem;color:var(--muted);">Zucker (g)</div><input id="manSugar" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;"></div>'
+    + '<div><div style="font-size:0.72rem;color:var(--muted);">Kalorien (kcal)</div><input id="manKcal" type="number" placeholder="0" style="padding:6px;font-size:0.88rem;" inputmode="numeric"></div>'
+    + '<div><div style="font-size:0.72rem;color:var(--muted);">Protein (g)</div><input id="manProtein" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;" inputmode="decimal"></div>'
+    + '<div><div style="font-size:0.72rem;color:var(--muted);">Kohlenhydrate (g)</div><input id="manCarbs" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;" inputmode="decimal"></div>'
+    + '<div><div style="font-size:0.72rem;color:var(--muted);">Fett (g)</div><input id="manFat" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;" inputmode="decimal"></div>'
+    + '<div><div style="font-size:0.72rem;color:var(--muted);">Ballaststoffe (g)</div><input id="manFiber" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;" inputmode="decimal"></div>'
+    + '<div><div style="font-size:0.72rem;color:var(--muted);">Zucker (g)</div><input id="manSugar" type="number" step="0.1" placeholder="0" style="padding:6px;font-size:0.88rem;" inputmode="decimal"></div>'
     + '</div>'
     + '<button id="manAddBtn" style="margin-top:10px;width:100%;background:var(--accent);color:#000;border:none;border-radius:8px;padding:10px;font-weight:800;cursor:pointer;">Eintragen</button>'
     + '</div>';
@@ -3014,7 +3738,7 @@ function filterTrelloCards() {
 // ============================================================
 // DATUM-RESET: Felder leeren wenn neues Datum ohne Daten
 // ============================================================
-var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes","thuleChariot","thuleChildWeight"];
+var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes","thuleChariot","thuleChildWeight","trainingDiscipline","bikeSpeed","bikeCadence","bikeElevation","bikePower"];
 var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
 var todayFields      = ["energy","motivation","calfLeft","calfRight","stress","soreness","recoveryNotes","currentWeight"];
 var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus"];
@@ -3028,10 +3752,11 @@ function resetFieldGroup(fields) {
     else el.value = "";
   });
   // Also reset feeling buttons
-  document.querySelectorAll(".feel-btn").forEach(function(b){ b.classList.remove("selected"); });
+  document.querySelectorAll("#feelingRow .feel-btn").forEach(function(b){ b.classList.remove("selected"); });
 }
 
 function applyDateLogic(dateFieldId, fieldsToReset) {
+  if (dateFieldId === "runDate") { loadTrainingSessionsForDate(0); return; }
   var el = document.getElementById(dateFieldId);
   if (!el) return;
   var chosenDate = el.value;
@@ -3197,21 +3922,15 @@ function getWeightHistory(maxEntries) {
 function getWeeklyVolumeHistory(maxWeeks) {
   // Gruppiert alle erfassten Laufeinheiten nach Kalenderwoche und summiert die km
   var weekTotals = {}; // key: "YYYY-Www" -> { km, mondayDate }
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (!key || key.indexOf("date_entry_runDate_") !== 0) continue;
-    var dateStr = key.replace("date_entry_runDate_", "");
-    try {
-      var data = JSON.parse(localStorage.getItem(key));
-      var km = parseFloat(data.runKm) || 0;
-      if (km <= 0) continue;
-      var entryDate = parseLocalDate(dateStr);
-      var range = getWeekDateRange(entryDate);
-      var wKey = range.monday.toISOString().slice(0,10);
-      if (!weekTotals[wKey]) weekTotals[wKey] = { km: 0, monday: wKey };
-      weekTotals[wKey].km += km;
-    } catch(e) {}
-  }
+  collectTrainingSessions().forEach(function(s) {
+    if (s.data.trainingDiscipline === "bike") return; // Laufvolumen, Rad separat
+    var km = parseFloat(s.data.runKm) || 0;
+    if (km <= 0) return;
+    var range = getWeekDateRange(s.dateObj);
+    var wKey = range.monday.getFullYear() + "-" + pad2(range.monday.getMonth() + 1) + "-" + pad2(range.monday.getDate());
+    if (!weekTotals[wKey]) weekTotals[wKey] = { km: 0, monday: wKey };
+    weekTotals[wKey].km += km;
+  });
   var weeks = Object.keys(weekTotals).map(function(k) {
     return { date: weekTotals[k].monday, value: Math.round(weekTotals[k].km * 10) / 10 };
   });
@@ -3260,11 +3979,7 @@ function updateAthleteTab() {
   setEl("athProgressWeightLeft", parseFloat(weightLeft) > 0 ? weightLeft + " kg" : "Ziel erreicht!");
 
   // Gesamtzahl aller jemals erfassten Trainingseinheiten (ueber alle date_entry_runDate_* hinweg)
-  var totalSessions = 0;
-  for (var li = 0; li < localStorage.length; li++) {
-    var key = localStorage.key(li);
-    if (key && key.indexOf("date_entry_runDate_") === 0) totalSessions++;
-  }
+  var totalSessions = collectTrainingSessions().length;
   setEl("athProgressTotalSessions", totalSessions);
 
   // Kraft & Verletzungen
@@ -3277,6 +3992,10 @@ function updateAthleteTab() {
     else if (calfScore <= 5) { calfEl.textContent = "Gelb - Vorsicht"; calfEl.style.color = "var(--warning)"; }
     else                     { calfEl.textContent = "Rot - Schonen!"; calfEl.style.color = "var(--danger)"; }
   }
+
+  var bikeKm = getWeeklyBikeKm();
+  var bikeStatusEl = document.getElementById("bikeDisciplineStatus");
+  if (bikeStatusEl) bikeStatusEl.textContent = bikeKm > 0 ? bikeKm + " km diese Woche" : "Wieder aufgenommen";
 
   updateAthleteCharts();
 }
@@ -3337,6 +4056,7 @@ document.addEventListener("DOMContentLoaded", function() {
   loadData();
   initFeelingButtons();
   initThuleChariot();
+  initDisciplineButtons();
 
   // Alle Datumsfelder IMMER zwingend auf "heute" setzen beim Oeffnen der App.
   // loadData() koennte sonst ein altes gespeichertes Datum wiederherstellen.
@@ -3383,6 +4103,19 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("generateExport").addEventListener("click", generateExport);
   document.getElementById("importPlanBtn").addEventListener("click", importPlan);
   document.getElementById("resetPlanBtn").addEventListener("click", resetPlan);
+  document.getElementById("backupExportBtn").addEventListener("click", backupExport);
+  document.getElementById("sheetsSaveBtn").addEventListener("click", saveSheetsSettings);
+  document.getElementById("sheetsSyncBtn").addEventListener("click", sheetsFullSync);
+  document.getElementById("sheetsDisconnectBtn").addEventListener("click", sheetsDisconnect);
+  restoreSheetsSettings();
+  renderSheetsStatus();
+  preloadGis();
+  document.getElementById("backupImportBtn").addEventListener("click", function() {
+    document.getElementById("backupFileInput").click();
+  });
+  document.getElementById("backupFileInput").addEventListener("change", function(e) {
+    backupImportFromFile(e.target.files[0]);
+  });
   document.getElementById("exportMemoryBtn").addEventListener("click", exportMemory);
   document.getElementById("saveMemoryBtn").addEventListener("click", saveEditedMemory);
   renderMemoryUI();
