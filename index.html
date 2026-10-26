@@ -561,6 +561,8 @@
         <label class="check-item"><input type="checkbox" id="waterGoal"><span>Trinkziel</span></label>
         <label class="check-item"><input type="checkbox" id="kreatin"><span>Kreatin</span></label>
         <label class="check-item"><input type="checkbox" id="magnesium"><span>Magnesium</span></label>
+        <label class="check-item"><input type="checkbox" id="chili"><span>Chili</span></label>
+        <label class="check-item"><input type="checkbox" id="cinnamon"><span>Zimt</span></label>
       </div>
     </div>
     <div style="margin-top:16px;">
@@ -822,7 +824,7 @@
     </div>
 
     <label>Aktuelles Memory (YAML)</label>
-    <textarea id="coachMemoryText" rows="14" placeholder="Noch kein Memory gespeichert. Wird beim ersten Export erzeugt." style="font-family:'Courier New',monospace;font-size:0.76rem;color:#4caf50;background:#0a0a0a;"></textarea>
+    <textarea id="coachMemoryText" data-nosave="1" rows="14" placeholder="Noch kein Memory gespeichert. Wird beim ersten Export erzeugt." style="font-family:'Courier New',monospace;font-size:0.76rem;color:#4caf50;background:#0a0a0a;"></textarea>
 
     <button class="btn" id="exportMemoryBtn" style="background:#4caf50;color:#000;">Memory aus aktuellen Daten erzeugen</button>
     <button class="btn secondary" id="saveMemoryBtn" style="margin-top:8px;">Bearbeitetes Memory speichern</button>
@@ -843,7 +845,13 @@
       Format: Array mit week, completed, phase, focus, goal, days.<br>
       Jeder Tag: day, type ("run"/"strength"/"rest"), title, km, pace, dauer, workout, desc, priority ("hoch"/"mittel"/"niedrig"), weather.
     </div>
-    <textarea id="importPlanText" rows="8" placeholder="JSON hier einfuegen..." style="font-family:'Courier New',monospace;font-size:0.78rem;color:#29b6f6;background:#0a0a0a;"></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <button class="btn secondary" id="importPasteBtn" style="margin:0;font-size:0.78rem;padding:10px 8px;">&#128203; Aus Zwischenablage</button>
+      <button class="btn secondary" id="importFileBtn" style="margin:0;font-size:0.78rem;padding:10px 8px;">&#128196; JSON-Datei laden</button>
+    </div>
+    <input type="file" id="importPlanFile" accept=".json,application/json,text/plain" style="display:none;">
+    <textarea id="importPlanText" data-nosave="1" rows="12" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="JSON hier einfuegen..." style="font-family:'Courier New',monospace;font-size:0.78rem;color:#29b6f6;background:#0a0a0a;"></textarea>
+    <div id="importPlanInfo" style="font-size:0.75rem;color:var(--muted);margin-top:6px;"></div>
     <div id="importStatus" style="font-size:0.82rem;margin-top:8px;min-height:20px;"></div>
     <button class="btn" id="importPlanBtn" style="background:#29b6f6;color:#000;">Plan importieren &amp; aktivieren</button>
     <button class="btn secondary" id="resetPlanBtn" style="margin-top:8px;">Original-Plan wiederherstellen</button>
@@ -852,7 +860,7 @@
     <h2>&#128228; Wochenreport exportieren</h2>
     <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Zusammen mit Coach Memory an ChatGPT geben</p>
     <button class="btn" id="generateExport">Wochenreport erzeugen</button>
-    <textarea id="exportText" rows="22" placeholder="Report erscheint hier..."></textarea>
+    <textarea id="exportText" data-nosave="1" rows="22" placeholder="Report erscheint hier..."></textarea>
   </div>
 </section>
 
@@ -1188,10 +1196,10 @@ function renderPlan() {
   var c = document.getElementById("planContainer");
   if (!c) return;
   var typeColors = {
-    "run":"#4caf50", "strength":"#29b6f6", "rest":"#9e9e9e",
+    "run":"#4caf50", "bike":"#ab47bc", "strength":"#29b6f6", "rest":"#9e9e9e",
     "Long Run":"#e91e63","Schwelle":"#ff9800","Locker":"#4caf50","Kraft A":"#29b6f6","Kraft B":"#29b6f6","Lauf":"#4caf50"
   };
-  var typeLabels = { "run":"Lauf", "strength":"Kraft", "rest":"Pause" };
+  var typeLabels = { "run":"Lauf", "bike":"Rad", "strength":"Kraft", "rest":"Pause" };
   var priorityColors = { "hoch":"#e53935", "mittel":"#ffb300", "niedrig":"#4caf50" };
   var html = "";
   for (var wi = 0; wi < trainingPlan.length; wi++) {
@@ -1282,30 +1290,174 @@ function toggleDay(id) {
 // ============================================================
 // RENDER STRENGTH
 // ============================================================
+var _strengthSelIdx = 0;
+
+function strengthFieldId(name) { return "str-" + String(name).trim().replace(/ /g, "-"); }
+
+function findKnownExercise(name) {
+  // Bekannte Uebungen liefern den YouTube-Link mit (Namensvergleich ohne Gross/Klein)
+  var n = String(name).toLowerCase().replace(/[^a-z]/g, "");
+  var all = strengthA.concat(strengthB);
+  for (var i = 0; i < all.length; i++) {
+    if (all[i].name.toLowerCase().replace(/[^a-z]/g, "") === n) return all[i];
+  }
+  return null;
+}
+
+function parseExercisesFromText(text) {
+  // Liest "Kniebeuge 3 x 10, Plank 3 x 45 s. Hinweis..." aus der Plan-Beschreibung.
+  // Teile ohne Saetze x Wiederholungen (z.B. Hinweise) werden ignoriert.
+  if (!text) return [];
+  var out = [];
+  text.split(/[,;\n]|\.\s+/).forEach(function(part) {
+    var p = part.trim().replace(/\.$/, "");
+    if (!p) return;
+    var m = p.match(/^(.+?)\s+(\d+\s*[x\u00d7]\s*\d+.*)$/i);
+    if (m) { out.push({ name: m[1].trim(), sets: m[2].trim() }); return; }
+    m = p.match(/^(\d+\s*[x\u00d7]\s*\d+\S*)\s+(.+)$/i);
+    if (m) out.push({ name: m[2].trim(), sets: m[1].trim() });
+  });
+  return out;
+}
+
+function normalizeStrengthSession(d) {
+  // Bevorzugt ein strukturiertes "exercises"-Array aus dem Plan, sonst Text aus "desc"/"workout"
+  var exercises = [];
+  if (Array.isArray(d.exercises) && d.exercises.length) {
+    exercises = d.exercises.map(function(e) {
+      return typeof e === "string" ? { name: e, sets: "" } : { name: e.name, sets: e.sets || e.soll || "", link: e.link };
+    }).filter(function(e) { return e.name; });
+  }
+  if (!exercises.length) exercises = parseExercisesFromText(d.desc).concat(parseExercisesFromText(d.workout));
+  if (!exercises.length) {
+    var label = (d.title || "") + " " + (d.type || "");
+    exercises = (/\bB\b/.test(label) ? strengthB : strengthA).map(function(e) { return { name: e.name, sets: e.sets, link: e.link }; });
+  }
+  exercises.forEach(function(e) {
+    var known = findKnownExercise(e.name);
+    if (!e.link && known) e.link = known.link;
+    e.id = strengthFieldId(e.name);
+  });
+  return { day: d.day || "", title: d.title || d.type || "Kraft", dauer: d.dauer || "", desc: d.desc || "", exercises: exercises };
+}
+
+function getWeekStrengthSessions(dateStr) {
+  var refDate = dateStr ? parseLocalDate(dateStr) : new Date();
+  var week = findPlanWeekForDate(getWeekDateRange(refDate).monday);
+  var sessions = [];
+  if (week && week.days) {
+    week.days.forEach(function(d) {
+      if (d.type === "strength" || /kraft/i.test(d.type || "")) sessions.push(normalizeStrengthSession(d));
+    });
+  }
+  if (!sessions.length) {
+    // Kein Kraft-Eintrag im Plan dieser Woche -> Standard-Einheiten anbieten
+    sessions.push(normalizeStrengthSession({ title: "Kraft A (Standard)", type: "Kraft A" }));
+    sessions.push(normalizeStrengthSession({ title: "Kraft B (Standard)", type: "Kraft B" }));
+    sessions.forEach(function(s) { s.isDefault = true; });
+  }
+  return sessions;
+}
+
+function getStrengthEntry(dateStr) {
+  try { return JSON.parse(localStorage.getItem("date_entry_strengthDate_" + dateStr)) || null; } catch(e) { return null; }
+}
+
 function renderStrength() {
   var c = document.getElementById("strengthContainer");
   if (!c) return;
-  function section(title, list) {
-    var h = '<div class="card"><h2>' + title + '</h2>';
-    for (var i = 0; i < list.length; i++) {
-      var ex = list[i];
-      var id = "str-" + ex.name.replace(/ /g, "-");
-      h += '<div class="exercise-card">';
-      h += '<div class="exercise-header"><span class="exercise-name">' + ex.name + '</span><span class="exercise-soll">SOLL ' + ex.sets + '</span></div>';
-      h += '<input id="' + id + '" placeholder="IST-Wert / Gewicht">';
-      if (ex.link) h += '<div class="exercise-links"><a href="' + ex.link + '" target="_blank">&#128250; Anleitung (YouTube)</a></div>';
-      h += '</div>';
-    }
-    h += "<button class='btn' onclick='confirmSave(\"strength\")'>Kraftwerte speichern</button></div>";
-    return h;
-  }
-  c.innerHTML = section("Kraft A", strengthA) + section("Kraft B", strengthB);
+  var dateEl = document.getElementById("strengthDate");
+  var dateStr = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0, 10);
+  var sessions = getWeekStrengthSessions(dateStr);
+  if (_strengthSelIdx >= sessions.length) _strengthSelIdx = 0;
+  var sel = sessions[_strengthSelIdx];
+  var weekdayToday = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"][parseLocalDate(dateStr).getDay()];
 
-  // strengthFields dynamisch befuellen fuer Datum-Reset
-  strengthFields = [];
-  strengthA.concat(strengthB).forEach(function(ex) {
-    strengthFields.push("str-" + ex.name.replace(/ /g, "-"));
+  var h = '<div class="card"><h2>&#128170; Krafteinheiten dieser Woche</h2>';
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">';
+  sessions.forEach(function(s, i) {
+    var label = (s.day ? s.day.slice(0, 2) + " &middot; " : "") + s.title;
+    h += '<button type="button" class="feel-btn' + (i === _strengthSelIdx ? ' selected' : '') + '" style="flex:0 0 auto;min-width:0;padding:8px 12px;" onclick="selectStrengthSession(' + i + ')">' + label + '</button>';
   });
+  h += '</div>';
+  if (sessions[0].isDefault) h += '<div style="font-size:0.75rem;color:var(--muted);">Im Plan dieser Woche ist keine Krafteinheit eingetragen - Standard-Einheiten.</div>';
+  h += '</div>';
+
+  h += '<div class="card"><h2>' + sel.title + (sel.day === weekdayToday ? ' <span class="week-badge" style="margin-left:6px;">heute</span>' : '') + '</h2>';
+  if (sel.dauer) h += '<div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px;">&#9201; ' + sel.dauer + (sel.day ? ' &middot; geplant: ' + sel.day : '') + '</div>';
+  if (sel.desc) h += '<div style="font-size:0.8rem;color:var(--muted);line-height:1.5;margin-bottom:10px;">' + sel.desc + '</div>';
+  sel.exercises.forEach(function(ex) {
+    h += '<div class="exercise-card">';
+    h += '<div class="exercise-header"><span class="exercise-name">' + ex.name + '</span>' + (ex.sets ? '<span class="exercise-soll">SOLL ' + ex.sets + '</span>' : '') + '</div>';
+    h += '<input id="' + ex.id + '" placeholder="IST-Wert / Gewicht">';
+    if (ex.link) h += '<div class="exercise-links"><a href="' + ex.link + '" target="_blank">&#128250; Anleitung (YouTube)</a></div>';
+    h += '</div>';
+  });
+  h += "<button class='btn' onclick='confirmSave(\"strength\")'>Kraftwerte speichern</button></div>";
+  c.innerHTML = h;
+
+  strengthFields = sel.exercises.map(function(ex) { return ex.id; });
+}
+
+function restoreStrengthValues(dateStr) {
+  var entry = getStrengthEntry(dateStr);
+  strengthFields.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = entry && entry[id] ? entry[id] : "";
+  });
+}
+
+function loadStrengthForDate() {
+  // Auswahl: gespeicherte Einheit dieses Tages > Einheit, die laut Plan auf diesen Wochentag faellt > erste
+  var dateEl = document.getElementById("strengthDate");
+  var dateStr = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0, 10);
+  var sessions = getWeekStrengthSessions(dateStr);
+  var entry = getStrengthEntry(dateStr);
+  var weekday = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"][parseLocalDate(dateStr).getDay()];
+  var idx = -1;
+  if (entry && entry.strengthSession) sessions.forEach(function(s, i) { if (idx < 0 && s.title === entry.strengthSession) idx = i; });
+  if (idx < 0) sessions.forEach(function(s, i) { if (idx < 0 && s.day === weekday) idx = i; });
+  _strengthSelIdx = idx < 0 ? 0 : idx;
+  renderStrength();
+  restoreStrengthValues(dateStr);
+}
+
+function selectStrengthSession(i) {
+  _strengthSelIdx = i;
+  var dateEl = document.getElementById("strengthDate");
+  renderStrength();
+  if (dateEl) restoreStrengthValues(dateEl.value);
+}
+
+function saveStrengthEntry() {
+  var dateEl = document.getElementById("strengthDate");
+  if (!dateEl || !dateEl.value) return;
+  saveDateEntry("strengthDate", strengthFields);
+  // Einheit und Soll-Werte mitspeichern, damit Export und Sheet sie spaeter kennen
+  var sel = getWeekStrengthSessions(dateEl.value)[_strengthSelIdx];
+  var key = "date_entry_strengthDate_" + dateEl.value;
+  var entry = getStrengthEntry(dateEl.value) || {};
+  entry.strengthSession = sel ? sel.title : "";
+  entry.strengthMeta = sel ? sel.exercises.map(function(ex) { return { id: ex.id, name: ex.name, soll: ex.sets }; }) : [];
+  localStorage.setItem(key, JSON.stringify(entry));
+}
+
+function strengthItemsFromEntry(d) {
+  // Liefert [{name, soll, ist}] - neue Eintraege ueber strengthMeta, alte ueber die Feld-IDs
+  var items = [], seen = {};
+  if (Array.isArray(d.strengthMeta)) {
+    d.strengthMeta.forEach(function(m) {
+      seen[m.id] = true;
+      if (d[m.id]) items.push({ name: m.name, soll: m.soll || "", ist: d[m.id] });
+    });
+  }
+  Object.keys(d).forEach(function(k) {
+    if (k.indexOf("str-") !== 0 || seen[k] || !d[k]) return;
+    var known = null;
+    strengthA.concat(strengthB).forEach(function(e) { if (strengthFieldId(e.name) === k) known = e; });
+    items.push({ name: known ? known.name : k.slice(4).replace(/-/g, " "), soll: known ? known.sets : "", ist: d[k] });
+  });
+  return items;
 }
 
 // ============================================================
@@ -1549,7 +1701,7 @@ function confirmSave(sec) {
   if (sec === "today")     saveDateEntry("todayDate",     todayFields);
   if (sec === "garmin")    saveDateEntry("garminDate",    garminFields);
   if (sec === "training")  saveTrainingSession();
-  if (sec === "strength")  saveDateEntry("strengthDate",  strengthFields);
+  if (sec === "strength")  saveStrengthEntry();
   if (sec === "nutrition") saveDateEntry("nutritionDate", nutritionFields);
   sheetsSyncSection(sec);
   var msgs = {
@@ -1647,6 +1799,7 @@ function collectData() {
   var els = document.querySelectorAll("input[id], textarea[id], select[id]");
   for (var i = 0; i < els.length; i++) {
     var el = els[i];
+    if (el.getAttribute && el.getAttribute("data-nosave")) continue; // Import-/Export-Textfelder nicht autospeichern
     d[el.id] = el.type === "checkbox" ? el.checked : el.value;
   }
   return d;
@@ -1746,7 +1899,7 @@ function getPlanWeekTargetKm() {
   var week = findPlanWeekForDate(range.monday);
   if (!week) return 20; // Fallback wenn keine passende Plan-Woche gefunden wird
   var sumKm = 0;
-  week.days.forEach(function(d) { sumKm += parseFloat(d.km) || 0; });
+  week.days.forEach(function(d) { if (d.type === "bike") return; sumKm += parseFloat(d.km) || 0; }); // nur Lauf-km
   return sumKm > 0 ? sumKm : 20; // Fallback falls Woche keine km-Werte hat (z.B. nur Intervalle)
 }
 
@@ -1879,8 +2032,8 @@ function getWeeklyNutritionDetails() {
   var refDateStr = document.getElementById("nutritionDate") ? document.getElementById("nutritionDate").value : "";
   var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
   var range = getWeekDateRange(refDate);
-  var checks  = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium"];
-  var labels  = ["Protein","Gemuese","Omega3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium"];
+  var checks  = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","chili","cinnamon"];
+  var labels  = ["Protein","Gemuese","Omega3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Chili","Zimt"];
   return getWeeklyDailyDetails("nutritionDate", range, function(d) {
     var nutr = "";
     for (var i = 0; i < checks.length; i++) nutr += labels[i] + ": " + (d[checks[i]] ? "ja" : "nein") + "  ";
@@ -1900,13 +2053,12 @@ function getWeeklyStrengthDetails() {
   var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
   var range = getWeekDateRange(refDate);
   return getWeeklyDailyDetails("strengthDate", range, function(d) {
-    var out = "";
-    var allExercises = strengthA.concat(strengthB);
-    allExercises.forEach(function(ex) {
-      var fieldId = "str-" + ex.name.replace(/ /g, "-");
-      if (d[fieldId]) out += "    " + ex.name + " (Soll " + ex.sets + "): " + d[fieldId] + "\n";
+    var out = d.strengthSession ? "    Einheit: " + d.strengthSession + "\n" : "";
+    var items = strengthItemsFromEntry(d);
+    items.forEach(function(it) {
+      out += "    " + it.name + (it.soll ? " (Soll " + it.soll + ")" : "") + ": " + it.ist + "\n";
     });
-    return out ? out + "\n" : "    Keine Werte eingetragen.\n\n";
+    return items.length ? out + "\n" : out + "    Keine Werte eingetragen.\n\n";
   });
 }
 
@@ -1959,7 +2111,10 @@ function buildMemoryFromCurrentState(previousMemory) {
   var version = (prev.version || 0) + 1;
 
   // Strength-Uebungen aus dem aktuellen Plan ableiten
-  var currentExercises = strengthA.concat(strengthB).map(function(ex) { return ex.name; });
+  var currentExercises = [];
+  getWeekStrengthSessions(new Date().toISOString().slice(0, 10)).forEach(function(s) {
+    s.exercises.forEach(function(ex) { if (currentExercises.indexOf(ex.name) === -1) currentExercises.push(ex.name); });
+  });
 
   // Trainingsphase / Block aus der aktuell relevanten Plan-Woche ableiten
   var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
@@ -2286,7 +2441,7 @@ var SHEET_TABS = {
   "Training":   { keyCols: 2, headers: ["Datum","Einheit","Disziplin","km","Zeit","Pace","Geschwindigkeit km/h","HF","Kadenz spm","Trittfrequenz rpm","BKT ms","Vertikal cm","Hoehenmeter","Leistung W","RPE","Gefuehl","Thule kg gesamt","Notizen"] },
   "Tagescheck": { keyCols: 1, headers: ["Datum","Gewicht kg","Energie","Motivation","Wade links","Wade rechts","Stress","Muskelkater","Notizen"] },
   "Garmin":     { keyCols: 1, headers: ["Datum","Body Battery","Schlaf","Ruhepuls","HRV","Trainingsstatus"] },
-  "Ernaehrung": { keyCols: 1, headers: ["Datum","Protein","Gemuese","Omega 3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Mahlzeit 1","Mahlzeit 2","Mahlzeit 3","Snack/Supplement","kcal","Protein g","KH g","Fett g","Ballaststoffe g","Zucker g"] },
+  "Ernaehrung": { keyCols: 1, headers: ["Datum","Protein","Gemuese","Omega 3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Mahlzeit 1","Mahlzeit 2","Mahlzeit 3","Snack/Supplement","kcal","Protein g","KH g","Fett g","Ballaststoffe g","Zucker g","Chili","Zimt"] },
   "Kraft":      { keyCols: 2, headers: ["Datum","Uebung","Soll","Ist"] },
   "Plaene":     { keyCols: 2, headers: ["KW","Jahr","Phase","Fokus","Ziel","Coach-Nachricht","Wetter","Hydration","Ernaehrung","Einheiten","Abgeschlossen"] }
 };
@@ -2550,20 +2705,16 @@ function buildNutritionRow(date, d) {
   }
   var tot = getNutrientTotalsForDate(date);
   row.push(tot ? tot.kcal : "", tot ? tot.protein : "", tot ? tot.carbs : "", tot ? tot.fat : "", tot ? tot.fiber : "", tot ? tot.sugar : "");
+  row.push(d.chili ? "ja" : "nein", d.cinnamon ? "ja" : "nein");
   return row;
 }
 
 function buildStrengthRows(date, d) {
-  var rows = [];
-  strengthA.concat(strengthB).forEach(function(ex) {
-    var val = d["str-" + ex.name.replace(/ /g, "-")];
-    if (val) rows.push([date, ex.name, ex.sets, sStr(val)]);
-  });
-  return rows;
+  return strengthItemsFromEntry(d).map(function(it) { return [date, it.name, it.soll, sStr(it.ist)]; });
 }
 
 function buildPlanRows() {
-  var labels = { "run":"Lauf", "strength":"Kraft", "rest":"Pause" };
+  var labels = { "run":"Lauf", "bike":"Rad", "strength":"Kraft", "rest":"Pause" };
   var rows = [];
   trainingPlan.forEach(function(w) {
     if (w.isPlaceholder) return;
@@ -2697,24 +2848,108 @@ function sheetsFullSync() {
   }, true);
 }
 
+function checkBracketBalance(text) {
+  // Zaehlt offene Klammern ausserhalb von Strings - erkennt abgeschnittene Texte
+  var depth = 0, inStr = false, esc = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true;
+    else if (ch === "[" || ch === "{") depth++;
+    else if (ch === "]" || ch === "}") depth--;
+  }
+  return { depth: depth, openString: inStr };
+}
+
+function parsePlanText(raw) {
+  // Toleriert Codeblock-Marker, Text vor/nach dem JSON und eine einzelne Woche ohne Array.
+  var t = raw.replace(/```json|```/g, "").trim();
+  var candidates = [t];
+  var a1 = t.indexOf("["), a2 = t.lastIndexOf("]");
+  if (a1 >= 0 && a2 > a1) candidates.push(t.slice(a1, a2 + 1));
+  var o1 = t.indexOf("{"), o2 = t.lastIndexOf("}");
+  if (o1 >= 0 && o2 > o1) candidates.push(t.slice(o1, o2 + 1));
+  var firstErr = null;
+  for (var i = 0; i < candidates.length; i++) {
+    try {
+      var v = JSON.parse(candidates[i]);
+      if (!Array.isArray(v) && v && typeof v === "object") v = v.weeks || v.plan || [v];
+      return { ok: true, value: v };
+    } catch(e) { if (!firstErr) firstErr = e; }
+  }
+  var bal = checkBracketBalance(t);
+  if (bal.depth > 0 || bal.openString) {
+    return { ok: false, msg: "Der Text ist unvollstaendig: Er endet nach " + t.length.toLocaleString("de-DE") + " Zeichen mitten im Plan (" + bal.depth + " Klammer(n) nicht geschlossen). Vermutlich wurde beim Kopieren abgeschnitten - nutze \"Aus Zwischenablage\" oder \"JSON-Datei laden\"." };
+  }
+  var msg = firstErr ? firstErr.message : "unbekannter Fehler";
+  var posMatch = msg.match(/position (\d+)/);
+  if (posMatch) {
+    var pos = parseInt(posMatch[1]);
+    var line = t.slice(0, pos).split("\n").length;
+    msg += " (Zeile " + line + ": \u201e" + t.slice(Math.max(0, pos - 30), pos + 30).replace(/\s+/g, " ") + "\u201c)";
+  }
+  return { ok: false, msg: "Ungueltige JSON: " + msg };
+}
+
+function updateImportInfo() {
+  var ta = document.getElementById("importPlanText");
+  var info = document.getElementById("importPlanInfo");
+  if (!ta || !info) return;
+  var t = ta.value.trim();
+  if (!t) { info.textContent = ""; return; }
+  var bal = checkBracketBalance(t.replace(/```json|```/g, ""));
+  var complete = bal.depth === 0 && !bal.openString;
+  info.innerHTML = t.length.toLocaleString("de-DE") + " Zeichen &middot; " + t.split("\n").length.toLocaleString("de-DE") + " Zeilen &middot; " +
+    (complete ? '<span style="color:var(--accent)">vollstaendig</span>' : '<span style="color:var(--danger)">unvollstaendig - Text abgeschnitten?</span>');
+}
+
+async function importPasteFromClipboard() {
+  var statusEl = document.getElementById("importStatus");
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    statusEl.innerHTML = '<span style="color:var(--warning)">Dieser Browser erlaubt kein direktes Lesen der Zwischenablage - bitte lange ins Feld tippen und Einfuegen waehlen.</span>';
+    return;
+  }
+  try {
+    var text = await navigator.clipboard.readText();
+    if (!text) { statusEl.innerHTML = '<span style="color:var(--warning)">Zwischenablage ist leer.</span>'; return; }
+    document.getElementById("importPlanText").value = text;
+    updateImportInfo();
+    statusEl.innerHTML = '<span style="color:var(--muted)">Aus Zwischenablage uebernommen - jetzt "Plan importieren" tippen.</span>';
+  } catch(e) {
+    statusEl.innerHTML = '<span style="color:var(--warning)">Zugriff auf die Zwischenablage verweigert. Bitte im Browser erlauben oder manuell einfuegen.</span>';
+  }
+}
+
+function importPlanFromFile(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById("importPlanText").value = e.target.result;
+    updateImportInfo();
+    document.getElementById("importStatus").innerHTML = '<span style="color:var(--muted)">Datei "' + file.name + '" geladen - jetzt "Plan importieren" tippen.</span>';
+  };
+  reader.readAsText(file);
+}
+
 function importPlan() {
   var raw = document.getElementById("importPlanText").value.trim();
   var statusEl = document.getElementById("importStatus");
   if (!raw) { statusEl.innerHTML = '<span style="color:var(--warning)">Kein Text eingefuegt.</span>'; return; }
-  var parsed;
-  try {
-    parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-  } catch(e) {
-    statusEl.innerHTML = '<span style="color:var(--danger)">Ungueltige JSON: ' + e.message + '</span>'; return;
-  }
+  var res = parsePlanText(raw);
+  if (!res.ok) { statusEl.innerHTML = '<span style="color:var(--danger)">' + res.msg + '</span>'; return; }
+  var parsed = res.value;
   if (!Array.isArray(parsed) || parsed.length === 0) {
-    statusEl.innerHTML = '<span style="color:var(--danger)">Plan muss ein Array sein.</span>'; return;
+    statusEl.innerHTML = '<span style="color:var(--danger)">Kein Plan gefunden - erwartet wird eine Liste von Wochen.</span>'; return;
   }
-  var valid = true;
+  var problems = [];
   for (var i = 0; i < parsed.length; i++) {
-    if (typeof parsed[i].week !== "number" || !parsed[i].focus || !Array.isArray(parsed[i].days)) { valid = false; break; }
+    var w = parsed[i];
+    if (typeof w.week === "string" && /^\d+$/.test(w.week.trim())) w.week = parseInt(w.week, 10); // "44" -> 44
+    if (typeof w.week !== "number") problems.push("Woche " + (i + 1) + ": \"week\" fehlt oder ist keine Zahl");
+    if (!w.focus) problems.push("Woche " + (i + 1) + ": \"focus\" fehlt");
+    if (!Array.isArray(w.days)) problems.push("Woche " + (i + 1) + ": \"days\" fehlt");
   }
-  if (!valid) { statusEl.innerHTML = '<span style="color:var(--danger)">Struktur fehlerhaft.</span>'; return; }
+  if (problems.length) { statusEl.innerHTML = '<span style="color:var(--danger)">Struktur fehlerhaft: ' + problems.slice(0, 3).join("; ") + '</span>'; return; }
   // Die "week"-Werte aus dem JSON sind echte Kalenderwochen (z.B. week:27 = KW27).
   // Intern arbeitet die App mit einem 1-basierten Plan-Zaehler (week:1 = erste Planwoche),
   // PLAN_START_KW verankert dann week:1 an der echten KW. Deshalb hier umnummerieren:
@@ -2753,6 +2988,7 @@ function importPlan() {
   statusEl.innerHTML = '<span style="color:var(--accent)">Plan mit ' + parsed.length + ' Wochen aktiviert (ab KW ' + firstWeekNum + ' / ' + targetYear + ')! Feld geleert fuer naechsten Import.</span>';
   showToast("Neuer Plan aktiviert!");
   checkMemoryMilestone();
+  loadStrengthForDate();
   sheetsSyncPlans();
 }
 
@@ -2938,7 +3174,7 @@ function updateStartPage() {
   var detailEl = document.getElementById("heroNextDetail");
   if (titleEl && detailEl) {
     if (nextFound) {
-      titleEl.textContent  = nextFound.day + " - " + (({"run":"Lauf","strength":"Kraft","rest":"Pause"})[nextFound.type] || nextFound.type) + (nextFound.title ? " / " + nextFound.title : "");
+      titleEl.textContent  = nextFound.day + " - " + (({"run":"Lauf","bike":"Rad","strength":"Kraft","rest":"Pause"})[nextFound.type] || nextFound.type) + (nextFound.title ? " / " + nextFound.title : "");
       var parts = [];
       if (nextFound.km)      parts.push(nextFound.km + " km");
       if (nextFound.pace)    parts.push(nextFound.pace + " /km");
@@ -3739,7 +3975,7 @@ function filterTrelloCards() {
 // DATUM-RESET: Felder leeren wenn neues Datum ohne Daten
 // ============================================================
 var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes","thuleChariot","thuleChildWeight","trainingDiscipline","bikeSpeed","bikeCadence","bikeElevation","bikePower"];
-var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
+var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","chili","cinnamon","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
 var todayFields      = ["energy","motivation","calfLeft","calfRight","stress","soreness","recoveryNotes","currentWeight"];
 var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus"];
 var strengthFields   = []; // wird dynamisch befuellt sobald Kraftuebungen gerendert sind
@@ -3757,6 +3993,7 @@ function resetFieldGroup(fields) {
 
 function applyDateLogic(dateFieldId, fieldsToReset) {
   if (dateFieldId === "runDate") { loadTrainingSessionsForDate(0); return; }
+  if (dateFieldId === "strengthDate") { loadStrengthForDate(); return; }
   var el = document.getElementById(dateFieldId);
   if (!el) return;
   var chosenDate = el.value;
@@ -3983,8 +4220,8 @@ function updateAthleteTab() {
   setEl("athProgressTotalSessions", totalSessions);
 
   // Kraft & Verletzungen
-  var allExercises = strengthA.concat(strengthB);
-  setEl("athStrengthCount", allExercises.length + " Uebungen aktiv");
+  var weekStrength = getWeekStrengthSessions(document.getElementById("strengthDate") ? document.getElementById("strengthDate").value : "");
+  setEl("athStrengthCount", weekStrength[0] && weekStrength[0].isDefault ? "Standard A/B (nicht im Plan)" : weekStrength.length + " Einheiten diese Woche");
   var calfScore = Math.max(parseFloat(d.calfLeft||0), parseFloat(d.calfRight||0));
   var calfEl = document.getElementById("athCalfStatus");
   if (calfEl) {
@@ -4102,6 +4339,10 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("runCoachAnalysis").addEventListener("click", runCoachAnalysis);
   document.getElementById("generateExport").addEventListener("click", generateExport);
   document.getElementById("importPlanBtn").addEventListener("click", importPlan);
+  document.getElementById("importPasteBtn").addEventListener("click", importPasteFromClipboard);
+  document.getElementById("importFileBtn").addEventListener("click", function() { document.getElementById("importPlanFile").click(); });
+  document.getElementById("importPlanFile").addEventListener("change", function(e) { importPlanFromFile(e.target.files[0]); e.target.value = ""; });
+  document.getElementById("importPlanText").addEventListener("input", updateImportInfo);
   document.getElementById("resetPlanBtn").addEventListener("click", resetPlan);
   document.getElementById("backupExportBtn").addEventListener("click", backupExport);
   document.getElementById("sheetsSaveBtn").addEventListener("click", saveSheetsSettings);
