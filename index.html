@@ -36,7 +36,7 @@
       document.getElementById("pwa-manifest").href = URL.createObjectURL(blob);
     });
   </script>
-  <title>Coach Bjoern Dashboard V2.1</title>
+  <title>Coach Bjoern Dashboard V7.1</title>
   <script>
     // Lade html5-qrcode mit Fallback ueber mehrere CDNs
     (function loadScanner() {
@@ -151,7 +151,6 @@
     #coachOutput h3{color:var(--text);font-size:0.88rem;margin:12px 0 5px;}
     #coachOutput p{margin-bottom:5px;}
     #coachOutput hr{border-color:#333;margin:12px 0;}
-    #exportText{font-family:'Courier New',monospace;font-size:0.78rem;color:var(--accent);background:#0a0a0a;margin-top:12px;}
     .hero-card{background:linear-gradient(145deg,#1c3320,#0d1a0f);border:1px solid #2d5a2d;border-radius:var(--radius);padding:20px 18px 18px;margin-bottom:12px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.03) inset;}
     .hero-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,#4caf5022 0%,transparent 70%);border-radius:50%;}
     .hero-greeting{font-size:0.8rem;color:#5a9a5a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
@@ -313,7 +312,7 @@
   <button class="tab-btn" data-tab="nutrition"><span class="ni">&#129367;</span>Ern&auml;hrung</button>
   <button class="tab-btn" data-tab="athlete"><span class="ni">&#128100;</span>Athlet</button>
   <button class="tab-btn" data-tab="analysis"><span class="ni">&#129302;</span>Auswertung</button>
-  <button class="tab-btn" data-tab="export"><span class="ni">&#128228;</span>Im/Export</button>
+  <button class="tab-btn" data-tab="export"><span class="ni">&#128202;</span>Sheet</button>
 </nav>
 
 <main>
@@ -349,7 +348,7 @@
     </div>
     <div class="dash-tile" onclick="switchTab('today')">
       <span class="dash-tile-icon">&#129459;</span>
-      <span class="dash-tile-label">Wade</span>
+      <span class="dash-tile-label">Beschwerden</span>
       <span class="dash-tile-value" id="tileWade">-</span>
       <span class="dash-tile-sub" id="tileWadeSub">-</span>
     </div>
@@ -417,10 +416,9 @@
     <label>Aktuelles Gewicht (kg)</label><input id="currentWeight" type="number" step="0.1" placeholder="z.B. 74.0" inputmode="decimal">
     <label>Energie (1-10)</label><input id="energy" type="number" min="1" max="10" placeholder="z.B. 7" inputmode="numeric">
     <label>Motivation (1-10)</label><input id="motivation" type="number" min="1" max="10" placeholder="z.B. 8" inputmode="numeric">
-    <label>Wade links (0-10)</label><input id="calfLeft" type="number" min="0" max="10" placeholder="0 = kein Schmerz" inputmode="numeric">
-    <label>Wade rechts (0-10)</label><input id="calfRight" type="number" min="0" max="10" placeholder="0 = kein Schmerz" inputmode="numeric">
     <label>Stress (1-10)</label><input id="stress" type="number" min="1" max="10" placeholder="z.B. 4" inputmode="numeric">
     <label>Muskelkater (1-10)</label><input id="soreness" type="number" min="1" max="10" placeholder="z.B. 3" inputmode="numeric">
+    <div id="dynamicChecks"></div>
     <label>Notizen</label><textarea id="recoveryNotes" rows="2" placeholder="Besonderheiten, Schmerzen, Befinden..."></textarea>
     <button class="btn" onclick="confirmSave('today')">Tages-Check speichern</button>
   </div>
@@ -669,7 +667,12 @@
     <div class="stat-row"><span class="stat-row-label">10km Pace aktuell</span><span class="stat-row-value" id="athProfilePace">-</span></div>
     <div class="stat-row"><span class="stat-row-label">10km Pace Ziel</span><span class="stat-row-value" id="athProfileGoalPace">-</span></div>
     <div class="stat-row"><span class="stat-row-label">Aktuelle Trainingsphase</span><span class="stat-row-value" id="athProfilePhase">-</span></div>
-    <div class="stat-row"><span class="stat-row-label">Coach Memory Version</span><span class="stat-row-value" id="athProfileMemVersion">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Aktiver Plan</span><span class="stat-row-value" id="athProfilePlanId">-</span></div>
+  </div>
+
+  <div class="card">
+    <h2>&#129504; Coach-Notizen</h2>
+    <div id="athCoachNotes"></div>
   </div>
 
   <div class="card">
@@ -723,7 +726,7 @@
   <div class="card">
     <h2>&#128170; Kraft &amp; Verletzungen</h2>
     <div class="stat-row"><span class="stat-row-label">Aktuelle Kraftuebungen</span><span class="stat-row-value" id="athStrengthCount">-</span></div>
-    <div class="stat-row"><span class="stat-row-label">Wadenstatus</span><span class="stat-row-value" id="athCalfStatus">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Beschwerden</span><span class="stat-row-value" id="athCalfStatus">-</span></div>
   </div>
 
 </section>
@@ -781,86 +784,40 @@
 <!-- IMPORT / EXPORT -->
 <section id="export" class="tab-page">
 
-  <!-- KOMPLETT-BACKUP -->
-  <div class="card" style="border:1px solid #444;">
-    <h2>&#128190; Komplett-Backup</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Sichert alle App-Daten (Trainingshistorie, Plan, Memory, Ziele, Trello-Einstellungen etc.) als Datei. Vor einem App-Update empfohlen, damit bei einer neuen Version nichts verloren geht.</p>
-    <button class="btn" id="backupExportBtn">&#11015; Backup herunterladen</button>
-    <button class="btn secondary" id="backupImportBtn" style="margin-top:8px;">&#11014; Backup wiederherstellen</button>
-    <input type="file" id="backupFileInput" accept="application/json" style="display:none;">
-    <div id="backupStatus" style="font-size:0.78rem;color:var(--muted);margin-top:8px;"></div>
-  </div>
-
-  <!-- GOOGLE SHEET -->
+  <!-- GOOGLE SHEET (V7) -->
   <div class="card" style="border:1px solid #1e6b3a;">
     <h2 style="color:#34a853;">&#128202; Google Sheet</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">Spiegelt jede gespeicherte Eingabe in ein Google Sheet. Die App bleibt fuehrend. Tabs: Training, Tagescheck, Garmin, Ernaehrung, Kraft, Plaene.</p>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">Jede gespeicherte Eingabe landet automatisch im Sheet. Coach Bjoern liest dort mit und schreibt Plan und Coach-Notizen zurueck.</p>
     <div id="sheetsStatus" style="font-size:0.8rem;margin:8px 0;"></div>
     <label>OAuth Client-ID</label>
     <input id="sheetsClientId" placeholder="....apps.googleusercontent.com">
     <label>Sheet-ID oder Sheet-URL</label>
     <input id="sheetsSheetId" placeholder="https://docs.google.com/spreadsheets/d/...">
     <button class="btn secondary" id="sheetsSaveBtn">Einstellungen speichern</button>
-    <button class="btn" id="sheetsSyncBtn" style="background:linear-gradient(180deg,#4fc26b 0%,#34a853 55%,#2a8a44 100%);">Verbinden &amp; alles synchronisieren</button>
+    <button class="btn" id="sheetsSyncBtn" style="background:linear-gradient(180deg,#4fc26b 0%,#34a853 55%,#2a8a44 100%);">Verbinden &amp; synchronisieren</button>
     <button class="btn secondary" id="sheetsDisconnectBtn" style="margin-top:8px;">Verbindung trennen</button>
   </div>
 
-  <!-- COACH MEMORY (YAML) -->
-  <div class="card" style="border:1px solid #2d5a2d;">
-    <h2 style="color:#4caf50;">&#129504; Coach Memory</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Langfristiges Gedaechtnis des Coaches. Wird nicht jede Woche aktualisiert.</p>
-
-    <div id="memoryStatusBanner" style="border-radius:10px;padding:10px 12px;margin:10px 0;font-size:0.82rem;"></div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-      <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center;">
-        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Memory-Version</div>
-        <div id="memoryVersionDisplay" style="font-size:1.1rem;font-weight:800;color:#4caf50;">-</div>
-      </div>
-      <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center;">
-        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Naechstes Update</div>
-        <div id="memoryCountdownDisplay" style="font-size:1.1rem;font-weight:800;color:#ffb300;">-</div>
-      </div>
-    </div>
-
-    <label>Aktuelles Memory (YAML)</label>
-    <textarea id="coachMemoryText" data-nosave="1" rows="14" placeholder="Noch kein Memory gespeichert. Wird beim ersten Export erzeugt." style="font-family:'Courier New',monospace;font-size:0.76rem;color:#4caf50;background:#0a0a0a;"></textarea>
-
-    <button class="btn" id="exportMemoryBtn" style="background:#4caf50;color:#000;">Memory aus aktuellen Daten erzeugen</button>
-    <button class="btn secondary" id="saveMemoryBtn" style="margin-top:8px;">Bearbeitetes Memory speichern</button>
-
-    <div style="margin-top:14px;padding:10px 12px;background:#0d1b0d;border:1px solid #2d5a2d;border-radius:10px;font-size:0.78rem;color:var(--muted);line-height:1.7;">
-      <strong style="color:#4caf50;">Workflow:</strong><br>
-      1. Memory + Wochenreport an ChatGPT/Coach Bjoern geben<br>
-      2. Coach liefert ggf. aktualisiertes Memory zurueck -&gt; hier einfuegen &amp; speichern<br>
-      3. Coach liefert 4-Wochen-Plan als JSON -&gt; unten importieren
-    </div>
-  </div>
-
-  <!-- TRAININGSPLAN IMPORT -->
+  <!-- TRAININGSPLAN AUS SHEET -->
   <div class="card" style="border:1px solid #1a3a5c;">
-    <h2 style="color:#29b6f6;">Trainingsplan importieren</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Rollierender 4-Wochen-Plan vom Coach (vergangene Woche + aktuelle + 2 Vorschau). Ersetzt den bisherigen Plan komplett.</p>
-    <div style="background:#0d1b2a;border:1px solid #1a3a5c;border-radius:10px;padding:12px;margin:12px 0;font-size:0.78rem;color:#5a8ab0;line-height:1.7;">
-      Format: Array mit week, completed, phase, focus, goal, days.<br>
-      Jeder Tag: day, type ("run"/"strength"/"rest"), title, km, pace, dauer, workout, desc, priority ("hoch"/"mittel"/"niedrig"), weather.
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-      <button class="btn secondary" id="importPasteBtn" style="margin:0;font-size:0.78rem;padding:10px 8px;">&#128203; Aus Zwischenablage</button>
-      <button class="btn secondary" id="importFileBtn" style="margin:0;font-size:0.78rem;padding:10px 8px;">&#128196; JSON-Datei laden</button>
-    </div>
-    <input type="file" id="importPlanFile" accept=".json,application/json,text/plain" style="display:none;">
-    <textarea id="importPlanText" data-nosave="1" rows="12" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="JSON hier einfuegen..." style="font-family:'Courier New',monospace;font-size:0.78rem;color:#29b6f6;background:#0a0a0a;"></textarea>
-    <div id="importPlanInfo" style="font-size:0.75rem;color:var(--muted);margin-top:6px;"></div>
-    <div id="importStatus" style="font-size:0.82rem;margin-top:8px;min-height:20px;"></div>
-    <button class="btn" id="importPlanBtn" style="background:#29b6f6;color:#000;">Plan importieren &amp; aktivieren</button>
-    <button class="btn secondary" id="resetPlanBtn" style="margin-top:8px;">Original-Plan wiederherstellen</button>
+    <h2 style="color:#29b6f6;">&#128197; Trainingsplan</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">Coach Bjoern schreibt den 4-Wochen-Plan in den Tab Plaene. Die App uebernimmt immer den neuesten Plan.</p>
+    <div id="planLoadStatus" style="font-size:0.8rem;margin:8px 0;"></div>
+    <button class="btn" id="sheetsLoadPlanBtn" style="background:#29b6f6;color:#000;">Plan &amp; Coach-Notizen laden</button>
   </div>
-  <div class="card">
-    <h2>&#128228; Wochenreport exportieren</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Zusammen mit Coach Memory an ChatGPT geben</p>
-    <button class="btn" id="generateExport">Wochenreport erzeugen</button>
-    <textarea id="exportText" data-nosave="1" rows="22" placeholder="Report erscheint hier..."></textarea>
+
+  <!-- COACH-NOTIZEN -->
+  <div class="card" style="border:1px solid #2d5a2d;">
+    <h2 style="color:#4caf50;">&#129504; Coach-Notizen</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">Langzeitgedaechtnis aus dem Tab Coach. Coach Bjoern pflegt es nach jeder Wochenauswertung.</p>
+    <div id="sheetCoachNotes"></div>
+  </div>
+
+  <!-- WIEDERHERSTELLEN -->
+  <div class="card" style="border:1px solid #5a2d2d;">
+    <h2 style="color:var(--danger);">&#9888; App aus Sheet wiederherstellen</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">Nach geloeschtem Browser-Cache oder auf einem neuen Geraet: holt Training, Tagescheck, Garmin, Ernaehrung, Kraft, Plan und Coach-Notizen zurueck. Eintraege mit gleichem Datum werden ueberschrieben. Ziele und Trello-Einstellungen stehen nicht im Sheet.</p>
+    <button class="btn secondary" id="sheetsRestoreBtn">Jetzt wiederherstellen</button>
   </div>
 </section>
 
@@ -1234,8 +1191,8 @@ function renderPlan() {
     if (isPlaceholder) {
       html += '<div style="background:#2a1f0d;border:1px solid #ff9800;border-radius:10px;padding:12px;">'
             + '<div style="color:#ff9800;font-weight:700;font-size:0.85rem;margin-bottom:6px;">&#9888; Noch kein Plan fuer diese Woche</div>'
-            + '<div style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Exportiere den Wochenreport und lass Coach Bjoern (ChatGPT) einen neuen Plan erstellen. Importiere ihn anschliessend im Reiter "Im/Export".</div>'
-            + '<button class="btn" style="margin:0;" onclick="switchTab(\'export\')">Zum Import-Bereich</button>'
+            + '<div style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Schreib Coach Bjoern &quot;Neuer Plan&quot;. Er traegt den Plan ins Sheet ein, danach hier laden.</div>'
+            + '<button class="btn" style="margin:0;" onclick="sheetsLoadCoachData(false)">Plan aus Sheet laden</button>'
             + '</div>';
     } else if (hasDays) {
       for (var di = 0; di < w.days.length; di++) {
@@ -1745,7 +1702,7 @@ function sleepToHours(timeStr) {
 }
 
 function getRecommendation(completion, calf, sleep) {
-  if (calf >= 6) return "Wade kritisch. Long Run -20%. Kein Intervall. Fokus: Kraft + Regeneration.";
+  if (calf >= 6) return "Beschwerden kritisch. Long Run -20%. Kein Intervall. Fokus: Kraft + Regeneration.";
   if (completion >= 90 && calf <= 2 && sleep >= 7) return "Sehr gute Woche! Umfang +5%, Long Run +1 km. Protein leicht erhoehen.";
   if (completion >= 75) return "Solide Woche. Umfang halten. Technik und Kraft priorisieren.";
   return "Belastung reduzieren. Fokus auf Konstanz. Naechste Woche identisch wiederholen.";
@@ -1754,8 +1711,7 @@ function getRecommendation(completion, calf, sleep) {
 function runCoachAnalysis() {
   var weight   = parseFloat(document.getElementById("currentWeight").value || 74);
   var goalW    = parseFloat(document.getElementById("goalWeight").value    || 69);
-  var calfL    = parseFloat(document.getElementById("calfLeft").value      || 0);
-  var calfR    = parseFloat(document.getElementById("calfRight").value     || 0);
+  var complaint = getComplaintStatus(collectData());
   var sleep    = sleepToHours(document.getElementById("garminSleep").value);
   var pace     = document.getElementById("runPace").value;
   var hf       = parseFloat(document.getElementById("runHF").value         || 0);
@@ -1766,7 +1722,7 @@ function runCoachAnalysis() {
   var hrv      = document.getElementById("garminHRV").value;
   var battery  = document.getElementById("bodyBattery").value;
   var tStatus  = document.getElementById("garminTrainingStatus").value;
-  var calfScore   = Math.max(calfL, calfR);
+  var calfScore   = complaint.score;
   var calfSt      = getCalfStatus(calfScore);
   var econScore   = calcEconomyScore(hf, cadence, bkt, weight);
   var completion  = calcCompletion(km, getPlanWeekTargetKm());
@@ -1775,7 +1731,7 @@ function runCoachAnalysis() {
   var fMap = { "sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht" };
   document.getElementById("coachOutput").innerHTML =
     '<div class="metric-grid">'
-    + '<div class="metric"><div class="metric-label">Wade</div><div class="metric-value ' + calfSt.cls + '" style="font-size:0.85rem">' + calfSt.text + '</div></div>'
+    + '<div class="metric"><div class="metric-label">' + (complaint.name || "Beschwerden") + '</div><div class="metric-value ' + calfSt.cls + '" style="font-size:0.85rem">' + calfSt.text + '</div></div>'
     + '<div class="metric"><div class="metric-label">Economy Score</div><div class="metric-value">' + econScore + ' / 100</div></div>'
     + '<div class="metric"><div class="metric-label">Planerfuellung</div><div class="metric-value">' + completion + '%</div></div>'
     + '<div class="metric"><div class="metric-label">Gewicht</div><div class="metric-value">' + wt + '</div></div>'
@@ -1938,500 +1894,7 @@ function updateRecoveryGarmin() {
 }
 
 // ============================================================
-// EXPORT
-// ============================================================
-function getWeeklyTrainingDetails() {
-  var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
-  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
-  var range = getWeekDateRange(refDate);
-  var fMap = { "sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht" };
-  var dayNames = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
-
-  var entries = collectTrainingSessions(range); // chronologisch, mehrere Einheiten pro Tag moeglich
-  if (entries.length === 0) return "  Keine Trainingseinheiten diese Woche erfasst.\n";
-
-  var perDay = {};
-  entries.forEach(function(e) { perDay[e.date] = (perDay[e.date] || 0) + 1; });
-
-  var out = "";
-  entries.forEach(function(entry) {
-    var d = entry.data;
-    var weekday = dayNames[entry.dateObj.getDay()];
-    out += "  " + weekday + " (" + entry.date + ")" + (perDay[entry.date] > 1 ? " - Einheit " + (entry.index + 1) : "") + ":\n";
-    var discipline = d.trainingDiscipline === "bike" ? "bike" : "run";
-    if (discipline === "bike") {
-      out += "    Disziplin: Radfahren\n";
-      out += "    km: " + (d.runKm||"-") + " | Zeit: " + (d.runTime||"-") + " | Geschwindigkeit: " + (d.bikeSpeed||"-") + " km/h | Hoehenmeter: " + (d.bikeElevation||"-") + " m\n";
-      out += "    HF: " + (d.runHF||"-") + " bpm | Trittfrequenz: " + (d.bikeCadence||"-") + " rpm" + (d.bikePower ? " | Leistung: " + d.bikePower + " W" : "") + "\n";
-      out += "    RPE: " + (d.runRPE||"-") + "/10 | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n";
-    } else {
-      out += "    Disziplin: Laufen\n";
-      out += "    km: " + (d.runKm||"-") + " | Zeit: " + (d.runTime||"-") + " | Pace: " + (d.runPace||"-") + " | Hoehenmeter: " + (d.runElevation||"-") + " m\n";
-      out += "    HF: " + (d.runHF||"-") + " bpm | Kadenz: " + (d.runCadence||"-") + " spm | BKT: " + (d.runBKT||"-") + " ms | Vertikal: " + (d.runVertical||"-") + " cm\n";
-      out += "    RPE: " + (d.runRPE||"-") + "/10 | Gefuehl: " + (fMap[d.runFeeling]||"-") + "\n";
-      if (d.thuleChariot) {
-        var childW = parseFloat(d.thuleChildWeight || 0) || 0;
-        var totalW = THULE_BASE_WEIGHT_KG + childW;
-        out += "    Thule Chariot System: " + THULE_BASE_WEIGHT_KG + " kg (Thule) + " + childW + " kg (Kind) = " + totalW + " kg gesamt\n";
-      }
-    }
-    if (d.runNotes) out += "    Notizen: " + d.runNotes + "\n";
-    out += "\n";
-  });
-  return out;
-}
-
-function getWeeklyDailyDetails(dateFieldPrefix, range, formatFn) {
-  var entries = [];
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (!key || key.indexOf("date_entry_" + dateFieldPrefix + "_") !== 0) continue;
-    var dateStr = key.replace("date_entry_" + dateFieldPrefix + "_", "");
-    var entryDate = parseLocalDate(dateStr);
-    if (entryDate >= range.monday && entryDate <= range.sunday) {
-      try {
-        var data = JSON.parse(localStorage.getItem(key));
-        entries.push({ date: dateStr, dateObj: entryDate, data: data });
-      } catch(e) {}
-    }
-  }
-  entries.sort(function(a, b) { return a.dateObj - b.dateObj; });
-  if (entries.length === 0) return "  Keine Eintraege diese Woche erfasst.\n";
-  var dayNames = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
-  var out = "";
-  entries.forEach(function(entry) {
-    var weekday = dayNames[entry.dateObj.getDay()];
-    out += "  " + weekday + " (" + entry.date + "):\n" + formatFn(entry.data);
-  });
-  return out;
-}
-
-function getWeeklyGarminDetails() {
-  var refDateStr = document.getElementById("garminDate") ? document.getElementById("garminDate").value : "";
-  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
-  var range = getWeekDateRange(refDate);
-  return getWeeklyDailyDetails("garminDate", range, function(d) {
-    return "    Body Battery: " + (d.bodyBattery||"-") + " | Schlaf: " + (d.garminSleep||"-") + " | Ruhepuls: " + (d.garminRHR||"-") + "\n"
-         + "    HRV: " + (d.garminHRV||"-") + " | Trainingsstatus: " + (d.garminTrainingStatus||"-") + "\n\n";
-  });
-}
-
-function getWeeklyTodayDetails() {
-  var refDateStr = document.getElementById("todayDate") ? document.getElementById("todayDate").value : "";
-  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
-  var range = getWeekDateRange(refDate);
-  return getWeeklyDailyDetails("todayDate", range, function(d) {
-    var out = "    Energie: " + (d.energy||"-") + "/10 | Motivation: " + (d.motivation||"-") + "/10 | Wade L: " + (d.calfLeft||"0") + " | Wade R: " + (d.calfRight||"0") + "\n";
-    out += "    Stress: " + (d.stress||"-") + "/10 | Muskelkater: " + (d.soreness||"-") + "/10\n";
-    if (d.recoveryNotes) out += "    Notizen: " + d.recoveryNotes + "\n";
-    return out + "\n";
-  });
-}
-
-function getWeeklyNutritionDetails() {
-  var refDateStr = document.getElementById("nutritionDate") ? document.getElementById("nutritionDate").value : "";
-  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
-  var range = getWeekDateRange(refDate);
-  var checks  = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","chili","cinnamon"];
-  var labels  = ["Protein","Gemuese","Omega3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Chili","Zimt"];
-  return getWeeklyDailyDetails("nutritionDate", range, function(d) {
-    var nutr = "";
-    for (var i = 0; i < checks.length; i++) nutr += labels[i] + ": " + (d[checks[i]] ? "ja" : "nein") + "  ";
-    var out = "    " + nutr + "\n";
-    var meals = "";
-    for (var n = 1; n <= 4; n++) {
-      var t = d["meal" + n + "Time"]; var note = d["meal" + n + "Note"];
-      if (t || note) meals += "      " + (t||"??") + " - " + (note||"-") + "\n";
-    }
-    if (meals) out += "    Mahlzeiten:\n" + meals;
-    return out + "\n";
-  });
-}
-
-function getWeeklyStrengthDetails() {
-  var refDateStr = document.getElementById("strengthDate") ? document.getElementById("strengthDate").value : "";
-  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
-  var range = getWeekDateRange(refDate);
-  return getWeeklyDailyDetails("strengthDate", range, function(d) {
-    var out = d.strengthSession ? "    Einheit: " + d.strengthSession + "\n" : "";
-    var items = strengthItemsFromEntry(d);
-    items.forEach(function(it) {
-      out += "    " + it.name + (it.soll ? " (Soll " + it.soll + ")" : "") + ": " + it.ist + "\n";
-    });
-    return items.length ? out + "\n" : out + "    Keine Werte eingetragen.\n\n";
-  });
-}
-
-// ============================================================
-// COACH MEMORY (YAML) - Baustein 2 der V3-Architektur
-// ============================================================
-var MEMORY_STORAGE_KEY = "coach_bjoern_memory";
-
-function getStoredMemory() {
-  var raw = localStorage.getItem(MEMORY_STORAGE_KEY);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch(e) { return null; }
-}
-
-function saveStoredMemory(memObj) {
-  localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(memObj));
-}
-
-function toYamlValue(val) {
-  if (typeof val === "string") return '"' + val.replace(/"/g, '\\"') + '"';
-  if (typeof val === "boolean" || typeof val === "number") return String(val);
-  return '"' + String(val) + '"';
-}
-
-function objectToYaml(obj, indent) {
-  indent = indent || 0;
-  var pad = "  ".repeat(indent);
-  var lines = [];
-  Object.keys(obj).forEach(function(key) {
-    var val = obj[key];
-    if (val === null || val === undefined) return;
-    if (Array.isArray(val)) {
-      lines.push(pad + key + ":");
-      val.forEach(function(item) {
-        lines.push(pad + "  - " + (typeof item === "object" ? "" : toYamlValue(item)));
-      });
-    } else if (typeof val === "object") {
-      lines.push(pad + key + ":");
-      lines.push(objectToYaml(val, indent + 1));
-    } else {
-      lines.push(pad + key + ": " + toYamlValue(val));
-    }
-  });
-  return lines.join("\n");
-}
-
-function buildMemoryFromCurrentState(previousMemory) {
-  var d = collectData();
-  var prev = previousMemory || {};
-  var version = (prev.version || 0) + 1;
-
-  // Strength-Uebungen aus dem aktuellen Plan ableiten
-  var currentExercises = [];
-  getWeekStrengthSessions(new Date().toISOString().slice(0, 10)).forEach(function(s) {
-    s.exercises.forEach(function(ex) { if (currentExercises.indexOf(ex.name) === -1) currentExercises.push(ex.name); });
-  });
-
-  // Trainingsphase / Block aus der aktuell relevanten Plan-Woche ableiten
-  var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
-  var refDate = refDateStr ? parseLocalDate(refDateStr) : new Date();
-  var range = getWeekDateRange(refDate);
-  var currentPlanWeek = findPlanWeekForDate(range.monday);
-
-  var memory = {
-    version: version,
-    created: new Date().toISOString().slice(0,10),
-    athlete: { name: "Stefan" },
-    goals: {
-      weight: parseFloat(d.goalWeight) || 69,
-      pace10k: d.goal10kPace || "4:35"
-    },
-    training: {
-      phase: currentPlanWeek ? currentPlanWeek.phase || currentPlanWeek.focus || "-" : (prev.training ? prev.training.phase : "-"),
-      block: prev.training ? (prev.training.block || 1) : 1,
-      weekInBlock: prev.training ? (prev.training.weekInBlock || 1) : 1
-    },
-    running: { sessionsPerWeek: 3 },
-    strength: {
-      sessionsPerWeek: 2,
-      currentExercises: currentExercises
-    },
-    zones: {
-      easyHr: prev.zones ? prev.zones.easyHr : "140-150",
-      thresholdHr: prev.zones ? prev.zones.thresholdHr : "160-168"
-    },
-    injury: {
-      calves: (parseFloat(d.calfLeft||0) >= 4 || parseFloat(d.calfRight||0) >= 4) ? "aktuell beachten" : "recovered"
-    },
-    planning: {
-      nextDeload: prev.planning ? prev.planning.nextDeload : (currentPlanWeek ? currentPlanWeek.week + 4 : 4),
-      nextTest: prev.planning ? prev.planning.nextTest : (currentPlanWeek ? currentPlanWeek.week + 8 : 8)
-    },
-    sync: {
-      nextMemoryExport: 3 // Default: in 3 Wochen wieder aktualisieren
-    }
-  };
-  return memory;
-}
-
-function renderMemoryUI() {
-  var mem = getStoredMemory();
-  var versionEl   = document.getElementById("memoryVersionDisplay");
-  var countdownEl = document.getElementById("memoryCountdownDisplay");
-  var bannerEl    = document.getElementById("memoryStatusBanner");
-  var textEl      = document.getElementById("coachMemoryText");
-
-  if (!mem) {
-    if (versionEl)   versionEl.textContent = "-";
-    if (countdownEl) countdownEl.textContent = "-";
-    if (bannerEl) {
-      bannerEl.style.background = "#1a2e1a";
-      bannerEl.style.border = "1px solid #4caf50";
-      bannerEl.style.color = "#4caf50";
-      bannerEl.textContent = "Noch kein Memory vorhanden - mit \"Memory erzeugen\" starten.";
-    }
-    return;
-  }
-
-  if (versionEl) versionEl.textContent = "v" + mem.version;
-  var countdown = mem.sync && typeof mem.sync.nextMemoryExport === "number" ? mem.sync.nextMemoryExport : 0;
-  if (countdownEl) countdownEl.textContent = countdown <= 0 ? "Jetzt!" : countdown + " Wo.";
-
-  if (bannerEl) {
-    if (countdown <= 0) {
-      bannerEl.style.background = "#2a1f0d";
-      bannerEl.style.border = "1px solid #ff9800";
-      bannerEl.style.color = "#ff9800";
-      bannerEl.innerHTML = "&#9888; Memory-Update faellig! Bitte neues Memory erzeugen und an den Coach geben.";
-    } else {
-      bannerEl.style.background = "#1a2e1a";
-      bannerEl.style.border = "1px solid #4caf50";
-      bannerEl.style.color = "#4caf50";
-      bannerEl.innerHTML = "&#10003; Memory aktuell (v" + mem.version + "). Naechstes Update in " + countdown + " Wochen.";
-    }
-  }
-
-  if (textEl && !textEl.value) {
-    textEl.value = objectToYaml(mem);
-  }
-}
-
-function exportMemory() {
-  var prev = getStoredMemory();
-  var mem = buildMemoryFromCurrentState(prev);
-  saveStoredMemory(mem);
-  var textEl = document.getElementById("coachMemoryText");
-  if (textEl) textEl.value = objectToYaml(mem);
-  renderMemoryUI();
-  showToast("Coach Memory v" + mem.version + " erzeugt");
-}
-
-function saveEditedMemory() {
-  var textEl = document.getElementById("coachMemoryText");
-  if (!textEl || !textEl.value.trim()) {
-    showToast("Kein Memory-Text vorhanden");
-    return;
-  }
-  // Einfacher YAML-Parser fuer die erwartete Struktur (kein Vollparser, reicht fuer dieses Schema)
-  try {
-    var parsed = parseSimpleYaml(textEl.value);
-    saveStoredMemory(parsed);
-    renderMemoryUI();
-    showToast("Memory gespeichert");
-  } catch(e) {
-    showToast("Konnte YAML nicht parsen - bitte Format pruefen");
-    console.error("YAML parse error:", e);
-  }
-}
-
-function parseSimpleYaml(yamlStr) {
-  // Minimaler YAML-Parser fuer das Coach-Memory-Schema (verschachtelte Objekte, einfache Listen)
-  var lines = yamlStr.split("\n");
-  var root = {};
-  var stack = [{ indent: -1, obj: root }];
-  var currentListKey = null;
-
-  lines.forEach(function(rawLine) {
-    if (!rawLine.trim() || rawLine.trim().indexOf("#") === 0) return;
-    var indent = rawLine.search(/\S/);
-    var line = rawLine.trim();
-
-    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
-      stack.pop();
-    }
-    var parent = stack[stack.length - 1].obj;
-
-    if (line.indexOf("- ") === 0) {
-      var item = line.slice(2).trim().replace(/^"(.*)"$/, "$1");
-      if (Array.isArray(parent)) parent.push(item);
-      return;
-    }
-
-    var colonIdx = line.indexOf(":");
-    if (colonIdx === -1) return;
-    var key = line.slice(0, colonIdx).trim();
-    var value = line.slice(colonIdx + 1).trim();
-
-    if (value === "") {
-      // Koennte ein Objekt oder eine Liste sein - schauen wir bei der naechsten Zeile
-      var nextObj = {};
-      parent[key] = nextObj;
-      stack.push({ indent: indent, obj: nextObj });
-    } else {
-      var cleanVal = value.replace(/^"(.*)"$/, "$1");
-      if (cleanVal === "true") cleanVal = true;
-      else if (cleanVal === "false") cleanVal = false;
-      else if (/^-?\d+(\.\d+)?$/.test(cleanVal)) cleanVal = parseFloat(cleanVal);
-      parent[key] = cleanVal;
-    }
-  });
-
-  // Nachbearbeitung: Objekte die nur Listen-Items als Kinder bekommen haben, in Arrays umwandeln
-  function convertEmptyObjectsWithListChildren(obj) {
-    if (typeof obj !== "object" || obj === null) return;
-    Object.keys(obj).forEach(function(k) {
-      if (typeof obj[k] === "object" && !Array.isArray(obj[k])) {
-        convertEmptyObjectsWithListChildren(obj[k]);
-      }
-    });
-  }
-
-  // Da unser Parser bei Listen direkt in ein leeres Objekt schreibt, muessen wir
-  // erkennen ob "- " Zeilen folgten und das Objekt nachtraeglich zum Array machen.
-  // Einfacher Re-Parse-Ansatz: zweite Pass-Erkennung ueber Rohzeilen.
-  reparseListsFromRaw(yamlStr, root);
-
-  return root;
-}
-
-function reparseListsFromRaw(yamlStr, root) {
-  var lines = yamlStr.split("\n");
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    if (!line.trim() || line.trim().indexOf(":") === -1) continue;
-    var indent = line.search(/\S/);
-    var key = line.trim().split(":")[0].trim();
-    var nextLine = lines[i+1];
-    if (nextLine && nextLine.trim().indexOf("- ") === 0) {
-      var listItems = [];
-      var j = i + 1;
-      while (j < lines.length && lines[j].trim().indexOf("- ") === 0) {
-        listItems.push(lines[j].trim().slice(2).replace(/^"(.*)"$/, "$1"));
-        j++;
-      }
-      // Pfad zum Key finden und Liste setzen (nur fuer bekannte verschachtelte Pfade)
-      setNestedListByKey(root, key, listItems);
-    }
-  }
-}
-
-function setNestedListByKey(obj, key, list) {
-  if (typeof obj !== "object" || obj === null) return false;
-  if (obj.hasOwnProperty(key)) {
-    obj[key] = list;
-    return true;
-  }
-  for (var k in obj) {
-    if (typeof obj[k] === "object" && setNestedListByKey(obj[k], key, list)) return true;
-  }
-  return false;
-}
-
-function checkMemoryMilestone() {
-  // Reduziert den Countdown automatisch, wenn eine neue Plan-Woche beginnt
-  // (wird beim Plan-Import aufgerufen, da das ein natuerlicher Wochenwechsel ist)
-  var mem = getStoredMemory();
-  if (!mem || !mem.sync) return;
-  mem.sync.nextMemoryExport = Math.max(0, (mem.sync.nextMemoryExport || 3) - 1);
-  saveStoredMemory(mem);
-  renderMemoryUI();
-}
-
-
-function generateExport() {
-  var d = collectData();
-  var now = new Date().toLocaleDateString("de-DE");
-  var weeklyKm = getWeeklyKm();
-  var targetKm = getPlanWeekTargetKm();
-  var weeklyCompletion = Math.round((weeklyKm / targetKm) * 100);
-  var txt = "COACH_BJOERN_REPORT\nDatum: " + now + "\nAthlet: Stefan\n"
-    + "================================\n\n"
-    + "-- ZIELE --\nGewicht: " + (d.currentWeight||"74") + " kg -> Ziel: " + (d.goalWeight||"69") + " kg\n"
-    + "10km Pace: " + (d.current10kPace||"4:55") + " -> Ziel: " + (d.goal10kPace||"4:35") + " min/km\n\n"
-    + "-- WOCHENUEBERSICHT --\nGelaufen diese Woche: " + weeklyKm + " km (Soll: " + targetKm + " km, " + weeklyCompletion + "%)\n\n"
-    + "-- LAUFEINHEITEN DIESE WOCHE (einzeln) --\n" + getWeeklyTrainingDetails()
-    + "-- KRAFTTRAINING DIESE WOCHE (einzeln) --\n" + getWeeklyStrengthDetails()
-    + "-- TAGES-CHECK / RECOVERY / GARMIN DIESE WOCHE (einzeln) --\n" + getWeeklyTodayDetails() + getWeeklyGarminDetails()
-    + "-- ERNAEHRUNG DIESE WOCHE (einzeln) --\n" + getWeeklyNutritionDetails()
-    + "\n================================";
-  document.getElementById("exportText").value = txt;
-}
-
-// ============================================================
-// PLAN IMPORT
-// ============================================================
-// ============================================================
-// KOMPLETT-BACKUP: alle App-Daten als JSON sichern/wiederherstellen
-// ============================================================
-function getAllAppStorageKeys() {
-  // Erfasst generisch ALLE App-relevanten Keys, nicht nur eine feste Liste -
-  // so sind auch zukuenftig neu hinzukommende Keys automatisch im Backup enthalten.
-  var keys = [];
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (key && key !== SHEETS_TOKEN_KEY && (key.indexOf("coach_bjoern") === 0 || key.indexOf("date_entry_") === 0)) {
-      keys.push(key);
-    }
-  }
-  return keys;
-}
-
-function backupExport() {
-  var statusEl = document.getElementById("backupStatus");
-  var keys = getAllAppStorageKeys();
-  var data = {};
-  keys.forEach(function(k) { data[k] = localStorage.getItem(k); });
-
-  var backup = {
-    appVersion: "coach-bjoern-v21",
-    exportedAt: new Date().toISOString(),
-    keyCount: keys.length,
-    data: data
-  };
-
-  var content = JSON.stringify(backup, null, 2);
-  var blob = new Blob([content], { type: "application/json" });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement("a");
-  var dateStr = new Date().toISOString().slice(0,10);
-  a.href = url;
-  a.download = "coach-bjoern-backup-" + dateStr + ".json";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent)">' + keys.length + ' Eintraege gesichert.</span>';
-  showToast("Backup heruntergeladen (" + keys.length + " Eintraege)");
-}
-
-function backupImportFromFile(file) {
-  var statusEl = document.getElementById("backupStatus");
-  if (!file) return;
-
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      var backup = JSON.parse(e.target.result);
-      if (!backup.data || typeof backup.data !== "object") {
-        throw new Error("Ungueltiges Backup-Format (kein 'data'-Feld gefunden)");
-      }
-      var restoredCount = 0;
-      Object.keys(backup.data).forEach(function(key) {
-        localStorage.setItem(key, backup.data[key]);
-        restoredCount++;
-      });
-      if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent)">' + restoredCount + ' Eintraege wiederhergestellt. Seite wird neu geladen...</span>';
-      showToast(restoredCount + " Eintraege wiederhergestellt");
-      // Neu laden, damit alle UI-Teile die wiederhergestellten Daten korrekt anzeigen
-      setTimeout(function() { location.reload(); }, 1200);
-    } catch(err) {
-      if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">Fehler: ' + err.message + '</span>';
-      showToast("Backup konnte nicht gelesen werden");
-    }
-  };
-  reader.onerror = function() {
-    if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">Datei konnte nicht gelesen werden.</span>';
-  };
-  reader.readAsText(file);
-}
-
-// ============================================================
-// GOOGLE SHEETS SYNC - App bleibt fuehrend, Sheet ist Spiegel
+// GOOGLE SHEETS SYNC - App schreibt ihre Eingaben, Claude schreibt Plan + Coach
 // ============================================================
 var SHEETS_CONFIG_KEY = "coach_bjoern_sheets";
 var SHEETS_TOKEN_KEY  = "coach_bjoern_sheets_token";
@@ -2439,11 +1902,13 @@ var SHEETS_SCOPE      = "https://www.googleapis.com/auth/spreadsheets";
 
 var SHEET_TABS = {
   "Training":   { keyCols: 2, headers: ["Datum","Einheit","Disziplin","km","Zeit","Pace","Geschwindigkeit km/h","HF","Kadenz spm","Trittfrequenz rpm","BKT ms","Vertikal cm","Hoehenmeter","Leistung W","RPE","Gefuehl","Thule kg gesamt","Notizen"] },
-  "Tagescheck": { keyCols: 1, headers: ["Datum","Gewicht kg","Energie","Motivation","Wade links","Wade rechts","Stress","Muskelkater","Notizen"] },
+  "Tagescheck": { keyCols: 1, headers: ["Datum","Gewicht kg","Energie","Motivation","Stress","Muskelkater","Notizen","Wade links","Wade rechts"] }, // Abfrage-Spalten: siehe addTcCols()
   "Garmin":     { keyCols: 1, headers: ["Datum","Body Battery","Schlaf","Ruhepuls","HRV","Trainingsstatus"] },
   "Ernaehrung": { keyCols: 1, headers: ["Datum","Protein","Gemuese","Omega 3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Mahlzeit 1","Mahlzeit 2","Mahlzeit 3","Snack/Supplement","kcal","Protein g","KH g","Fett g","Ballaststoffe g","Zucker g","Chili","Zimt"] },
   "Kraft":      { keyCols: 2, headers: ["Datum","Uebung","Soll","Ist"] },
-  "Plaene":     { keyCols: 2, headers: ["KW","Jahr","Phase","Fokus","Ziel","Coach-Nachricht","Wetter","Hydration","Ernaehrung","Einheiten","Abgeschlossen"] }
+  // Plaene und Coach schreibt Coach Bjoern (Claude) - die App liest sie nur.
+  "Plaene":     { keyCols: 2, headers: ["KW","Jahr","Phase","Fokus","Ziel","Coach-Nachricht","Wetter","Hydration","Ernaehrung","Einheiten","Abgeschlossen","Plan-ID","JSON"] },
+  "Coach":      { keyCols: 2, headers: ["Bereich","Schluessel","Wert","Stand"] }
 };
 
 var SECTION_SYNC_MAP = {
@@ -2677,7 +2142,9 @@ function buildTrainingRow(date, d, unitNo) {
 }
 
 function buildTodayRow(date, d) {
-  return [date, sNum(d.currentWeight), sNum(d.energy), sNum(d.motivation), sNum(d.calfLeft), sNum(d.calfRight), sNum(d.stress), sNum(d.soreness), sStr(d.recoveryNotes)];
+  var row = [date, sNum(d.currentWeight), sNum(d.energy), sNum(d.motivation), sNum(d.stress), sNum(d.soreness), sStr(d.recoveryNotes)];
+  getTcCols().forEach(function(name) { row.push(tcCellValue(d[tcFieldId(name)])); });
+  return row;
 }
 
 function buildGarminRow(date, d) {
@@ -2711,29 +2178,6 @@ function buildNutritionRow(date, d) {
 
 function buildStrengthRows(date, d) {
   return strengthItemsFromEntry(d).map(function(it) { return [date, it.name, it.soll, sStr(it.ist)]; });
-}
-
-function buildPlanRows() {
-  var labels = { "run":"Lauf", "bike":"Rad", "strength":"Kraft", "rest":"Pause" };
-  var rows = [];
-  trainingPlan.forEach(function(w) {
-    if (w.isPlaceholder) return;
-    var info = getKWMonday(w.week);
-    var coach = w.coach || {};
-    var units = (w.days || []).map(function(d) {
-      var parts = [(d.day || "").slice(0, 2) + ": " + (labels[d.type] || d.type || "")];
-      if (d.title) parts.push(d.title);
-      if (d.km) parts.push(d.km + " km");
-      if (d.workout && d.workout !== "...") parts.push(d.workout);
-      return parts.join(" ");
-    }).join("; ");
-    rows.push([
-      info.kw, info.year, sStr(w.phase), sStr(w.focus), sStr(w.goal),
-      sStr(coach.message || coach.weekMessage), sStr(coach.weather), sStr(coach.hydration), sStr(coach.nutrition),
-      units, w.completed ? "ja" : "nein"
-    ]);
-  });
-  return rows;
 }
 
 function rowsForTab(tab, entries) {
@@ -2805,7 +2249,7 @@ function sheetsSyncSection(sec) {
 
 async function sheetsClearTab(token, tab) {
   var def = SHEET_TABS[tab];
-  await sheetsApi(token, "POST", "/values/" + encodeURIComponent(sheetRange(tab, "A2:" + colLetter(def.headers.length))) + ":clear", {});
+  await sheetsApi(token, "POST", "/values/" + encodeURIComponent(sheetRange(tab, "A2:ZZ")) + ":clear", {});
 }
 
 function sheetsSyncTrainingAll() {
@@ -2818,16 +2262,10 @@ function sheetsSyncTrainingAll() {
   }, false);
 }
 
-function sheetsSyncPlans() {
-  if (!sheetsConfigured()) return;
-  var rows = buildPlanRows();
-  sheetsRun("Sheet: Plaene", function(token) { return sheetsUpsert(token, "Plaene", rows); }, false);
-}
-
 function sheetsFullSync() {
   if (!sheetsConfigured()) { setSheetsStatus("Bitte erst Client-ID und Sheet speichern.", "warn"); return; }
   sheetsRun("Vollstaendige Synchronisation", async function(token) {
-    var total = 0;
+    var total = await pullPlanAndCoach(token, false);
     var sections = Object.keys(SECTION_SYNC_MAP);
     for (var i = 0; i < sections.length; i++) {
       var m = SECTION_SYNC_MAP[sections[i]];
@@ -2838,168 +2276,388 @@ function sheetsFullSync() {
         await sheetsClearTab(token, "Training");
         entries = collectTrainingSessions();
       } else {
-        if (m.tab === "Kraft") await sheetsClearTab(token, "Kraft");
+        if (m.tab === "Kraft" || m.tab === "Tagescheck") await sheetsClearTab(token, m.tab);
         entries = collectDateEntries(m.prefix);
       }
       total += await sheetsUpsert(token, m.tab, rowsForTab(m.tab, entries));
     }
-    total += await sheetsUpsert(token, "Plaene", buildPlanRows());
     return total;
   }, true);
 }
 
-function checkBracketBalance(text) {
-  // Zaehlt offene Klammern ausserhalb von Strings - erkennt abgeschnittene Texte
-  var depth = 0, inStr = false, esc = false;
-  for (var i = 0; i < text.length; i++) {
-    var ch = text[i];
-    if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
-    if (ch === '"') inStr = true;
-    else if (ch === "[" || ch === "{") depth++;
-    else if (ch === "]" || ch === "}") depth--;
-  }
-  return { depth: depth, openString: inStr };
+// ============================================================
+// SHEET -> APP (V7): Plan, Coach-Notizen, Wiederherstellung
+// Coach Bjoern schreibt den Plan (Tab Plaene, eine Zeile pro Woche mit
+// Plan-ID und Wochen-JSON) und die Coach-Notizen (Tab Coach). Die App liest.
+// ============================================================
+var PLAN_ID_KEY     = "coach_bjoern_plan_id";
+var PLAN_SIG_KEY    = "coach_bjoern_plan_sig";
+var COACH_NOTES_KEY = "coach_bjoern_coach_notes";
+
+async function sheetsGetValues(token, tab, a1) {
+  var res = await sheetsApi(token, "GET", "/values/" + encodeURIComponent(sheetRange(tab, a1)) +
+    "?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING");
+  return res.values || [];
 }
 
-function parsePlanText(raw) {
-  // Toleriert Codeblock-Marker, Text vor/nach dem JSON und eine einzelne Woche ohne Array.
-  var t = raw.replace(/```json|```/g, "").trim();
-  var candidates = [t];
-  var a1 = t.indexOf("["), a2 = t.lastIndexOf("]");
-  if (a1 >= 0 && a2 > a1) candidates.push(t.slice(a1, a2 + 1));
-  var o1 = t.indexOf("{"), o2 = t.lastIndexOf("}");
-  if (o1 >= 0 && o2 > o1) candidates.push(t.slice(o1, o2 + 1));
-  var firstErr = null;
-  for (var i = 0; i < candidates.length; i++) {
-    try {
-      var v = JSON.parse(candidates[i]);
-      if (!Array.isArray(v) && v && typeof v === "object") v = v.weeks || v.plan || [v];
-      return { ok: true, value: v };
-    } catch(e) { if (!firstErr) firstErr = e; }
-  }
-  var bal = checkBracketBalance(t);
-  if (bal.depth > 0 || bal.openString) {
-    return { ok: false, msg: "Der Text ist unvollstaendig: Er endet nach " + t.length.toLocaleString("de-DE") + " Zeichen mitten im Plan (" + bal.depth + " Klammer(n) nicht geschlossen). Vermutlich wurde beim Kopieren abgeschnitten - nutze \"Aus Zwischenablage\" oder \"JSON-Datei laden\"." };
-  }
-  var msg = firstErr ? firstErr.message : "unbekannter Fehler";
-  var posMatch = msg.match(/position (\d+)/);
-  if (posMatch) {
-    var pos = parseInt(posMatch[1]);
-    var line = t.slice(0, pos).split("\n").length;
-    msg += " (Zeile " + line + ": \u201e" + t.slice(Math.max(0, pos - 30), pos + 30).replace(/\s+/g, " ") + "\u201c)";
-  }
-  return { ok: false, msg: "Ungueltige JSON: " + msg };
+function shCell(r, i) { var v = r[i]; return (v === undefined || v === null) ? "" : String(v).trim(); }
+function shBool(r, i) { return /^(ja|true|wahr|x|1)$/i.test(shCell(r, i)); }
+function shEsc(t) { return String(t).replace(/[&<>"]/g, function(c) { return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
+
+function sheetDate(v) {
+  // Akzeptiert 2026-10-28, 28.10.2026 und Sheets-Seriennummern
+  if (v === undefined || v === null || v === "") return "";
+  if (typeof v === "number") return new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 86400000).toISOString().slice(0, 10);
+  var s = String(v).trim(), m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+  m = s.match(/^\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] : "";
 }
 
-function updateImportInfo() {
-  var ta = document.getElementById("importPlanText");
-  var info = document.getElementById("importPlanInfo");
-  if (!ta || !info) return;
-  var t = ta.value.trim();
-  if (!t) { info.textContent = ""; return; }
-  var bal = checkBracketBalance(t.replace(/```json|```/g, ""));
-  var complete = bal.depth === 0 && !bal.openString;
-  info.innerHTML = t.length.toLocaleString("de-DE") + " Zeichen &middot; " + t.split("\n").length.toLocaleString("de-DE") + " Zeilen &middot; " +
-    (complete ? '<span style="color:var(--accent)">vollstaendig</span>' : '<span style="color:var(--danger)">unvollstaendig - Text abgeschnitten?</span>');
+function isoMondayOf(kw, year) {
+  var jan4 = new Date(year, 0, 4);
+  var mon = new Date(jan4);
+  mon.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7) + (kw - 1) * 7);
+  return mon;
 }
 
-async function importPasteFromClipboard() {
-  var statusEl = document.getElementById("importStatus");
-  if (!navigator.clipboard || !navigator.clipboard.readText) {
-    statusEl.innerHTML = '<span style="color:var(--warning)">Dieser Browser erlaubt kein direktes Lesen der Zwischenablage - bitte lange ins Feld tippen und Einfuegen waehlen.</span>';
-    return;
-  }
-  try {
-    var text = await navigator.clipboard.readText();
-    if (!text) { statusEl.innerHTML = '<span style="color:var(--warning)">Zwischenablage ist leer.</span>'; return; }
-    document.getElementById("importPlanText").value = text;
-    updateImportInfo();
-    statusEl.innerHTML = '<span style="color:var(--muted)">Aus Zwischenablage uebernommen - jetzt "Plan importieren" tippen.</span>';
-  } catch(e) {
-    statusEl.innerHTML = '<span style="color:var(--warning)">Zugriff auf die Zwischenablage verweigert. Bitte im Browser erlauben oder manuell einfuegen.</span>';
-  }
+function simpleHash(str) {
+  var h = 5381;
+  for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return String(h >>> 0);
 }
 
-function importPlanFromFile(file) {
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById("importPlanText").value = e.target.result;
-    updateImportInfo();
-    document.getElementById("importStatus").innerHTML = '<span style="color:var(--muted)">Datei "' + file.name + '" geladen - jetzt "Plan importieren" tippen.</span>';
-  };
-  reader.readAsText(file);
+// ---------- Plan ----------
+function planFromSheetRows(rows) {
+  // Spalten: A KW, B Jahr, ... L Plan-ID, M JSON
+  var cand = rows.filter(function(r) { return shCell(r, 11) && shCell(r, 12); });
+  if (!cand.length) return { ok: false, msg: "Im Tab Plaene steht noch kein Plan. Schreib Coach Bjoern \"Neuer Plan\"." };
+  var planId = cand.map(function(r) { return shCell(r, 11); }).sort().pop();
+  var sel = cand.filter(function(r) { return shCell(r, 11) === planId; });
+  sel.sort(function(a, b) { return (Number(a[1]) - Number(b[1])) || (Number(a[0]) - Number(b[0])); });
+  var weeks = [], problems = [];
+  sel.forEach(function(r) {
+    var kw = parseInt(r[0], 10), year = parseInt(r[1], 10), w;
+    if (!kw || !year) { problems.push("Zeile ohne KW/Jahr"); return; }
+    try { w = JSON.parse(shCell(r, 12)); } catch(e) { problems.push("KW " + kw + ": JSON ungueltig"); return; }
+    if (!w || !Array.isArray(w.days)) { problems.push("KW " + kw + ": \"days\" fehlt"); return; }
+    if (!w.focus) problems.push("KW " + kw + ": \"focus\" fehlt");
+    weeks.push({ kw: kw, year: year, data: w });
+  });
+  for (var i = 1; i < weeks.length; i++) {
+    var gap = Math.round((isoMondayOf(weeks[i].kw, weeks[i].year) - isoMondayOf(weeks[i - 1].kw, weeks[i - 1].year)) / 604800000);
+    if (gap !== 1) problems.push("Luecke zwischen KW " + weeks[i - 1].kw + " und KW " + weeks[i].kw);
+  }
+  if (!weeks.length) problems.push("keine lesbare Woche");
+  if (problems.length) return { ok: false, msg: "Plan " + planId + " im Sheet ist fehlerhaft: " + problems.slice(0, 3).join("; ") };
+  var sig = simpleHash(sel.map(function(r) { return shCell(r, 12); }).join("|"));
+  return { ok: true, planId: planId, sig: sig, weeks: weeks };
 }
 
-function importPlan() {
-  var raw = document.getElementById("importPlanText").value.trim();
-  var statusEl = document.getElementById("importStatus");
-  if (!raw) { statusEl.innerHTML = '<span style="color:var(--warning)">Kein Text eingefuegt.</span>'; return; }
-  var res = parsePlanText(raw);
-  if (!res.ok) { statusEl.innerHTML = '<span style="color:var(--danger)">' + res.msg + '</span>'; return; }
-  var parsed = res.value;
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    statusEl.innerHTML = '<span style="color:var(--danger)">Kein Plan gefunden - erwartet wird eine Liste von Wochen.</span>'; return;
-  }
-  var problems = [];
-  for (var i = 0; i < parsed.length; i++) {
-    var w = parsed[i];
-    if (typeof w.week === "string" && /^\d+$/.test(w.week.trim())) w.week = parseInt(w.week, 10); // "44" -> 44
-    if (typeof w.week !== "number") problems.push("Woche " + (i + 1) + ": \"week\" fehlt oder ist keine Zahl");
-    if (!w.focus) problems.push("Woche " + (i + 1) + ": \"focus\" fehlt");
-    if (!Array.isArray(w.days)) problems.push("Woche " + (i + 1) + ": \"days\" fehlt");
-  }
-  if (problems.length) { statusEl.innerHTML = '<span style="color:var(--danger)">Struktur fehlerhaft: ' + problems.slice(0, 3).join("; ") + '</span>'; return; }
-  // Die "week"-Werte aus dem JSON sind echte Kalenderwochen (z.B. week:27 = KW27).
-  // Intern arbeitet die App mit einem 1-basierten Plan-Zaehler (week:1 = erste Planwoche),
-  // PLAN_START_KW verankert dann week:1 an der echten KW. Deshalb hier umnummerieren:
-  var firstWeekNum = parsed[0].week;
+function activatePlan(weeks) {
+  // week im Sheet = echte KW; intern zaehlt die App ab 1, PLAN_START verankert Woche 1
   trainingPlan.length = 0;
-  for (var j = 0; j < parsed.length; j++) {
-    var wk = JSON.parse(JSON.stringify(parsed[j])); // deep copy, Original nicht mutieren
-    wk.week = parsed[j].week - firstWeekNum + 1; // auf 1-basierten Plan-Zaehler ummappen
+  weeks.forEach(function(w, i) {
+    var wk = JSON.parse(JSON.stringify(w.data));
+    wk.week = i + 1;
     trainingPlan.push(wk);
+  });
+  setPlanStart(weeks[0].kw, weeks[0].year);
+  var last = trainingPlan.length;
+  for (var p = 1; p <= PLACEHOLDER_WEEKS_COUNT; p++) {
+    trainingPlan.push({ week: last + p, focus: "Wartet auf neuen Plan", days: [], isPlaceholder: true });
   }
-
-  // PLAN_START_KW/YEAR kalibrieren: Plan-Woche 1 entspricht der echten KW aus dem JSON.
-  var now = new Date();
-  var nowInfo = getISOWeekInfo(now);
-  var targetYear = nowInfo.year;
-  // Falls die Ziel-KW schon weit in der Vergangenheit liegt (>8 Wochen), naechstes Jahr annehmen
-  if (firstWeekNum < nowInfo.kw - 8) targetYear = nowInfo.year + 1;
-  setPlanStart(firstWeekNum, targetYear);
-
-  // Nach dem importierten Plan wieder Platzhalter-Wochen anhaengen,
-  // damit der Plan nie "leer" endet (Plan-Zaehler knuepft an die letzte importierte Woche an)
-  var lastInternalWeek = trainingPlan[trainingPlan.length - 1].week;
-  for (var _pw2 = 1; _pw2 <= PLACEHOLDER_WEEKS_COUNT; _pw2++) {
-    trainingPlan.push({
-      week: lastInternalWeek + _pw2,
-      focus: "Wartet auf neuen Plan",
-      days: [],
-      isPlaceholder: true
-    });
-  }
-
   localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(trainingPlan));
   renderPlan();
   updateStartPage();
-  document.getElementById("importPlanText").value = "";
-  statusEl.innerHTML = '<span style="color:var(--accent)">Plan mit ' + parsed.length + ' Wochen aktiviert (ab KW ' + firstWeekNum + ' / ' + targetYear + ')! Feld geleert fuer naechsten Import.</span>';
-  showToast("Neuer Plan aktiviert!");
-  checkMemoryMilestone();
   loadStrengthForDate();
-  sheetsSyncPlans();
+  updateAthleteTab();
 }
 
-function resetPlan() {
-  trainingPlan.length = 0;
-  for (var i = 0; i < originalPlan.length; i++) trainingPlan.push(originalPlan[i]);
-  localStorage.removeItem(PLAN_STORAGE_KEY);
-  renderPlan();
-  document.getElementById("importPlanText").value = "";
-  document.getElementById("importStatus").innerHTML = '<span style="color:var(--muted)">Original-Plan wiederhergestellt.</span>';
-  showToast("Original-Plan aktiv");
+function setPlanLoadStatus(msg, kind) {
+  var el = document.getElementById("planLoadStatus");
+  if (!el) return;
+  var colors = { ok: "var(--accent)", err: "var(--danger)", warn: "var(--warning)", info: "var(--muted)" };
+  el.style.color = colors[kind || "info"];
+  el.textContent = msg;
+}
+
+function renderPlanLoadStatus() {
+  var id = localStorage.getItem(PLAN_ID_KEY);
+  if (!id) { setPlanLoadStatus("Noch kein Plan aus dem Sheet geladen.", "info"); return; }
+  var first = getKWMonday(1), lastReal = trainingPlan.filter(function(w) { return !w.isPlaceholder; }).length;
+  var end = getKWMonday(Math.max(1, lastReal));
+  setPlanLoadStatus("Aktiv: Plan " + id + " (KW " + first.kw + "/" + first.year + " bis KW " + end.kw + "/" + end.year + ")", "ok");
+}
+
+// ---------- Coach-Notizen ----------
+function getCoachNotes() {
+  try { return JSON.parse(localStorage.getItem(COACH_NOTES_KEY)) || null; } catch(e) { return null; }
+}
+
+function renderCoachNotes() {
+  var notes = getCoachNotes();
+  var html;
+  if (!notes || !notes.rows || !notes.rows.length) {
+    html = '<div style="font-size:0.82rem;color:var(--muted);">Noch keine Notizen geladen. Coach Bjoern legt sie im Tab Coach an.</div>';
+  } else {
+    var groups = {}, order = [];
+    notes.rows.forEach(function(n) {
+      if (String(n.bereich).trim().toLowerCase() === "abfrage") return;
+      var b = n.bereich || "Allgemein";
+      if (!groups[b]) { groups[b] = []; order.push(b); }
+      groups[b].push(n);
+    });
+    html = "";
+    order.forEach(function(b) {
+      html += '<div style="font-size:0.78rem;font-weight:700;color:#4caf50;margin:10px 0 4px;">' + shEsc(b) + '</div>';
+      groups[b].forEach(function(n) {
+        html += '<div class="stat-row"><span class="stat-row-label">' + shEsc(n.schluessel) + '</span>'
+              + '<span class="stat-row-value" style="text-align:right;max-width:60%;white-space:normal;">' + shEsc(n.wert)
+              + (n.stand ? '<br><span style="font-size:0.68rem;color:var(--muted);font-weight:400;">Stand ' + shEsc(n.stand) + '</span>' : '')
+              + '</span></div>';
+      });
+    });
+    html += '<div style="font-size:0.7rem;color:var(--muted);margin-top:8px;">Geladen: ' + new Date(notes.loadedAt).toLocaleString("de-DE") + '</div>';
+  }
+  ["sheetCoachNotes", "athCoachNotes"].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = html; });
+}
+
+// ---------- Laden ----------
+async function pullPlanAndCoach(token, onlyIfNew) {
+  var coachRows = await sheetsGetValues(token, "Coach", "A2:D");
+  localStorage.setItem(COACH_NOTES_KEY, JSON.stringify({
+    loadedAt: Date.now(),
+    rows: coachRows.filter(function(r) { return shCell(r, 1) || shCell(r, 2); }).map(function(r) {
+      return { bereich: shCell(r, 0), schluessel: shCell(r, 1), wert: shCell(r, 2), stand: sheetDate(r[3]) || shCell(r, 3) };
+    })
+  }));
+  renderCoachNotes();
+  renderDynamicChecks();
+  applyDateLogic("todayDate", todayFields);
+  updateStartPage();
+  if (!_sheetsStructureOk) await ensureSheetStructure(token);
+
+  var res = planFromSheetRows(await sheetsGetValues(token, "Plaene", "A2:M"));
+  if (!res.ok) { setPlanLoadStatus(res.msg, onlyIfNew ? "info" : "warn"); return 0; }
+  if (onlyIfNew && res.planId === localStorage.getItem(PLAN_ID_KEY) && res.sig === localStorage.getItem(PLAN_SIG_KEY)) {
+    renderPlanLoadStatus();
+    return 0;
+  }
+  activatePlan(res.weeks);
+  localStorage.setItem(PLAN_ID_KEY, res.planId);
+  localStorage.setItem(PLAN_SIG_KEY, res.sig);
+  renderPlanLoadStatus();
+  showToast("Plan " + res.planId + " aktiv (ab KW " + res.weeks[0].kw + ")");
+  return res.weeks.length;
+}
+
+function sheetsLoadCoachData(silent) {
+  if (!sheetsConfigured()) {
+    if (!silent) { setPlanLoadStatus("Erst Client-ID und Sheet eintragen und speichern.", "warn"); switchTab("export"); }
+    return;
+  }
+  if (silent && !getStoredSheetsToken()) return; // ohne Nutzeraktion kein Anmelde-Popup
+  sheetsRun("Sheet: Plan und Coach-Notizen laden", function(token) { return pullPlanAndCoach(token, silent); }, false);
+}
+
+// ============================================================
+// TAGESCHECK: dynamische Abfragen (V7.1)
+// Coach Bjoern legt im Tab Coach Zeilen mit Bereich "Abfrage" an:
+//   Bereich | Schluessel (= Name, z.B. "Knie rechts") | Wert (Typ) | Stand
+//   Typen: skala | janein | zahl | text, optional mit Hinweis: "skala|0 = kein Schmerz", "zahl|cm"
+// Skala-Abfragen bilden die Beschwerde-Ampel. Ohne Abfragen im Sheet gilt Wade links/rechts.
+// Im Sheet bekommt jede Abfrage eine eigene Spalte im Tab Tagescheck (hinten angehaengt, nie umsortiert).
+// ============================================================
+var TC_CORE_HEADERS = ["Datum","Gewicht kg","Energie","Motivation","Stress","Muskelkater","Notizen"];
+var TC_CORE_FIELDS  = ["currentWeight","energy","motivation","stress","soreness","recoveryNotes"];
+var TC_COLS_KEY     = "coach_bjoern_tc_cols";
+var TC_DEFAULT_DEFS = [
+  { name: "Wade links",  type: "skala", hint: "0 = kein Schmerz" },
+  { name: "Wade rechts", type: "skala", hint: "0 = kein Schmerz" }
+];
+var TC_LEGACY_IDS = { "wade links": "calfLeft", "wade rechts": "calfRight" };
+
+function tcFieldId(name) {
+  var n = String(name).trim().toLowerCase();
+  if (TC_LEGACY_IDS[n]) return TC_LEGACY_IDS[n];
+  return "q_" + n.replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+}
+
+function getCheckDefs() {
+  var notes = null;
+  try { notes = JSON.parse(localStorage.getItem("coach_bjoern_coach_notes")); } catch(e) {}
+  var defs = [];
+  ((notes && notes.rows) || []).forEach(function(n) {
+    if (String(n.bereich).trim().toLowerCase() !== "abfrage" || !n.schluessel) return;
+    var parts = String(n.wert || "skala").split("|");
+    var type = parts[0].trim().toLowerCase().replace(/[^a-z]/g, "");
+    if (["skala","janein","zahl","text"].indexOf(type) === -1) type = "skala";
+    defs.push({ name: n.schluessel.trim(), type: type, hint: (parts.slice(1).join("|") || "").trim() });
+  });
+  return defs.length ? defs : TC_DEFAULT_DEFS;
+}
+
+function getTcCols() {
+  try { var c = JSON.parse(localStorage.getItem(TC_COLS_KEY)); if (Array.isArray(c) && c.length) return c; } catch(e) {}
+  return ["Wade links", "Wade rechts"]; // entspricht dem bisherigen Sheet
+}
+
+function addTcCols(names) {
+  // Spaltenliste nur erweitern, nie umsortieren - sonst verrutschen Daten im Sheet
+  var cols = getTcCols(), changed = false;
+  names.forEach(function(nm) {
+    var exists = cols.some(function(c) { return c.toLowerCase() === nm.toLowerCase(); });
+    if (!exists && TC_CORE_HEADERS.indexOf(nm) === -1) { cols.push(nm); changed = true; }
+  });
+  localStorage.setItem(TC_COLS_KEY, JSON.stringify(cols));
+  SHEET_TABS["Tagescheck"].headers = TC_CORE_HEADERS.concat(cols);
+  if (changed) _sheetsStructureOk = false;
+  return changed;
+}
+
+function renderDynamicChecks() {
+  var box = document.getElementById("dynamicChecks");
+  if (!box) return;
+  var defs = getCheckDefs();
+  var html = "";
+  defs.forEach(function(d) {
+    var id = tcFieldId(d.name), label = shEsc(d.name);
+    if (d.type === "skala") {
+      html += '<label>' + label + ' (0-10)</label><input id="' + id + '" type="number" min="0" max="10" inputmode="numeric" placeholder="' + shEsc(d.hint || "0-10") + '">';
+    } else if (d.type === "janein") {
+      html += '<label>' + label + '</label><select id="' + id + '"><option value="">-</option><option value="ja">ja</option><option value="nein">nein</option></select>';
+    } else if (d.type === "zahl") {
+      html += '<label>' + label + (d.hint ? ' (' + shEsc(d.hint) + ')' : '') + '</label><input id="' + id + '" type="number" step="any" inputmode="decimal">';
+    } else {
+      html += '<label>' + label + '</label><input id="' + id + '" type="text" placeholder="' + shEsc(d.hint) + '">';
+    }
+  });
+  box.innerHTML = html;
+  // Feldliste des Tagesschecks in-place aktualisieren (Referenz wird von onDateChange gehalten)
+  todayFields.length = 0;
+  TC_CORE_FIELDS.concat(defs.map(function(d) { return tcFieldId(d.name); })).forEach(function(f) { todayFields.push(f); });
+  addTcCols(defs.map(function(d) { return d.name; }));
+  box.querySelectorAll("input, select").forEach(function(el) {
+    el.addEventListener("change", function() { saveData(); updateStartPage(); updateAthleteTab(); });
+  });
+}
+
+function getComplaintStatus(d) {
+  // Hoechster Wert aller Skala-Abfragen -> Ampel
+  var best = { score: 0, name: "" };
+  getCheckDefs().forEach(function(def) {
+    if (def.type !== "skala") return;
+    var v = parseFloat(d[tcFieldId(def.name)]);
+    if (!isNaN(v) && v > best.score) best = { score: v, name: def.name };
+  });
+  return best;
+}
+
+function tcCellValue(v) {
+  if (v === true) return "ja";
+  if (v === false) return "nein";
+  return sNum(v);
+}
+
+// ---------- Wiederherstellung ----------
+var SHEET_FEEL_KEYS = {};
+Object.keys(SHEET_FEEL_LABELS).forEach(function(k) { SHEET_FEEL_KEYS[SHEET_FEEL_LABELS[k].toLowerCase()] = k; });
+
+function trainingFromRow(r) {
+  var bike = /rad/i.test(shCell(r, 2));
+  var s = {
+    trainingDiscipline: bike ? "bike" : "run",
+    runKm: shCell(r, 3), runTime: shCell(r, 4), runHF: shCell(r, 7), runRPE: shCell(r, 14),
+    runFeeling: SHEET_FEEL_KEYS[shCell(r, 15).toLowerCase()] || "", runNotes: shCell(r, 17),
+    runPace: "", runCadence: "", runBKT: "", runVertical: "", runElevation: "",
+    bikeSpeed: "", bikeCadence: "", bikeElevation: "", bikePower: "",
+    thuleChariot: false, thuleChildWeight: ""
+  };
+  if (bike) {
+    s.bikeSpeed = shCell(r, 6); s.bikeCadence = shCell(r, 9); s.bikeElevation = shCell(r, 12); s.bikePower = shCell(r, 13);
+  } else {
+    s.runPace = shCell(r, 5); s.runCadence = shCell(r, 8); s.runBKT = shCell(r, 10); s.runVertical = shCell(r, 11); s.runElevation = shCell(r, 12);
+    var thule = parseFloat(shCell(r, 16));
+    if (thule) { s.thuleChariot = true; s.thuleChildWeight = String(Math.max(0, thule - THULE_BASE_WEIGHT_KG)); }
+  }
+  return s;
+}
+
+function splitMeal(v) {
+  var m = v.match(/^(\d{1,2}:\d{2})\s*(.*)$/);
+  return m ? { time: m[1], note: m[2] } : { time: "", note: v };
+}
+
+function groupByDate(rows) {
+  var out = {};
+  rows.forEach(function(r) { var d = sheetDate(r[0]); if (d) (out[d] = out[d] || []).push(r); });
+  return out;
+}
+
+async function restoreFromSheet(token) {
+  var n = 0;
+
+  var tr = groupByDate(await sheetsGetValues(token, "Training", "A2:R"));
+  Object.keys(tr).forEach(function(d) {
+    var rows = tr[d].sort(function(a, b) { return (Number(a[1]) || 0) - (Number(b[1]) || 0); });
+    setTrainingSessions(d, rows.map(trainingFromRow));
+    n += rows.length;
+  });
+
+  var tcAll = await sheetsGetValues(token, "Tagescheck", "A1:ZZ");
+  var tcHead = (tcAll[0] || []).map(function(h) { return String(h).trim(); });
+  var tcCore = { "Gewicht kg": "currentWeight", "Energie": "energy", "Motivation": "motivation", "Stress": "stress", "Muskelkater": "soreness", "Notizen": "recoveryNotes" };
+  addTcCols(tcHead.filter(function(h, i) { return i > 0 && h && !tcCore[h]; }));
+  tcAll.slice(1).forEach(function(r) {
+    var d = sheetDate(r[0]); if (!d) return;
+    var e = { todayDate: d };
+    tcHead.forEach(function(h, i) { if (i > 0 && h) e[tcCore[h] || tcFieldId(h)] = shCell(r, i); });
+    localStorage.setItem("date_entry_todayDate_" + d, JSON.stringify(e)); n++;
+  });
+
+  (await sheetsGetValues(token, "Garmin", "A2:F")).forEach(function(r) {
+    var d = sheetDate(r[0]); if (!d) return;
+    var keys = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus"];
+    var e = { garminDate: d };
+    keys.forEach(function(k, i) { e[k] = shCell(r, i + 1); });
+    localStorage.setItem("date_entry_garminDate_" + d, JSON.stringify(e)); n++;
+  });
+
+  (await sheetsGetValues(token, "Ernaehrung", "A2:V")).forEach(function(r) {
+    var d = sheetDate(r[0]); if (!d) return;
+    var checks = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium"];
+    var e = { nutritionDate: d, chili: shBool(r, 20), cinnamon: shBool(r, 21) };
+    checks.forEach(function(k, i) { e[k] = shBool(r, i + 1); });
+    for (var m = 1; m <= 4; m++) { var meal = splitMeal(shCell(r, 9 + m)); e["meal" + m + "Time"] = meal.time; e["meal" + m + "Note"] = meal.note; }
+    localStorage.setItem("date_entry_nutritionDate_" + d, JSON.stringify(e)); n++;
+  });
+
+  var kr = groupByDate(await sheetsGetValues(token, "Kraft", "A2:D"));
+  Object.keys(kr).forEach(function(d) {
+    var e = { strengthDate: d, strengthSession: "", strengthMeta: [] };
+    kr[d].forEach(function(r) {
+      var name = shCell(r, 1); if (!name) return;
+      var id = strengthFieldId(name);
+      e.strengthMeta.push({ id: id, name: name, soll: shCell(r, 2) });
+      e[id] = shCell(r, 3);
+    });
+    localStorage.setItem("date_entry_strengthDate_" + d, JSON.stringify(e)); n++;
+  });
+
+  n += await pullPlanAndCoach(token, false);
+  return n;
+}
+
+function sheetsRestoreAll() {
+  if (!sheetsConfigured()) { setSheetsStatus("Bitte erst Client-ID und Sheet speichern.", "warn"); return; }
+  if (!confirm("Alle Daten aus dem Sheet in die App laden? Eintraege mit gleichem Datum werden ueberschrieben.")) return;
+  sheetsRun("Wiederherstellung aus Sheet", async function(token) {
+    var n = await restoreFromSheet(token);
+    showToast(n + " Eintraege wiederhergestellt - Seite wird neu geladen");
+    setTimeout(function() { location.reload(); }, 1800);
+    return n;
+  }, false);
 }
 
 function loadCustomPlan() {
@@ -3122,20 +2780,21 @@ function updateStartPage() {
   setEl("tileWeight",    weight + " kg");
   setEl("tileWeightSub", (weight - goalW).toFixed(1) + " kg bis Ziel");
 
-  var calfScore = Math.max(parseFloat(d.calfLeft || 0), parseFloat(d.calfRight || 0));
+  var complaint = getComplaintStatus(d);
+  var calfScore = complaint.score;
   var wadeEl    = document.getElementById("tileWade");
   var wadeSubEl = document.getElementById("tileWadeSub");
   if (wadeEl && wadeSubEl) {
     if (calfScore <= 2)      { wadeEl.textContent = "Gruen"; wadeEl.style.color = "var(--accent)";  wadeSubEl.textContent = "Alles OK"; }
-    else if (calfScore <= 5) { wadeEl.textContent = "Gelb";  wadeEl.style.color = "var(--warning)"; wadeSubEl.textContent = "Vorsicht"; }
-    else                     { wadeEl.textContent = "Rot";   wadeEl.style.color = "var(--danger)";  wadeSubEl.textContent = "Schonen!"; }
+    else if (calfScore <= 5) { wadeEl.textContent = "Gelb";  wadeEl.style.color = "var(--warning)"; wadeSubEl.textContent = complaint.name + ": " + calfScore; }
+    else                     { wadeEl.textContent = "Rot";   wadeEl.style.color = "var(--danger)";  wadeSubEl.textContent = complaint.name + " schonen!"; }
   }
 
   var dot  = document.getElementById("heroStatusDot");
   var stat = document.getElementById("heroStatusText");
   if (dot && stat) {
     if (calfScore >= 6) {
-      dot.style.background = "#e53935"; stat.textContent = "Regeneration - Wade schonen"; stat.style.color = "var(--danger)";
+      dot.style.background = "#e53935"; stat.textContent = "Regeneration - " + complaint.name + " schonen"; stat.style.color = "var(--danger)";
     } else if (battVal < 30 || calfScore >= 4) {
       dot.style.background = "#ffb300"; stat.textContent = "Moderat starten"; stat.style.color = "var(--warning)";
     } else {
@@ -3976,7 +3635,7 @@ function filterTrelloCards() {
 // ============================================================
 var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes","thuleChariot","thuleChildWeight","trainingDiscipline","bikeSpeed","bikeCadence","bikeElevation","bikePower"];
 var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","chili","cinnamon","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
-var todayFields      = ["energy","motivation","calfLeft","calfRight","stress","soreness","recoveryNotes","currentWeight"];
+var todayFields      = ["currentWeight","energy","motivation","stress","soreness","recoveryNotes","calfLeft","calfRight"]; // wird von renderDynamicChecks() angepasst
 var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus"];
 var strengthFields   = []; // wird dynamisch befuellt sobald Kraftuebungen gerendert sind
 
@@ -4203,8 +3862,7 @@ function updateAthleteTab() {
   var currentPlanWeek = findPlanWeekForDate(range.monday);
   setEl("athProfilePhase", currentPlanWeek ? (currentPlanWeek.phase || currentPlanWeek.focus || "-") : "-");
 
-  var mem = getStoredMemory();
-  setEl("athProfileMemVersion", mem ? "v" + mem.version : "Noch kein Memory");
+  setEl("athProfilePlanId", localStorage.getItem(PLAN_ID_KEY) || "Noch nicht aus Sheet geladen");
 
   // Fortschritt
   var km = getWeeklyKm();
@@ -4222,12 +3880,13 @@ function updateAthleteTab() {
   // Kraft & Verletzungen
   var weekStrength = getWeekStrengthSessions(document.getElementById("strengthDate") ? document.getElementById("strengthDate").value : "");
   setEl("athStrengthCount", weekStrength[0] && weekStrength[0].isDefault ? "Standard A/B (nicht im Plan)" : weekStrength.length + " Einheiten diese Woche");
-  var calfScore = Math.max(parseFloat(d.calfLeft||0), parseFloat(d.calfRight||0));
+  var complaintA = getComplaintStatus(d);
+  var calfScore = complaintA.score;
   var calfEl = document.getElementById("athCalfStatus");
   if (calfEl) {
     if (calfScore <= 2)      { calfEl.textContent = "Gruen - alles OK"; calfEl.style.color = "var(--accent)"; }
-    else if (calfScore <= 5) { calfEl.textContent = "Gelb - Vorsicht"; calfEl.style.color = "var(--warning)"; }
-    else                     { calfEl.textContent = "Rot - Schonen!"; calfEl.style.color = "var(--danger)"; }
+    else if (calfScore <= 5) { calfEl.textContent = "Gelb - " + complaintA.name; calfEl.style.color = "var(--warning)"; }
+    else                     { calfEl.textContent = "Rot - " + complaintA.name + " schonen"; calfEl.style.color = "var(--danger)"; }
   }
 
   var bikeKm = getWeeklyBikeKm();
@@ -4287,6 +3946,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
+  renderDynamicChecks(); // vor loadData(), damit gespeicherte Werte in die Felder finden
   loadCustomPlan();
   renderPlan();
   renderStrength();
@@ -4337,29 +3997,18 @@ document.addEventListener("DOMContentLoaded", function() {
   updateNutrientSummary();
 
   document.getElementById("runCoachAnalysis").addEventListener("click", runCoachAnalysis);
-  document.getElementById("generateExport").addEventListener("click", generateExport);
-  document.getElementById("importPlanBtn").addEventListener("click", importPlan);
-  document.getElementById("importPasteBtn").addEventListener("click", importPasteFromClipboard);
-  document.getElementById("importFileBtn").addEventListener("click", function() { document.getElementById("importPlanFile").click(); });
-  document.getElementById("importPlanFile").addEventListener("change", function(e) { importPlanFromFile(e.target.files[0]); e.target.value = ""; });
-  document.getElementById("importPlanText").addEventListener("input", updateImportInfo);
-  document.getElementById("resetPlanBtn").addEventListener("click", resetPlan);
-  document.getElementById("backupExportBtn").addEventListener("click", backupExport);
   document.getElementById("sheetsSaveBtn").addEventListener("click", saveSheetsSettings);
   document.getElementById("sheetsSyncBtn").addEventListener("click", sheetsFullSync);
   document.getElementById("sheetsDisconnectBtn").addEventListener("click", sheetsDisconnect);
+  document.getElementById("sheetsLoadPlanBtn").addEventListener("click", function() { sheetsLoadCoachData(false); });
+  document.getElementById("sheetsRestoreBtn").addEventListener("click", sheetsRestoreAll);
+  localStorage.removeItem("coach_bjoern_memory"); // altes YAML-Memory (V3) - ersetzt durch Tab Coach
   restoreSheetsSettings();
   renderSheetsStatus();
+  renderPlanLoadStatus();
+  renderCoachNotes();
   preloadGis();
-  document.getElementById("backupImportBtn").addEventListener("click", function() {
-    document.getElementById("backupFileInput").click();
-  });
-  document.getElementById("backupFileInput").addEventListener("change", function(e) {
-    backupImportFromFile(e.target.files[0]);
-  });
-  document.getElementById("exportMemoryBtn").addEventListener("click", exportMemory);
-  document.getElementById("saveMemoryBtn").addEventListener("click", saveEditedMemory);
-  renderMemoryUI();
+  sheetsLoadCoachData(true); // still pruefen, ob ein neuer Plan im Sheet liegt (nur mit gueltiger Anmeldung)
 });
 </script>
 </body>
