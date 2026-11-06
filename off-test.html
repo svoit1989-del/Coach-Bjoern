@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lebensmittel-Suche Test</title>
+<style>
+  :root { --bg:#101114; --card:#1c1e22; --text:#f5f6f7; --muted:#9a9fa6; --ok:#4caf50; --err:#e53935; --warn:#ffb300; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:14px; background:var(--bg); color:var(--text); font-family:Arial, sans-serif; font-size:15px; }
+  h1 { font-size:1.15rem; color:var(--ok); margin:4px 0 4px; }
+  p.sub { color:var(--muted); font-size:0.82rem; margin:0 0 12px; }
+  .card { background:var(--card); border-radius:12px; padding:12px; margin-bottom:10px; }
+  label { display:block; font-size:0.78rem; color:var(--muted); margin:8px 0 4px; }
+  input { width:100%; padding:10px; border-radius:8px; border:1px solid #333; background:#24272c; color:var(--text); font-size:1rem; }
+  button { width:100%; margin-top:10px; padding:12px; border:none; border-radius:10px; font-weight:700; font-size:0.9rem; background:var(--ok); color:#0a1a0a; }
+  button.sec { background:#2d3036; color:var(--text); }
+  .row { padding:8px 0; border-bottom:1px solid #2a2a2a; font-size:0.85rem; }
+  .row:last-child { border-bottom:none; }
+  .name { font-weight:700; }
+  .ok { color:var(--ok); } .err { color:var(--err); } .warn { color:var(--warn); }
+  .detail { color:var(--muted); font-size:0.78rem; margin-top:2px; word-break:break-word; }
+  #reader { width:100%; margin-top:10px; }
+</style>
+</head>
+<body>
+<h1>Test: Lebensmittel-Suche &amp; Barcode</h1>
+<p class="sub">Prueft jeden Abrufweg einzeln. Danach "Ergebnis kopieren" und im Chat einfuegen.</p>
+
+<div class="card">
+  <label>Barcode</label>
+  <input id="barcode" inputmode="numeric" value="3017624010701">
+  <label>Suchbegriff</label>
+  <input id="query" value="Haferflocken">
+  <button id="runAll">Alle Wege testen</button>
+  <button class="sec" id="copy">Ergebnis kopieren</button>
+</div>
+
+<div class="card" id="results"><div class="detail">Noch nicht getestet.</div></div>
+
+<div class="card">
+  <div class="name">Kamera-Scan</div>
+  <div class="detail">Scannt einen Barcode und testet ihn danach direkt (ohne Umleitung).</div>
+  <button class="sec" id="scanBtn">Kamera starten</button>
+  <div id="reader"></div>
+  <div id="scanStatus" class="detail"></div>
+</div>
+
+<script>
+var FIELDS = "code,product_name,brands,nutriments";
+
+function tests(barcode, q) {
+  var product = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(barcode) + ".json?fields=" + FIELDS;
+  var legacy  = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) + "&search_simple=1&action=process&json=1&page_size=5&fields=" + FIELDS;
+  var sal     = "https://search.openfoodfacts.org/search?q=" + encodeURIComponent(q) + "&langs=de&page_size=5&fields=" + FIELDS;
+  return [
+    { id: "barcode_direkt",   label: "Barcode direkt (API v2)",                 url: product, kind: "product" },
+    { id: "suche_neu_direkt", label: "Suche direkt (Search-a-licious, neu)",    url: sal,     kind: "search" },
+    { id: "suche_alt_direkt", label: "Suche direkt (cgi/search.pl, alt)",       url: legacy,  kind: "search" },
+    { id: "barcode_allorig",  label: "Barcode ueber allorigins (bisher)",       url: "https://api.allorigins.win/raw?url=" + encodeURIComponent(product), kind: "product" },
+    { id: "barcode_corsproxy",label: "Barcode ueber corsproxy.io (bisher)",     url: "https://corsproxy.io/?" + encodeURIComponent(product), kind: "product" },
+    { id: "barcode_thing",    label: "Barcode ueber thingproxy (bisher)",       url: "https://thingproxy.freeboard.io/fetch/" + product, kind: "product" }
+  ];
+}
+
+function summarize(kind, data) {
+  if (kind === "product") {
+    if (!data || data.status === 0 || !data.product) return { ok: false, text: "Antwort erhalten, aber Produkt nicht gefunden" };
+    var p = data.product, n = p.nutriments || {};
+    return { ok: true, text: (p.product_name || "?") + " - " + Math.round(n["energy-kcal_100g"] || 0) + " kcal/100 g" };
+  }
+  var list = data.hits || data.products || [];
+  if (!list.length) return { ok: false, text: "Antwort erhalten, aber 0 Treffer" };
+  return { ok: true, text: list.length + " Treffer, z.B. " + (list[0].product_name || "?") };
+}
+
+async function runOne(t) {
+  var started = performance.now();
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, 10000);
+  try {
+    var resp = await fetch(t.url, { signal: ctrl.signal });
+    var ms = Math.round(performance.now() - started);
+    clearTimeout(timer);
+    if (!resp.ok) return { cls: "err", status: "HTTP " + resp.status, detail: ms + " ms" + (resp.status === 429 || resp.status === 503 ? " - Abrufgrenze erreicht" : "") };
+    var text = await resp.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) { return { cls: "err", status: "Keine JSON-Antwort", detail: ms + " ms - " + text.slice(0, 80) }; }
+    var s = summarize(t.kind, data);
+    return { cls: s.ok ? "ok" : "warn", status: s.ok ? "OK" : "Teilweise", detail: ms + " ms - " + s.text };
+  } catch(e) {
+    clearTimeout(timer);
+    var ms2 = Math.round(performance.now() - started);
+    if (e.name === "AbortError") return { cls: "err", status: "Zeitueberschreitung", detail: "keine Antwort nach 10 s" };
+    return { cls: "err", status: "Blockiert", detail: ms2 + " ms - " + e.message + " (Netzwerk oder Browser-Sperre fuer fremde Server)" };
+  }
+}
+
+var lastReport = "";
+
+async function runAll() {
+  var bc = document.getElementById("barcode").value.trim();
+  var q = document.getElementById("query").value.trim();
+  var box = document.getElementById("results");
+  box.innerHTML = '<div class="detail">Teste ...</div>';
+  var list = tests(bc, q);
+  var html = "", report = "OFF-Test " + new Date().toLocaleString("de-DE") + "\nGeraet: " + navigator.userAgent + "\n";
+  for (var i = 0; i < list.length; i++) {
+    var r = await runOne(list[i]);
+    html += '<div class="row"><div class="name">' + list[i].label + ' <span class="' + r.cls + '">' + r.status + '</span></div><div class="detail">' + r.detail + '</div></div>';
+    box.innerHTML = html + '<div class="detail">Teste ...</div>';
+    report += "- " + list[i].label + ": " + r.status + " (" + r.detail + ")\n";
+    await new Promise(function(res) { setTimeout(res, 700); }); // Abstand wegen Abrufgrenzen
+  }
+  box.innerHTML = html;
+  lastReport = report;
+}
+
+document.getElementById("runAll").addEventListener("click", runAll);
+document.getElementById("copy").addEventListener("click", function() {
+  if (!lastReport) { alert("Erst testen."); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(lastReport).then(function() { alert("Kopiert."); }, function() { prompt("Bitte kopieren:", lastReport); });
+  } else { prompt("Bitte kopieren:", lastReport); }
+});
+
+// ---- Kamera-Scan (gleiche Bibliothek wie in der App) ----
+var scanner = null;
+function loadScanner(cb) {
+  if (window.Html5Qrcode) return cb();
+  var srcs = ["https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js",
+              "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",
+              "https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"];
+  var i = 0;
+  (function next() {
+    if (i >= srcs.length) { document.getElementById("scanStatus").textContent = "Scanner-Bibliothek nicht ladbar."; return; }
+    var s = document.createElement("script"); s.src = srcs[i++]; s.onload = cb; s.onerror = next; document.head.appendChild(s);
+  })();
+}
+document.getElementById("scanBtn").addEventListener("click", function() {
+  var st = document.getElementById("scanStatus");
+  if (scanner) { scanner.stop().catch(function(){}); scanner = null; this.textContent = "Kamera starten"; st.textContent = ""; return; }
+  var btn = this;
+  st.textContent = "Lade Scanner ...";
+  loadScanner(function() {
+    scanner = new Html5Qrcode("reader");
+    btn.textContent = "Kamera stoppen";
+    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 140 } },
+      function(code) {
+        scanner.stop().catch(function(){}); scanner = null; btn.textContent = "Kamera starten";
+        document.getElementById("barcode").value = code;
+        st.textContent = "Erkannt: " + code + " - teste direkt ...";
+        runOne(tests(code, "")[0]).then(function(r) { st.innerHTML = 'Erkannt: ' + code + ' &rarr; <span class="' + r.cls + '">' + r.status + '</span> (' + r.detail + ')'; });
+      },
+      function() {}
+    ).then(function() { st.textContent = "Barcode in den Rahmen halten ..."; })
+     .catch(function(e) { st.textContent = "Kamera-Fehler: " + e; scanner = null; btn.textContent = "Kamera starten"; });
+  });
+});
+</script>
+</body>
+</html>
