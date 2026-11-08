@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#121212">
+<title>Ernaehrung - Coach Bjoern</title>
+<style>
+  :root {
+    --bg:#101114; --surface:#1c1e22; --surface-2:#24272c; --surface-3:#2d3036;
+    --text:#f5f6f7; --muted:#9a9fa6; --accent:#4caf50; --accent-dim:#388e3c; --accent-light:#66d16a;
+    --warning:#ffb300; --danger:#e53935; --blue:#29b6f6; --radius:16px;
+    --border-soft:rgba(255,255,255,0.06);
+    --shadow-card:0 1px 2px rgba(0,0,0,0.4),0 4px 12px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.03);
+    --shadow-inset:inset 0 1px 3px rgba(0,0,0,0.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg) radial-gradient(ellipse at top,#16181c 0%,#101114 60%);color:var(--text);font-family:'Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.5;padding-bottom:40px;}
+  header{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(180deg,#22252a,#1c1e22);border-bottom:1px solid rgba(255,255,255,0.09);box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+  header h1{font-size:1.05rem;color:var(--accent);}
+  header a{color:var(--blue);text-decoration:none;font-size:0.85rem;font-weight:700;}
+  main{max-width:680px;margin:auto;padding:12px;}
+  .card{background:linear-gradient(180deg,var(--surface-2),var(--surface));border:1px solid var(--border-soft);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow-card);}
+  .card h2{font-size:1rem;color:var(--accent);margin-bottom:10px;}
+  label{display:block;margin:10px 0 4px;color:var(--muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
+  input{width:100%;border:1px solid var(--border-soft);border-radius:11px;background:var(--surface-2);color:var(--text);padding:10px 12px;font-size:0.95rem;outline:none;box-shadow:var(--shadow-inset);}
+  input:focus{border-color:var(--accent);}
+  .btn{display:block;width:100%;border:none;border-radius:12px;background:linear-gradient(180deg,var(--accent-light),var(--accent) 55%,var(--accent-dim));color:#0a1a0a;padding:12px 16px;margin-top:10px;font-weight:800;font-size:0.88rem;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,0.25),0 4px 10px rgba(76,175,80,0.25);}
+  .btn:active{transform:translateY(2px);}
+  .btn.sec{background:linear-gradient(180deg,var(--surface-3),var(--surface-2));color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+  .btn.small{display:inline-block;width:auto;padding:7px 12px;margin:0;font-size:0.78rem;}
+  .row{display:flex;gap:8px;align-items:center;}
+  .row > *{flex:1;}
+  .datebar{display:flex;gap:8px;align-items:center;}
+  .datebar button{flex:0 0 44px;height:42px;border:none;border-radius:11px;background:var(--surface-3);color:var(--text);font-size:1.1rem;}
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;}
+  .tile{background:linear-gradient(180deg,var(--surface-3),var(--surface-2));border:1px solid var(--border-soft);border-radius:10px;padding:8px;text-align:center;}
+  .tile .l{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;}
+  .tile .v{font-size:1.05rem;font-weight:800;}
+  .c-kcal{color:#ff9800}.c-protein{color:#4caf50}.c-carbs{color:#29b6f6}.c-fat{color:#e91e63}.c-fiber{color:#ab47bc}.c-sugar{color:#ffb300}
+  .item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #2a2a2a;}
+  .item:last-child{border-bottom:none;}
+  .item .main{flex:1;min-width:0;}
+  .item .n{font-size:0.88rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;}
+  .item .d{font-size:0.74rem;color:var(--muted);}
+  .x{background:none;border:none;color:var(--danger);font-size:1.05rem;padding:4px 8px;cursor:pointer;}
+  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--surface-3);border-radius:12px;padding:4px;margin-bottom:8px;}
+  .tabs button{border:none;border-radius:9px;background:transparent;color:var(--muted);padding:8px 2px;font-size:0.76rem;font-weight:700;}
+  .tabs button.on{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,0.4);}
+  .panel{display:none;}
+  .panel.on{display:block;}
+  .result{padding:9px 6px;border-bottom:1px solid #2a2a2a;cursor:pointer;border-radius:8px;}
+  .result:active{background:var(--surface-3);}
+  .status{font-size:0.78rem;color:var(--muted);margin-top:6px;min-height:1em;}
+  .status.err{color:var(--danger);} .status.ok{color:var(--accent);} .status.warn{color:var(--warning);}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .chip{border:2px solid #383838;border-radius:10px;background:var(--surface-2);color:var(--muted);padding:7px 11px;font-size:0.8rem;font-weight:700;cursor:pointer;}
+  .chip.on{border-color:var(--accent);color:var(--accent);background:#1a2e1a;}
+  .grams{width:84px;flex:0 0 84px;text-align:right;padding:7px 8px;}
+  .meal{padding:10px 0;border-bottom:1px solid #2a2a2a;}
+  .meal:last-child{border-bottom:none;}
+  #sheetBg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;}
+  #sheet{position:fixed;left:0;right:0;bottom:0;z-index:101;background:var(--surface);border-radius:18px 18px 0 0;padding:16px;transform:translateY(105%);transition:transform 0.2s;max-width:680px;margin:auto;box-shadow:0 -8px 24px rgba(0,0,0,0.5);}
+  #sheet.open{transform:translateY(0);}
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0a1a0a;font-weight:700;font-size:0.82rem;padding:8px 18px;border-radius:20px;opacity:0;transition:opacity 0.3s;z-index:200;pointer-events:none;white-space:nowrap;}
+  #toast.show{opacity:1;}
+  #reader{width:100%;margin-top:8px;border-radius:12px;overflow:hidden;}
+  .hint{font-size:0.76rem;color:var(--muted);}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#129367; Ernaehrung</h1>
+  <a href="./">&larr; Zur App</a>
+</header>
+<main>
+
+  <!-- TAG -->
+  <div class="card">
+    <div class="datebar">
+      <button id="prevDay" aria-label="Vortag">&lsaquo;</button>
+      <input id="date" type="date">
+      <button id="nextDay" aria-label="Folgetag">&rsaquo;</button>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div id="dayList" style="margin-top:10px;"></div>
+    <div class="row" style="margin-top:6px;">
+      <div class="status" id="syncStatus"></div>
+      <button class="btn small sec" id="syncBtn" style="flex:0 0 auto;">Sheet-Sync</button>
+    </div>
+  </div>
+
+  <!-- HINZUFUEGEN -->
+  <div class="card">
+    <h2>Hinzufuegen</h2>
+    <div class="tabs" id="tabs">
+      <button data-p="search" class="on">Suchen</button>
+      <button data-p="scan">Scannen</button>
+      <button data-p="recent">Zuletzt</button>
+      <button data-p="manual">Manuell</button>
+    </div>
+
+    <div class="panel on" id="p-search">
+      <div class="row">
+        <input id="q" placeholder="z.B. Haferflocken, Skyr ..." enterkeyhint="search">
+        <button class="btn small" id="searchBtn" style="flex:0 0 auto;padding:11px 14px;">Suchen</button>
+      </div>
+      <div class="status" id="searchStatus"></div>
+      <div id="results"></div>
+    </div>
+
+    <div class="panel" id="p-scan">
+      <button class="btn sec" id="scanBtn">&#128247; Kamera starten</button>
+      <div id="reader"></div>
+      <div class="row" style="margin-top:8px;">
+        <input id="code" inputmode="numeric" placeholder="oder Barcode eintippen">
+        <button class="btn small" id="codeBtn" style="flex:0 0 auto;padding:11px 14px;">Suchen</button>
+      </div>
+      <div class="status" id="scanStatus"></div>
+    </div>
+
+    <div class="panel" id="p-recent">
+      <div id="recentList"></div>
+    </div>
+
+    <div class="panel" id="p-manual">
+      <label>Name</label><input id="mName" placeholder="z.B. Brot vom Baecker">
+      <label>Menge (g) - leer = Angaben pro 100 g</label><input id="mGrams" inputmode="decimal">
+      <div class="row">
+        <div><label>kcal</label><input id="mKcal" inputmode="decimal"></div>
+        <div><label>Protein g</label><input id="mProtein" inputmode="decimal"></div>
+        <div><label>KH g</label><input id="mCarbs" inputmode="decimal"></div>
+      </div>
+      <div class="row">
+        <div><label>Fett g</label><input id="mFat" inputmode="decimal"></div>
+        <div><label>Ballastst. g</label><input id="mFiber" inputmode="decimal"></div>
+        <div><label>Zucker g</label><input id="mSugar" inputmode="decimal"></div>
+      </div>
+      <div class="row">
+        <button class="btn" id="mToDay">Zum Tag</button>
+        <button class="btn sec" id="mToBuilder">In Baukasten</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BAUKASTEN -->
+  <div class="card" id="builderCard">
+    <h2>&#127859; Mahlzeit-Baukasten</h2>
+    <label>Name der Mahlzeit</label><input id="bName" placeholder="z.B. Muesli mit Beeren">
+    <div id="bItems" style="margin-top:8px;"></div>
+    <div class="tiles" id="bTiles"></div>
+    <div class="row">
+      <button class="btn" id="bSave">Mahlzeit speichern</button>
+      <button class="btn sec" id="bClear">Leeren</button>
+    </div>
+    <div class="hint" style="margin-top:6px;">Zutaten ueber Suchen, Scannen, Zuletzt oder Manuell mit "In Baukasten" hinzufuegen.</div>
+  </div>
+
+  <!-- MEINE MAHLZEITEN -->
+  <div class="card">
+    <h2>&#11088; Meine Mahlzeiten</h2>
+    <div id="mealList"></div>
+  </div>
+</main>
+
+<!-- MENGEN-DIALOG -->
+<div id="sheetBg"></div>
+<div id="sheet">
+  <div style="font-weight:800;font-size:1rem;" id="sName"></div>
+  <div class="hint" id="sInfo"></div>
+  <label>Menge (g)</label>
+  <input id="sGrams" inputmode="decimal">
+  <div class="chips" id="sChips"></div>
+  <div class="tiles" id="sTiles"></div>
+  <div class="row">
+    <button class="btn" id="sToDay">Zum Tag</button>
+    <button class="btn sec" id="sToBuilder">In Baukasten</button>
+  </div>
+  <button class="btn sec" id="sCancel">Abbrechen</button>
+</div>
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// SPEICHER (gleiche Adresse wie die App -> gleicher localStorage)
+// Alle Schluessel beginnen mit "coach_bjoern", damit das Komplett-Backup der App sie mitnimmt.
+// ============================================================
+var K = {
+  log: "coach_bjoern_food_log",        // { "YYYY-MM-DD": [eintrag, ...] }
+  meals: "coach_bjoern_meals",         // [ { id, name, items:[{name, grams, per100, code}] } ]
+  cache: "coach_bjoern_food_cache",    // { schluessel: produkt }
+  pending: "coach_bjoern_food_pending",// Tage, die noch ins Sheet muessen
+  sheets: "coach_bjoern_sheets",       // Sheet-Einstellungen der App (Client-ID, Sheet-ID)
+  token: "coach_bjoern_sheets_token"   // Google-Token der App
+};
+var NUT = ["kcal", "protein", "carbs", "fat", "fiber", "sugar"];
+var NUT_LABEL = { kcal: "kcal", protein: "Protein", carbs: "KH", fat: "Fett", fiber: "Ballastst.", sugar: "Zucker" };
+var OFF_FIELDS = "code,product_name,product_name_de,brands,nutriments,serving_quantity";
+
+function load(k, def) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch(e) { return def; } }
+function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function pad(n) { return n < 10 ? "0" + n : "" + n; }
+function isoLocal(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+function round1(x) { return Math.round(x * 10) / 10; }
+function num(v) { if (v == null) return 0; var n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? 0 : n; }
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function(c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function fmt(n) { return String(round1(n)).replace(".", ","); }
+function scale(per100, grams) { var o = {}; NUT.forEach(function(k) { o[k] = round1((per100[k] || 0) * grams / 100); }); return o; }
+function sumVals(list) {
+  var t = {}; NUT.forEach(function(k) { t[k] = 0; });
+  list.forEach(function(e) { NUT.forEach(function(k) { t[k] += e[k] || 0; }); });
+  NUT.forEach(function(k) { t[k] = round1(t[k]); });
+  return t;
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function toast(msg) { var t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(function() { t.classList.remove("show"); }, 2000); }
+function setStatus(id, msg, cls) { var el = document.getElementById(id); el.textContent = msg || ""; el.className = "status" + (cls ? " " + cls : ""); }
+function tilesHtml(t) {
+  return NUT.map(function(k) { return '<div class="tile"><div class="l">' + NUT_LABEL[k] + '</div><div class="v c-' + k + '">' + (k === "kcal" ? Math.round(t[k]) : fmt(t[k])) + '</div></div>'; }).join("");
+}
+
+// ============================================================
+// PRODUKTE: Open Food Facts direkt (ohne Umleitungsdienste) + Zwischenspeicher
+// ============================================================
+function productFromOff(p) {
+  var n = p.nutriments || {};
+  var kcal = n["energy-kcal_100g"];
+  if (kcal == null && n["energy_100g"] != null) kcal = num(n["energy_100g"]) / 4.184; // kJ -> kcal
+  return {
+    key: p.code ? "off:" + p.code : "off:" + (p.product_name || ""),
+    code: p.code || "",
+    name: String(p.product_name_de || p.product_name || "Unbenanntes Produkt").trim(),
+    brand: String(p.brands || "").split(",")[0].trim(),
+    per100: {
+      kcal: round1(num(kcal)), protein: round1(num(n.proteins_100g)), carbs: round1(num(n.carbohydrates_100g)),
+      fat: round1(num(n.fat_100g)), fiber: round1(num(n.fiber_100g)), sugar: round1(num(n.sugars_100g))
+    },
+    serving: num(p.serving_quantity) || 0,
+    hasData: kcal != null
+  };
+}
+
+function cacheProduct(prod) {
+  var c = load(K.cache, {});
+  prod.lastUsed = Date.now();
+  c[prod.key] = prod;
+  var keys = Object.keys(c);
+  if (keys.length > 300) { // aelteste verwerfen
+    keys.sort(function(a, b) { return (c[a].lastUsed || 0) - (c[b].lastUsed || 0); });
+    keys.slice(0, keys.length - 300).forEach(function(k) { delete c[k]; });
+  }
+  save(K.cache, c);
+}
+
+async function offFetch(url) {
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, 12000);
+  try {
+    var r = await fetch(url, { signal: ctrl.signal });
+    if (r.status === 429 || r.status === 503) throw new Error("Abrufgrenze von Open Food Facts erreicht - bitte eine Minute warten.");
+    if (!r.ok) throw new Error("Open Food Facts antwortet mit Fehler " + r.status + ".");
+    return await r.json();
+  } catch(e) {
+    if (e.name === "AbortError") throw new Error("Keine Antwort von Open Food Facts (Zeitueberschreitung).");
+    if (/Failed to fetch|NetworkError/i.test(e.message)) throw new Error("Keine Verbindung zu Open Food Facts - Internet pruefen.");
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+
+// Open Food Facts erlaubt 10 Suchen pro Minute - lokal mitzaehlen statt gesperrt zu werden
+var searchTimes = [];
+function searchWaitSeconds() {
+  var now = Date.now();
+  searchTimes = searchTimes.filter(function(t) { return now - t < 60000; });
+  if (searchTimes.length >= 9) return Math.ceil((60000 - (now - searchTimes[0])) / 1000);
+  return 0;
+}
+
+var lastResults = [];
+async function doSearch() {
+  var q = document.getElementById("q").value.trim();
+  if (!q) { setStatus("searchStatus", "Bitte Suchbegriff eingeben.", "warn"); return; }
+  var wait = searchWaitSeconds();
+  if (wait) { setStatus("searchStatus", "Suchgrenze erreicht - in " + wait + " s wieder moeglich. \"Zuletzt\" funktioniert ohne Abruf.", "warn"); return; }
+  searchTimes.push(Date.now());
+  setStatus("searchStatus", "Suche ...");
+  document.getElementById("results").innerHTML = "";
+  var path = "/cgi/search.pl?search_terms=" + encodeURIComponent(q) + "&search_simple=1&action=process&json=1&page_size=20&fields=" + OFF_FIELDS;
+  var data;
+  try {
+    data = await offFetch("https://de.openfoodfacts.org" + path); // deutsche Produkte zuerst
+  } catch(e1) {
+    try { data = await offFetch("https://world.openfoodfacts.org" + path); }
+    catch(e2) { setStatus("searchStatus", e2.message, "err"); return; }
+  }
+  lastResults = (data.products || []).map(productFromOff);
+  if (!lastResults.length) { setStatus("searchStatus", "Keine Treffer fuer \"" + q + "\". Anderes Wort oder Manuell versuchen.", "warn"); return; }
+  setStatus("searchStatus", lastResults.length + " Treffer");
+  document.getElementById("results").innerHTML = lastResults.map(function(p, i) {
+    return '<div class="result" onclick="openAmount(lastResults[' + i + '])">' +
+      '<div class="n" style="font-weight:600;font-size:0.88rem;">' + esc(p.name) + '</div>' +
+      '<div class="hint">' + (p.brand ? esc(p.brand) + ' &middot; ' : '') +
+      (p.hasData ? Math.round(p.per100.kcal) + ' kcal &middot; P ' + fmt(p.per100.protein) + ' g pro 100 g' : '<span style="color:var(--warning)">keine Naehrwerte hinterlegt</span>') +
+      '</div></div>';
+  }).join("");
+}
+
+async function lookupBarcode(code) {
+  code = String(code || "").replace(/\D/g, "");
+  if (!code) { setStatus("scanStatus", "Bitte Barcode eingeben.", "warn"); return; }
+  var cached = load(K.cache, {})["off:" + code];
+  if (cached) { setStatus("scanStatus", "Aus dem Zwischenspeicher: " + cached.name, "ok"); openAmount(cached); return; }
+  setStatus("scanStatus", "Suche Barcode " + code + " ...");
+  try {
+    var data = await offFetch("https://world.openfoodfacts.org/api/v2/product/" + code + ".json?fields=" + OFF_FIELDS);
+    if (!data.product || data.status === 0) {
+      setStatus("scanStatus", "Produkt " + code + " ist bei Open Food Facts nicht erfasst - bitte unter Manuell eintragen.", "warn");
+      document.getElementById("mName").value = "Produkt " + code;
+      return;
+    }
+    var prod = productFromOff(data.product);
+    if (!prod.code) { prod.code = code; prod.key = "off:" + code; }
+    setStatus("scanStatus", "Gefunden: " + prod.name, "ok");
+    openAmount(prod);
+  } catch(e) { setStatus("scanStatus", e.message, "err"); }
+}
+
+// ============================================================
+// MENGEN-DIALOG
+// ============================================================
+var current = null;
+function openAmount(prod) {
+  current = prod;
+  document.getElementById("sName").textContent = prod.name;
+  document.getElementById("sInfo").textContent = (prod.brand ? prod.brand + " - " : "") + Math.round(prod.per100.kcal) + " kcal pro 100 g" + (prod.hasData === false ? " (unvollstaendige Daten)" : "");
+  var g = prod.lastGrams || prod.serving || 100;
+  document.getElementById("sGrams").value = g;
+  var chips = [50, 100, 150, 200];
+  var html = chips.map(function(c) { return '<button class="chip" onclick="setGrams(' + c + ')">' + c + ' g</button>'; }).join("");
+  if (prod.serving && chips.indexOf(prod.serving) === -1) html = '<button class="chip" onclick="setGrams(' + prod.serving + ')">1 Portion (' + fmt(prod.serving) + ' g)</button>' + html;
+  document.getElementById("sChips").innerHTML = html;
+  updateAmountPreview();
+  document.getElementById("sheetBg").style.display = "block";
+  document.getElementById("sheet").classList.add("open");
+}
+function closeAmount() {
+  document.getElementById("sheet").classList.remove("open");
+  document.getElementById("sheetBg").style.display = "none";
+  current = null;
+}
+function setGrams(g) { document.getElementById("sGrams").value = g; updateAmountPreview(); }
+function updateAmountPreview() {
+  if (!current) return;
+  var g = num(document.getElementById("sGrams").value);
+  document.getElementById("sTiles").innerHTML = tilesHtml(scale(current.per100, g));
+}
+function amountTo(target) {
+  if (!current) return;
+  var g = num(document.getElementById("sGrams").value);
+  if (g <= 0) { toast("Bitte Menge eingeben"); return; }
+  var prod = current;
+  prod.lastGrams = g;
+  cacheProduct(prod);
+  if (target === "day") addProductToDay(prod, g);
+  else addToBuilder(prod, g);
+  closeAmount();
+}
+
+// ============================================================
+// TAGESLOG (mehrere Tage)
+// ============================================================
+function getDate() { return document.getElementById("date").value; }
+function getDay(date) { return load(K.log, {})[date] || []; }
+function setDay(date, entries) {
+  var log = load(K.log, {});
+  if (entries.length) log[date] = entries; else delete log[date];
+  save(K.log, log);
+}
+function addEntry(entry) {
+  var date = getDate();
+  var day = getDay(date);
+  entry.id = uid();
+  day.push(entry);
+  setDay(date, day);
+  renderDay();
+  toast(entry.name + " eingetragen");
+  syncDay(date, true);
+}
+function addProductToDay(prod, grams) {
+  var e = scale(prod.per100, grams);
+  e.name = prod.name; e.grams = grams; e.source = "produkt";
+  addEntry(e);
+}
+function removeEntry(id) {
+  var date = getDate();
+  setDay(date, getDay(date).filter(function(e) { return e.id !== id; }));
+  renderDay();
+  syncDay(date, true);
+}
+function renderDay() {
+  var day = getDay(getDate());
+  document.getElementById("tiles").innerHTML = tilesHtml(sumVals(day));
+  document.getElementById("dayList").innerHTML = day.length ? day.map(function(e) {
+    return '<div class="item"><div class="main"><div class="n">' + esc(e.name) + '</div><div class="d">' +
+      (e.grams ? fmt(e.grams) + ' g &middot; ' : '') + Math.round(e.kcal) + ' kcal &middot; P ' + fmt(e.protein) + ' g</div></div>' +
+      '<button class="x" onclick="removeEntry(\'' + e.id + '\')" aria-label="Entfernen">&#10005;</button></div>';
+  }).join("") : '<div class="hint">Noch nichts eingetragen.</div>';
+  renderSyncStatus();
+}
+function shiftDay(delta) {
+  var parts = getDate().split("-");
+  var d = new Date(+parts[0], +parts[1] - 1, +parts[2] + delta);
+  document.getElementById("date").value = isoLocal(d);
+  renderDay();
+}
+
+// ============================================================
+// ZULETZT VERWENDET / MANUELL
+// ============================================================
+function renderRecent() {
+  var c = load(K.cache, {});
+  var list = Object.keys(c).map(function(k) { return c[k]; }).sort(function(a, b) { return (b.lastUsed || 0) - (a.lastUsed || 0); }).slice(0, 25);
+  window._recent = list;
+  document.getElementById("recentList").innerHTML = list.length ? list.map(function(p, i) {
+    return '<div class="result" onclick="openAmount(_recent[' + i + '])"><div style="font-weight:600;font-size:0.88rem;">' + esc(p.name) + '</div>' +
+      '<div class="hint">' + Math.round(p.per100.kcal) + ' kcal pro 100 g' + (p.lastGrams ? ' &middot; zuletzt ' + fmt(p.lastGrams) + ' g' : '') + '</div></div>';
+  }).join("") : '<div class="hint">Noch keine Produkte verwendet. Gescannte und gesuchte Produkte landen hier und funktionieren ohne Internet.</div>';
+}
+
+function manualProduct() {
+  var name = document.getElementById("mName").value.trim();
+  if (!name) { toast("Bitte Namen eingeben"); return null; }
+  var grams = num(document.getElementById("mGrams").value);
+  var vals = {
+    kcal: num(document.getElementById("mKcal").value), protein: num(document.getElementById("mProtein").value),
+    carbs: num(document.getElementById("mCarbs").value), fat: num(document.getElementById("mFat").value),
+    fiber: num(document.getElementById("mFiber").value), sugar: num(document.getElementById("mSugar").value)
+  };
+  var per100 = {};
+  NUT.forEach(function(k) { per100[k] = grams > 0 ? round1(vals[k] / grams * 100) : vals[k]; });
+  var prod = { key: "manuell:" + name.toLowerCase(), code: "", name: name, brand: "", per100: per100, serving: grams || 0, hasData: true, lastGrams: grams || 100 };
+  cacheProduct(prod);
+  ["mName","mGrams","mKcal","mProtein","mCarbs","mFat","mFiber","mSugar"].forEach(function(id) { document.getElementById(id).value = ""; });
+  return { prod: prod, grams: grams || 100 };
+}
+
+// ============================================================
+// MAHLZEIT-BAUKASTEN & MEINE MAHLZEITEN
+// ============================================================
+var builder = { id: null, name: "", items: [] };
+
+function addToBuilder(prod, grams) {
+  builder.items.push({ name: prod.name, grams: grams, per100: prod.per100, code: prod.code || "" });
+  renderBuilder();
+  toast(prod.name + " im Baukasten");
+  document.getElementById("builderCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function builderItemValues(it) { return scale(it.per100, it.grams); }
+function renderBuilder() {
+  document.getElementById("bName").value = builder.name;
+  document.getElementById("bItems").innerHTML = builder.items.length ? builder.items.map(function(it, i) {
+    var v = builderItemValues(it);
+    return '<div class="item"><div class="main"><div class="n">' + esc(it.name) + '</div><div class="d">' + Math.round(v.kcal) + ' kcal &middot; P ' + fmt(v.protein) + ' g</div></div>' +
+      '<input class="grams" inputmode="decimal" value="' + it.grams + '" onchange="setBuilderGrams(' + i + ', this.value)"><span class="hint">g</span>' +
+      '<button class="x" onclick="removeBuilderItem(' + i + ')" aria-label="Entfernen">&#10005;</button></div>';
+  }).join("") : '<div class="hint">Noch keine Zutaten.</div>';
+  document.getElementById("bTiles").innerHTML = tilesHtml(sumVals(builder.items.map(builderItemValues)));
+  document.getElementById("bSave").textContent = builder.id ? "Aenderungen speichern" : "Mahlzeit speichern";
+}
+function setBuilderGrams(i, v) { builder.items[i].grams = num(v); renderBuilder(); }
+function removeBuilderItem(i) { builder.items.splice(i, 1); renderBuilder(); }
+function clearBuilder() { builder = { id: null, name: "", items: [] }; renderBuilder(); }
+
+function saveMeal() {
+  builder.name = document.getElementById("bName").value.trim();
+  if (!builder.name) { toast("Bitte Namen vergeben"); return; }
+  if (!builder.items.length) { toast("Mahlzeit hat keine Zutaten"); return; }
+  var meals = load(K.meals, []);
+  var copy = JSON.parse(JSON.stringify({ id: builder.id || uid(), name: builder.name, items: builder.items, updated: Date.now() }));
+  var idx = meals.findIndex(function(m) { return m.id === copy.id; });
+  if (idx >= 0) meals[idx] = copy; else meals.push(copy);
+  save(K.meals, meals);
+  toast("\"" + copy.name + "\" gespeichert");
+  clearBuilder();
+  renderMeals();
+}
+function mealTotals(m) {
+  var t = sumVals(m.items.map(builderItemValues));
+  t.grams = m.items.reduce(function(s, it) { return s + num(it.grams); }, 0);
+  return t;
+}
+var mealFactors = {};
+function renderMeals() {
+  var meals = load(K.meals, []).sort(function(a, b) { return a.name.localeCompare(b.name, "de"); });
+  window._meals = meals;
+  document.getElementById("mealList").innerHTML = meals.length ? meals.map(function(m, i) {
+    var t = mealTotals(m);
+    var f = mealFactors[m.id] || 1;
+    return '<div class="meal"><div style="font-weight:700;">' + esc(m.name) + '</div>' +
+      '<div class="hint">' + m.items.length + ' Zutaten &middot; ' + fmt(t.grams) + ' g &middot; ' + Math.round(t.kcal) + ' kcal &middot; P ' + fmt(t.protein) + ' g</div>' +
+      '<div class="chips">' + [0.5, 1, 1.5, 2].map(function(x) {
+        return '<button class="chip' + (x === f ? ' on' : '') + '" onclick="setMealFactor(\'' + m.id + '\',' + x + ')">' + String(x).replace(".", ",") + '&times;</button>';
+      }).join("") + '</div>' +
+      '<div class="row" style="margin-top:8px;">' +
+        '<button class="btn small" onclick="addMealToDay(' + i + ')">Zum Tag' + (f !== 1 ? ' (' + String(f).replace(".", ",") + '&times;)' : '') + '</button>' +
+        '<button class="btn small sec" onclick="editMeal(' + i + ')">Bearbeiten</button>' +
+        '<button class="btn small sec" onclick="deleteMeal(' + i + ')" style="color:var(--danger);">Loeschen</button>' +
+      '</div></div>';
+  }).join("") : '<div class="hint">Noch keine Mahlzeiten. Im Baukasten zusammenstellen und speichern.</div>';
+}
+function setMealFactor(id, f) { mealFactors[id] = f; renderMeals(); }
+function addMealToDay(i) {
+  var m = _meals[i];
+  var f = mealFactors[m.id] || 1;
+  var t = mealTotals(m);
+  var e = {};
+  NUT.forEach(function(k) { e[k] = round1(t[k] * f); });
+  // Werte werden beim Eintragen festgeschrieben: spaetere Aenderungen an der Mahlzeit
+  // veraendern bereits eingetragene Tage nicht.
+  e.name = m.name + (f !== 1 ? " (" + String(f).replace(".", ",") + "x)" : "");
+  e.grams = round1(t.grams * f);
+  e.source = "mahlzeit";
+  addEntry(e);
+}
+function editMeal(i) {
+  var m = JSON.parse(JSON.stringify(_meals[i]));
+  builder = { id: m.id, name: m.name, items: m.items };
+  renderBuilder();
+  document.getElementById("builderCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function deleteMeal(i) {
+  var m = _meals[i];
+  if (!confirm("\"" + m.name + "\" loeschen?")) return;
+  save(K.meals, load(K.meals, []).filter(function(x) { return x.id !== m.id; }));
+  renderMeals();
+}
+
+// ============================================================
+// KAMERA-SCAN
+// ============================================================
+var scanner = null;
+function loadScannerLib(cb) {
+  if (window.Html5Qrcode) return cb();
+  var srcs = ["https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js",
+              "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",
+              "https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"];
+  var i = 0;
+  (function next() {
+    if (i >= srcs.length) { setStatus("scanStatus", "Scanner konnte nicht geladen werden - Barcode bitte eintippen.", "err"); return; }
+    var s = document.createElement("script"); s.src = srcs[i++]; s.onload = cb; s.onerror = next; document.head.appendChild(s);
+  })();
+}
+function stopScanner() {
+  if (scanner) { scanner.stop().catch(function() {}); scanner = null; }
+  document.getElementById("scanBtn").innerHTML = "&#128247; Kamera starten";
+}
+function toggleScanner() {
+  if (scanner) { stopScanner(); setStatus("scanStatus", ""); return; }
+  setStatus("scanStatus", "Lade Kamera ...");
+  loadScannerLib(function() {
+    scanner = new Html5Qrcode("reader");
+    document.getElementById("scanBtn").textContent = "Kamera stoppen";
+    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 140 } },
+      function(code) { stopScanner(); document.getElementById("code").value = code; lookupBarcode(code); },
+      function() {}
+    ).then(function() { setStatus("scanStatus", "Barcode in den Rahmen halten ..."); })
+     .catch(function(e) { scanner = null; stopScanner(); setStatus("scanStatus", "Kamera nicht verfuegbar: " + e, "err"); });
+  });
+}
+
+// ============================================================
+// GOOGLE SHEET: Tab "Naehrwerte" (eigener Tab, kollidiert nicht mit dem App-Tab "Ernaehrung")
+// Nutzt Client-ID, Sheet-ID und Token, die in der App eingerichtet wurden.
+// ============================================================
+var TAB = "Naehrwerte";
+var HEAD = ["Datum", "kcal", "Protein g", "KH g", "Fett g", "Ballaststoffe g", "Zucker g", "Eintraege"];
+var gisClient = null, pendingCbs = [], tabReady = false, chain = Promise.resolve();
+
+function sheetsCfg() { return load(K.sheets, {}); }
+function sheetsOn() { var c = sheetsCfg(); return !!(c.clientId && c.sheetId); }
+function validToken() { var t = load(K.token, null); return t && t.expires > Date.now() + 60000 ? t.access_token : null; }
+function pendingDates() { return load(K.pending, []); }
+function markPending(date) { var p = pendingDates(); if (p.indexOf(date) === -1) { p.push(date); save(K.pending, p); } }
+function clearPending(dates) { save(K.pending, pendingDates().filter(function(d) { return dates.indexOf(d) === -1; })); }
+
+function renderSyncStatus(msg, cls) {
+  if (msg) { setStatus("syncStatus", msg, cls); return; }
+  if (!sheetsOn()) { setStatus("syncStatus", "Sheet nicht eingerichtet (in der App unter Im/Export).", ""); return; }
+  var p = pendingDates().length;
+  setStatus("syncStatus", p ? p + " Tag(e) noch nicht im Sheet" : "Sheet aktuell", p ? "warn" : "ok");
+}
+
+function preloadGis() {
+  if (!sheetsOn() || document.getElementById("gisScript")) return;
+  var s = document.createElement("script");
+  s.id = "gisScript"; s.src = "https://accounts.google.com/gsi/client"; s.async = true;
+  s.onload = initGis;
+  document.head.appendChild(s);
+}
+function initGis() {
+  if (!(window.google && google.accounts && google.accounts.oauth2)) return;
+  gisClient = google.accounts.oauth2.initTokenClient({
+    client_id: sheetsCfg().clientId,
+    scope: "https://www.googleapis.com/auth/spreadsheets",
+    callback: function(resp) {
+      if (resp.error) { renderSyncStatus("Google-Anmeldung fehlgeschlagen: " + resp.error, "err"); pendingCbs = []; return; }
+      save(K.token, { access_token: resp.access_token, expires: Date.now() + (resp.expires_in || 3600) * 1000 });
+      var cbs = pendingCbs; pendingCbs = [];
+      cbs.forEach(function(cb) { cb(resp.access_token); });
+    },
+    error_callback: function() { renderSyncStatus("Google-Anmeldung abgebrochen", "warn"); pendingCbs = []; }
+  });
+}
+function withToken(cb, interactive) {
+  var t = validToken();
+  if (t) { cb(t); return true; }
+  if (!interactive) return false;
+  if (!gisClient) initGis();
+  if (!gisClient) { renderSyncStatus("Google-Anmeldung noch nicht bereit - gleich nochmal tippen", "warn"); preloadGis(); return false; }
+  var first = pendingCbs.length === 0;
+  pendingCbs.push(cb);
+  if (first) gisClient.requestAccessToken({ prompt: "" });
+  return true;
+}
+
+async function api(token, method, path, body) {
+  var url = "https://sheets.googleapis.com/v4/spreadsheets/" + sheetsCfg().sheetId + path;
+  var opts = { method: method, headers: { Authorization: "Bearer " + token } };
+  if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  var r = await fetch(url, opts);
+  var data = null; try { data = await r.json(); } catch(e) {}
+  if (!r.ok) {
+    if (r.status === 401) localStorage.removeItem(K.token);
+    throw new Error((data && data.error && data.error.message) || ("HTTP " + r.status));
+  }
+  return data || {};
+}
+async function ensureTab(token) {
+  if (tabReady) return;
+  var meta = await api(token, "GET", "?fields=sheets.properties.title");
+  var titles = (meta.sheets || []).map(function(s) { return s.properties.title; });
+  if (titles.indexOf(TAB) === -1) {
+    await api(token, "POST", ":batchUpdate", { requests: [{ addSheet: { properties: { title: TAB, gridProperties: { frozenRowCount: 1 } } } }] });
+  }
+  await api(token, "PUT", "/values/" + encodeURIComponent("'" + TAB + "'!A1:H1") + "?valueInputOption=RAW", { values: [HEAD] });
+  tabReady = true;
+}
+function dayRow(date) {
+  var day = getDay(date), t = sumVals(day);
+  return [date, Math.round(t.kcal), t.protein, t.carbs, t.fat, t.fiber, t.sugar,
+    day.map(function(e) { return e.name + (e.grams ? " (" + round1(e.grams) + " g)" : ""); }).join("; ")];
+}
+async function upsertDays(token, dates) {
+  await ensureTab(token);
+  var keys = await api(token, "GET", "/values/" + encodeURIComponent("'" + TAB + "'!A2:A"));
+  var index = {};
+  (keys.values || []).forEach(function(r, i) { if (r[0]) index[String(r[0])] = i + 2; });
+  var updates = [], appends = [];
+  dates.forEach(function(d) {
+    var row = dayRow(d);
+    if (index[d]) updates.push({ range: "'" + TAB + "'!A" + index[d] + ":H" + index[d], values: [row] });
+    else if (getDay(d).length) appends.push(row);
+  });
+  if (updates.length) await api(token, "POST", "/values:batchUpdate", { valueInputOption: "RAW", data: updates });
+  if (appends.length) await api(token, "POST", "/values/" + encodeURIComponent("'" + TAB + "'!A1") + ":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS", { values: appends });
+}
+function runSync(dates, interactive) {
+  if (!sheetsOn()) { renderSyncStatus(); return; }
+  dates.forEach(markPending);
+  var started = withToken(function(token) {
+    var todo = pendingDates();
+    chain = chain.then(function() {
+      renderSyncStatus("Schreibe ins Sheet ...", "");
+      return upsertDays(token, todo);
+    }).then(function() { clearPending(todo); renderSyncStatus(); })
+      .catch(function(e) { renderSyncStatus("Sheet-Fehler: " + e.message, "err"); });
+  }, interactive);
+  if (!started) renderSyncStatus();
+}
+function syncDay(date, interactive) { runSync([date], interactive); }
+function syncAll() { runSync(Object.keys(load(K.log, {})), true); }
+
+// ============================================================
+// START
+// ============================================================
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("date").value = isoLocal(new Date());
+  document.getElementById("date").addEventListener("change", renderDay);
+  document.getElementById("prevDay").addEventListener("click", function() { shiftDay(-1); });
+  document.getElementById("nextDay").addEventListener("click", function() { shiftDay(1); });
+  document.querySelectorAll("#tabs button").forEach(function(b) {
+    b.addEventListener("click", function() {
+      document.querySelectorAll("#tabs button").forEach(function(x) { x.classList.toggle("on", x === b); });
+      document.querySelectorAll(".panel").forEach(function(p) { p.classList.toggle("on", p.id === "p-" + b.dataset.p); });
+      if (b.dataset.p !== "scan") stopScanner();
+      if (b.dataset.p === "recent") renderRecent();
+    });
+  });
+  document.getElementById("searchBtn").addEventListener("click", doSearch);
+  document.getElementById("q").addEventListener("keydown", function(e) { if (e.key === "Enter") doSearch(); });
+  document.getElementById("scanBtn").addEventListener("click", toggleScanner);
+  document.getElementById("codeBtn").addEventListener("click", function() { lookupBarcode(document.getElementById("code").value); });
+  document.getElementById("sGrams").addEventListener("input", updateAmountPreview);
+  document.getElementById("sToDay").addEventListener("click", function() { amountTo("day"); });
+  document.getElementById("sToBuilder").addEventListener("click", function() { amountTo("builder"); });
+  document.getElementById("sCancel").addEventListener("click", closeAmount);
+  document.getElementById("sheetBg").addEventListener("click", closeAmount);
+  document.getElementById("mToDay").addEventListener("click", function() { var m = manualProduct(); if (m) addProductToDay(m.prod, m.grams); });
+  document.getElementById("mToBuilder").addEventListener("click", function() { var m = manualProduct(); if (m) addToBuilder(m.prod, m.grams); });
+  document.getElementById("bName").addEventListener("input", function() { builder.name = this.value; });
+  document.getElementById("bSave").addEventListener("click", saveMeal);
+  document.getElementById("bClear").addEventListener("click", clearBuilder);
+  document.getElementById("syncBtn").addEventListener("click", syncAll);
+  renderDay(); renderBuilder(); renderMeals();
+  preloadGis();
+});
+</script>
+</body>
+</html>
