@@ -429,6 +429,14 @@
         </select>
       </div>
     </div>
+    <label>Schlafscore (0-100)</label><input id="garminSleepScore" type="number" min="0" max="100" placeholder="z.B. 78" inputmode="numeric">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div><label>Laktatschwelle HF</label><input id="garminLtHr" type="number" placeholder="z.B. 168" inputmode="numeric"></div>
+      <div><label>Laktatschwelle Pace</label><input id="garminLtPace" placeholder="z.B. 4:52" inputmode="numeric"></div>
+      <div><label>Ausdauerwert</label><input id="garminEndurance" type="number" placeholder="z.B. 6200" inputmode="numeric"></div>
+      <div><label>Bergwert</label><input id="garminHill" type="number" placeholder="z.B. 62" inputmode="numeric"></div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-top:6px;">Laktatschwelle, Ausdauer- und Bergwert reicht es einzutragen, wenn Garmin einen neuen Wert anzeigt.</div>
     <button class="btn" onclick="confirmSave('garmin')">Garmin-Daten speichern</button>
   </div>
 </section>
@@ -478,6 +486,18 @@
     <!-- GEMEINSAME FELDER -->
     <label>Herzfrequenz (bpm)</label><input id="runHF" type="number" placeholder="z.B. 145" inputmode="numeric">
     <label>RPE (1-10)</label><input id="runRPE" type="number" min="1" max="10" placeholder="z.B. 6" inputmode="numeric">
+    <label>Verbrauch (kcal, z.B. aus Garmin)</label><input id="runKcal" type="number" placeholder="z.B. 620" inputmode="numeric">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div><label>Trainingseffekt aerob</label><input id="runTeAerob" type="number" step="0.1" min="0" max="5" placeholder="z.B. 3.2" inputmode="decimal"></div>
+      <div><label>Trainingseffekt anaerob</label><input id="runTeAnaerob" type="number" step="0.1" min="0" max="5" placeholder="z.B. 1.4" inputmode="decimal"></div>
+    </div>
+    <label>Fokus der Einheit</label>
+    <select id="runFocus">
+      <option value="">- bitte waehlen -</option>
+      <option value="ausdauer">Ausdauer / Fettstoffwechsel (locker, GA1)</option>
+      <option value="schwelle">Schwelle / CV / Tempo</option>
+      <option value="hiit">HIIT / HIT (kurz, sehr intensiv)</option>
+    </select>
     <label>Wie hat sich das Training angefuehlt?</label>
     <div class="feeling-row" id="feelingRow">
       <button type="button" class="feel-btn" data-feel="sehr-gut">Sehr gut</button>
@@ -1084,6 +1104,26 @@ function exportWeekICS(planWeek) {
 // ============================================================
 // RENDER PLAN
 // ============================================================
+// Mahlzeiten-Empfehlung des Coaches pro Plan-Tag.
+// Format: "meal": { "carbs": "low|moderat|high", "before": "...", "after": "...", "tip": "..." } oder einfacher Text.
+var MEAL_CARBS = { low: ["Low Carb", "#29b6f6"], moderat: ["Moderat", "#ffb300"], high: ["High Carb", "#ff7043"] };
+function escHtml(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function(ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]; }); }
+function mealCarbsLabel(meal) {
+  if (!meal || typeof meal !== "object" || !meal.carbs) return "";
+  var m = MEAL_CARBS[String(meal.carbs).toLowerCase()];
+  return m ? m[0] : String(meal.carbs);
+}
+function mealRecHtml(meal) {
+  var h = '<div style="margin-top:6px;padding:8px 10px;background:#13261a;border:1px solid #2d5a2d;border-radius:8px;font-size:0.8rem;line-height:1.55;">';
+  if (typeof meal === "string") return h + '&#127869; ' + escHtml(meal) + '</div>';
+  var m = MEAL_CARBS[String(meal.carbs || "").toLowerCase()];
+  h += '<div style="font-weight:800;color:#4caf50;margin-bottom:2px;">&#127869; Ernaehrung' + (m ? ' <span style="background:' + m[1] + ';color:#0a1a0a;border-radius:6px;padding:1px 7px;margin-left:4px;font-size:0.72rem;">' + m[0] + '</span>' : '') + '</div>';
+  if (meal.before) h += '<div><b>Vorher:</b> ' + escHtml(meal.before) + '</div>';
+  if (meal.after) h += '<div><b>Danach:</b> ' + escHtml(meal.after) + '</div>';
+  if (meal.tip) h += '<div style="color:var(--muted);">' + escHtml(meal.tip) + '</div>';
+  return h + '</div>';
+}
+
 function renderPlan() {
   var c = document.getElementById("planContainer");
   if (!c) return;
@@ -1151,13 +1191,14 @@ function renderPlan() {
         html += '<div class="day-detail">' + typeLabel + (d.title ? " - " + d.title : "") + (summary ? " | " + summary : "") + '</div></div>';
         html += '<div style="color:' + color + ';font-size:1.1rem;">&#8964;</div></div>';
 
-        var hasExpand = (d.desc && d.desc !== "...") || (d.workout && d.workout !== "...") || d.weather;
+        var hasExpand = (d.desc && d.desc !== "...") || (d.workout && d.workout !== "...") || d.weather || d.meal;
         if (hasExpand) {
           html += '<div id="' + dayId + '" class="day-expand">';
           if (d.dauer) html += '<div style="color:' + color + ';font-weight:700;margin-bottom:4px;">&#9201; ' + formatDauerDisplay(d) + '</div>';
           if (d.workout && d.workout !== "...") html += '<div style="font-weight:700;margin-bottom:4px;">Einheit: ' + d.workout + (d.pace ? " @ " + d.pace : "") + '</div>';
           if (d.desc && d.desc !== "...") html += '<div>' + d.desc + '</div>';
           if (d.weather) html += '<div style="margin-top:6px;padding:6px 8px;background:#2a1f0d;border-radius:6px;font-size:0.8rem;color:#ff9800;">&#9728; ' + d.weather + '</div>';
+          if (d.meal) html += mealRecHtml(d.meal);
           html += '</div>';
         }
         html += '</div>';
@@ -1502,7 +1543,7 @@ function renderSessionChips() {
   var html = "";
   sessions.forEach(function(s, i) {
     var icon = s.trainingDiscipline === "bike" ? "&#128692;" : "&#127939;";
-    var label = (i + 1) + ". " + icon + " " + (s.runKm ? s.runKm + " km" : "ohne km");
+    var label = (i + 1) + ". " + icon + " " + (s.runKm ? s.runKm + " km" : "ohne km") + (s.runFocus ? " &middot; " + ({ ausdauer: "GA1", schwelle: "Schwelle", hiit: "HIIT" })[s.runFocus] : "");
     html += '<button type="button" class="feel-btn session-chip' + (i === _sessionIdx ? ' selected' : '') + '" style="flex:0 0 auto;min-width:0;padding:8px 12px;" onclick="selectTrainingSession(' + i + ')">' + label + '</button>';
   });
   var isNew = _sessionIdx >= sessions.length;
@@ -1836,9 +1877,9 @@ var SHEETS_TOKEN_KEY  = "coach_bjoern_sheets_token";
 var SHEETS_SCOPE      = "https://www.googleapis.com/auth/spreadsheets";
 
 var SHEET_TABS = {
-  "Training":   { keyCols: 2, headers: ["Datum","Einheit","Disziplin","km","Zeit","Pace","Geschwindigkeit km/h","HF","Kadenz spm","Trittfrequenz rpm","BKT ms","Vertikal cm","Hoehenmeter","Leistung W","RPE","Gefuehl","Thule kg gesamt","Notizen"] },
+  "Training":   { keyCols: 2, headers: ["Datum","Einheit","Disziplin","km","Zeit","Pace","Geschwindigkeit km/h","HF","Kadenz spm","Trittfrequenz rpm","BKT ms","Vertikal cm","Hoehenmeter","Leistung W","RPE","Gefuehl","Thule kg gesamt","Notizen","kcal Verbrauch","Fokus","TE aerob","TE anaerob"] },
   "Tagescheck": { keyCols: 1, headers: ["Datum","Gewicht kg","Energie","Motivation","Stress","Muskelkater","Notizen","Wade links","Wade rechts"] }, // Abfrage-Spalten: siehe addTcCols()
-  "Garmin":     { keyCols: 1, headers: ["Datum","Body Battery","Schlaf","Ruhepuls","HRV","Trainingsstatus"] },
+  "Garmin":     { keyCols: 1, headers: ["Datum","Body Battery","Schlaf","Ruhepuls","HRV","Trainingsstatus","Schlafscore","Laktatschwelle HF","Laktatschwelle Pace","Ausdauerwert","Bergwert"] },
   "Ernaehrung": { keyCols: 1, headers: ["Datum","Protein","Gemuese","Omega 3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Mahlzeit 1","Mahlzeit 2","Mahlzeit 3","Snack/Supplement","kcal","Protein g","KH g","Fett g","Ballaststoffe g","Zucker g","Chili","Zimt"] },
   "Kraft":      { keyCols: 2, headers: ["Datum","Uebung","Soll","Ist"] },
   // Plaene und Coach schreibt Coach Bjoern (Claude) - die App liest sie nur.
@@ -2072,7 +2113,9 @@ function buildTrainingRow(date, d, unitNo) {
     bike ? "" : sNum(d.runCadence), bike ? sNum(d.bikeCadence) : "",
     bike ? "" : sNum(d.runBKT), bike ? "" : sNum(d.runVertical),
     sNum(bike ? d.bikeElevation : d.runElevation), bike ? sNum(d.bikePower) : "",
-    sNum(d.runRPE), SHEET_FEEL_LABELS[d.runFeeling] || "", thule, sStr(d.runNotes)
+    sNum(d.runRPE), SHEET_FEEL_LABELS[d.runFeeling] || "", thule, sStr(d.runNotes),
+    sNum(d.runKcal), ({ ausdauer: "Ausdauer/Fettstoffwechsel", schwelle: "Schwelle/CV/Tempo", hiit: "HIIT/HIT" })[d.runFocus] || "",
+    sNum(d.runTeAerob), sNum(d.runTeAnaerob)
   ];
 }
 
@@ -2083,7 +2126,8 @@ function buildTodayRow(date, d) {
 }
 
 function buildGarminRow(date, d) {
-  return [date, sNum(d.bodyBattery), sStr(d.garminSleep), sNum(d.garminRHR), sStr(d.garminHRV), sStr(d.garminTrainingStatus)];
+  return [date, sNum(d.bodyBattery), sStr(d.garminSleep), sNum(d.garminRHR), sStr(d.garminHRV), sStr(d.garminTrainingStatus),
+          sNum(d.garminSleepScore), sNum(d.garminLtHr), sStr(d.garminLtPace), sNum(d.garminEndurance), sNum(d.garminHill)];
 }
 
 function getNutrientTotalsForDate(date) {
@@ -2761,7 +2805,7 @@ function updateStartPage() {
     for (var di = 0; di < w.days.length; di++) {
       var dd = w.days[di];
       if (dayOrder.indexOf(dd.day) >= todayIdx) {
-        nextFound = { week: w.week, day: dd.day, type: dd.type, title: dd.title, km: dd.km, pace: dd.pace, workout: dd.workout, dauer: dd.dauer };
+        nextFound = { week: w.week, day: dd.day, type: dd.type, title: dd.title, km: dd.km, pace: dd.pace, workout: dd.workout, dauer: dd.dauer, meal: dd.meal };
         break outer;
       }
     }
@@ -2776,6 +2820,7 @@ function updateStartPage() {
       if (nextFound.pace)    parts.push(nextFound.pace + " /km");
       if (nextFound.workout) parts.push(nextFound.workout);
       if (nextFound.dauer)   parts.push(nextFound.dauer);
+      if (nextFound.meal)    parts.push("\uD83C\uDF7D " + (mealCarbsLabel(nextFound.meal) || "Ernaehrungstipp im Plan"));
       detailEl.textContent = parts.join(" | ") || "Woche " + nextFound.week;
     } else {
       // Pruefen ob die aktuelle Woche ein Platzhalter ist (Plan zu Ende)
@@ -3101,10 +3146,10 @@ function filterTrelloCards() {
 // ============================================================
 // DATUM-RESET: Felder leeren wenn neues Datum ohne Daten
 // ============================================================
-var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes","thuleChariot","thuleChildWeight","trainingDiscipline","bikeSpeed","bikeCadence","bikeElevation","bikePower"];
+var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes","thuleChariot","thuleChildWeight","trainingDiscipline","bikeSpeed","bikeCadence","bikeElevation","bikePower","runKcal","runFocus","runTeAerob","runTeAnaerob"];
 var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","chili","cinnamon","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
 var todayFields      = ["currentWeight","energy","motivation","stress","soreness","recoveryNotes","calfLeft","calfRight"]; // wird von renderDynamicChecks() angepasst
-var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus"];
+var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus","garminSleepScore","garminLtHr","garminLtPace","garminEndurance","garminHill"];
 var strengthFields   = []; // wird dynamisch befuellt sobald Kraftuebungen gerendert sind
 
 function resetFieldGroup(fields) {
