@@ -96,7 +96,7 @@
   .sheet{position:fixed;left:0;right:0;bottom:0;z-index:101;background:var(--surface);border-radius:18px 18px 0 0;padding:14px 14px 18px;transform:translateY(105%);transition:transform 0.2s;max-width:680px;margin:auto;box-shadow:0 -8px 24px rgba(0,0,0,0.5);max-height:88vh;overflow-y:auto;}
   .sheet.open{transform:translateY(0);}
   #addSheet{height:88vh;} #amtSheet{z-index:111;} #amtBg{z-index:110;}
-  .subtabs{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;background:var(--surface-3);border-radius:12px;padding:3px;margin:10px 0 8px;}
+  .subtabs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:var(--surface-3);border-radius:12px;padding:3px;margin:10px 0 8px;}
   .subtabs button{border:none;border-radius:9px;background:transparent;color:var(--muted);padding:8px 1px;font-size:0.72rem;font-weight:700;}
   .subtabs button.on{background:var(--surface);color:var(--accent);}
   .panel{display:none;} .panel.on{display:block;}
@@ -109,6 +109,9 @@
   .badge{display:inline-block;border-radius:8px;padding:3px 9px;font-size:0.74rem;font-weight:800;}
   .daytype{margin-top:10px;padding:9px 11px;border-radius:10px;background:var(--surface-3);font-size:0.82rem;}
   .xchip{position:relative;}
+  .star{background:none;border:none;font-size:1.2rem;color:#ffb300;padding:2px 6px;cursor:pointer;flex:0 0 auto;}
+  .rrow{display:flex;align-items:center;gap:6px;}
+  .rrow .result{flex:1;border-bottom:none;}
   .xchip .rm{margin-left:6px;color:var(--danger);font-weight:900;}
   .cover{font-size:0.7rem;color:var(--muted);}
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0a1a0a;font-weight:700;font-size:0.82rem;padding:8px 18px;border-radius:20px;opacity:0;transition:opacity 0.3s;z-index:200;pointer-events:none;white-space:nowrap;}
@@ -237,7 +240,8 @@
     <button data-act="sub" data-p="search" class="on">Suchen</button>
     <button data-act="sub" data-p="scan">Scannen</button>
     <button data-act="sub" data-p="recent">Zuletzt</button>
-    <button data-act="sub" data-p="meals" id="subMealsBtn">Mahlz.</button>
+    <button data-act="sub" data-p="favs">&#9733; Favoriten</button>
+    <button data-act="sub" data-p="meals" id="subMealsBtn">Mahlzeiten</button>
     <button data-act="sub" data-p="manual">Manuell</button>
   </div>
   <div class="panel on" id="p-search">
@@ -257,7 +261,11 @@
     </div>
     <div class="status" id="scanStatus"></div>
   </div>
-  <div class="panel" id="p-recent"><div id="recentList"></div></div>
+  <div class="panel" id="p-recent">
+    <input id="recentQ" placeholder="In allen bisher genutzten Produkten suchen ..." autocomplete="off">
+    <div id="recentList" style="margin-top:6px;"></div>
+  </div>
+  <div class="panel" id="p-favs"><div id="favList"></div></div>
   <div class="panel" id="p-meals"><div id="pickMeals"></div></div>
   <div class="panel" id="p-manual">
     <label>Name</label><input id="mName" placeholder="z.B. Brot vom Bäcker">
@@ -282,6 +290,7 @@
 <div class="sheet" id="amtSheet">
   <div style="font-weight:800;font-size:1rem;" id="aName"></div>
   <div class="hint" id="aInfo"></div>
+  <button class="btn small sec" data-act="amt-fav" id="aFavBtn" style="margin-top:8px;">&#9734; Als Favorit merken</button>
   <label>Menge (g)</label>
   <input id="aGrams" inputmode="decimal">
   <div class="chips" id="aChips"></div>
@@ -301,7 +310,8 @@ var K = {
   log: "coach_bjoern_food_log", meals: "coach_bjoern_meals", cache: "coach_bjoern_food_cache",
   goals: "coach_bjoern_food_goals", pending: "coach_bjoern_food_pending",
   sheets: "coach_bjoern_sheets", token: "coach_bjoern_sheets_token",
-  extrasList: "coach_bjoern_food_extras_list", extras: "coach_bjoern_food_extras"
+  extrasList: "coach_bjoern_food_extras_list", extras: "coach_bjoern_food_extras",
+  favs: "coach_bjoern_food_favs"     // Favoriten getrennt vom Zwischenspeicher, damit sie nie verdraengt werden
 };
 var NUT = ["kcal", "protein", "carbs", "fat", "fiber", "sugar"];
 var NUT_LABEL = { kcal: "kcal", protein: "Protein", carbs: "KH", fat: "Fett", fiber: "Ballastst.", sugar: "Zucker" };
@@ -504,7 +514,7 @@ function openAdd(target) {
   document.getElementById("addTitle").textContent = target.type === "builder" ? "Zutat für die Mahlzeit" : "Hinzufügen zu " + mealLabel(target.meal);
   document.getElementById("subMealsBtn").style.display = target.type === "builder" ? "none" : "";
   if (target.type === "builder" && document.querySelector("#subtabs .on").dataset.p === "meals") switchSub("search");
-  renderRecent(); renderPickMeals();
+  renderRecent(); renderFavs(); renderPickMeals();
   document.getElementById("addBg").style.display = "block";
   document.getElementById("addSheet").classList.add("open");
 }
@@ -518,6 +528,7 @@ function switchSub(p) {
   document.querySelectorAll("#addSheet .panel").forEach(function(x) { x.classList.toggle("on", x.id === "p-" + p); });
   if (p !== "scan") stopScanner();
   if (p === "recent") renderRecent();
+  if (p === "favs") renderFavs();
   if (p === "meals") renderPickMeals();
 }
 
@@ -533,10 +544,12 @@ function openAmount(prod) {
   if (prod.serving && chips.indexOf(prod.serving) === -1) html = '<button class="chip" data-act="grams" data-g="' + prod.serving + '">1 Portion (' + fmt(prod.serving) + ' g)</button>' + html;
   document.getElementById("aChips").innerHTML = html;
   document.getElementById("aAddBtn").textContent = addTarget.type === "builder" ? "In die Mahlzeit" : "Zu " + mealLabel(addTarget.meal);
+  updateFavBtn();
   updateAmountPreview();
   document.getElementById("amtBg").style.display = "block";
   document.getElementById("amtSheet").classList.add("open");
 }
+function updateFavBtn() { document.getElementById("aFavBtn").innerHTML = isFav(current) ? "&#9733; Favorit" : "&#9734; Als Favorit merken"; }
 function closeAmount() {
   document.getElementById("amtSheet").classList.remove("open");
   document.getElementById("amtBg").style.display = "none";
@@ -623,17 +636,42 @@ function renderDiary() {
 function shiftDay(delta) { document.getElementById("date").value = dateAdd(getDate(), delta); renderAll(); }
 
 // ---- Zuletzt / Manuell ----
+var recentShown = [];
 function recentList() {
   var c = load(K.cache, {});
-  return Object.keys(c).map(function(k) { return c[k]; }).sort(function(a, b) { return (b.lastUsed || 0) - (a.lastUsed || 0); }).slice(0, 25);
+  return Object.keys(c).map(function(k) { return c[k]; }).sort(function(a, b) { return (b.lastUsed || 0) - (a.lastUsed || 0); });
+}
+function getFavs() { return load(K.favs, {}); }
+function isFav(prod) { return !!(prod && getFavs()[prod.key]); }
+function toggleFav(prod) {
+  if (!prod) return;
+  var f = getFavs();
+  if (f[prod.key]) { delete f[prod.key]; toast(prod.name + " aus Favoriten entfernt"); }
+  else { var copy = JSON.parse(JSON.stringify(prod)); f[prod.key] = copy; toast(prod.name + " als Favorit gemerkt"); }
+  save(K.favs, f);
+}
+function favList() { var f = getFavs(); return Object.keys(f).map(function(k) { return f[k]; }).sort(function(a, b) { return a.name.localeCompare(b.name, "de"); }); }
+function productRow(p, src, i) {
+  return '<div class="rrow"><div class="result" data-act="pick" data-src="' + src + '" data-i="' + i + '"><div style="font-weight:600;font-size:0.88rem;">' + esc(p.name) + '</div>' +
+    '<div class="hint">' + Math.round(p.per100.kcal) + ' kcal &middot; P ' + fmt(p.per100.protein) + ' &middot; KH ' + fmt(p.per100.carbs) + ' &middot; F ' + fmt(p.per100.fat) + ' pro 100 g' +
+    (p.lastGrams ? ' &middot; zuletzt ' + fmt(p.lastGrams) + ' g' : '') + '</div></div>' +
+    '<button class="star" data-act="fav-toggle" data-src="' + src + '" data-i="' + i + '" aria-label="Favorit">' + (isFav(p) ? '&#9733;' : '&#9734;') + '</button></div>';
 }
 function renderRecent() {
-  var list = recentList();
-  document.getElementById("recentList").innerHTML = list.length ? list.map(function(p, i) {
-    return '<div class="result" data-act="pick" data-src="recent" data-i="' + i + '"><div style="font-weight:600;font-size:0.88rem;">' + esc(p.name) + '</div>' +
-      '<div class="hint">' + Math.round(p.per100.kcal) + ' kcal pro 100 g' + (p.lastGrams ? ' &middot; zuletzt ' + fmt(p.lastGrams) + ' g' : '') + '</div></div>';
-  }).join("") : '<div class="hint">Noch keine Produkte verwendet. Gescannte und gesuchte Produkte landen hier und funktionieren ohne Internet.</div>';
+  var q = (document.getElementById("recentQ").value || "").trim().toLowerCase();
+  var all = recentList();
+  recentShown = q ? all.filter(function(p) { return (p.name + " " + (p.brand || "")).toLowerCase().indexOf(q) !== -1; }) : all.slice(0, 25);
+  document.getElementById("recentList").innerHTML = recentShown.length ? recentShown.map(function(p, i) { return productRow(p, "recent", i); }).join("") :
+    (q ? '<div class="hint">Nichts gefunden für "' + esc(q) + '". Unter "Suchen" bei Open Food Facts nachschauen.</div>'
+       : '<div class="hint">Noch keine Produkte verwendet. Gescannte und gesuchte Produkte landen hier und funktionieren ohne Internet.</div>');
 }
+function renderFavs() {
+  var list = favList();
+  document.getElementById("favList").innerHTML = list.length ? list.map(function(p, i) { return productRow(p, "fav", i); }).join("") :
+    '<div class="hint">Noch keine Favoriten. Tippe bei einem Produkt auf &#9734;, dann ist es hier mit einem Tipp erreichbar.</div>';
+}
+function productFrom(src, i) { return src === "search" ? lastResults[i] : src === "fav" ? favList()[i] : recentShown[i]; }
+
 function manualAdd() {
   var name = document.getElementById("mName").value.trim();
   if (!name) { toast("Bitte Namen eingeben"); return; }
@@ -682,6 +720,44 @@ function renderPickMeals() {
       }).join("") + '<button class="btn small" data-act="meal-add" data-id="' + m.id + '" style="margin-left:auto;">Hinzufügen</button></div></div>';
   }).join("") : '<div class="hint">Noch keine gespeicherten Mahlzeiten.</div>';
 }
+function mealEntryValues(m, f) {
+  var t = mealTotals(m), e = {};
+  NUT.forEach(function(k) { e[k] = round1(t[k] * f); });
+  e.items = m.items.map(function(it) {
+    var v = scale(it.per100, it.grams * f); v.name = it.name; v.grams = round1(it.grams * f); v.ext = scaleExt(it.ext, it.grams * f); return v;
+  });
+  var ext = {};
+  EXT.forEach(function(x) {
+    var known = e.items.filter(function(it) { return it.ext[x.k] != null; });
+    ext[x.k] = known.length ? Math.round(known.reduce(function(s, it) { return s + it.ext[x.k]; }, 0) * 1000) / 1000 : null;
+  });
+  e.ext = ext;
+  e.name = m.name + (f !== 1 ? " (" + String(f).replace(".", ",") + "×)" : "");
+  e.grams = round1(t.grams * f);
+  return e;
+}
+// Nach dem Bearbeiten einer Mahlzeit: Eintraege im angezeigten Tag und im heutigen Tag nachziehen.
+// Aeltere Tage bleiben unveraendert (Verlauf soll stimmen).
+function refreshMealEntries(meal, oldName) {
+  var dates = [getDate(), isoLocal(new Date())].filter(function(d, i, a) { return a.indexOf(d) === i; }), changed = [];
+  dates.forEach(function(date) {
+    var day = getDay(date), hit = false;
+    day.forEach(function(e, i) {
+      var match = e.mealId === meal.id;
+      if (!match && e.source === "mahlzeit" && !e.mealId) {   // Eintraege aus der Vorversion ueber den Namen erkennen
+        var base = String(e.name).replace(/\s*\([^)]*×\)$/, "");
+        match = base === oldName || base === meal.name;
+      }
+      if (!match) return;
+      var f = e.factor || (function() { var mm = String(e.name).match(/\(([\d,]+)×\)$/); return mm ? num(mm[1]) : 1; })();
+      var v = mealEntryValues(meal, f);
+      day[i] = Object.assign({}, e, v, { id: e.id, meal: e.meal, source: "mahlzeit", mealId: meal.id, factor: f });
+      hit = true;
+    });
+    if (hit) { setDay(date, day); changed.push(date); }
+  });
+  return changed;
+}
 function addMealToDay(id) {
   var m = findMeal(id); if (!m) return;
   var f = mealFactors[id] || 1, t = mealTotals(m), e = {};
@@ -697,7 +773,7 @@ function addMealToDay(id) {
   });
   e.ext = ext;
   e.name = m.name + (f !== 1 ? " (" + String(f).replace(".", ",") + "×)" : "");
-  e.grams = round1(t.grams * f); e.source = "mahlzeit";
+  e.grams = round1(t.grams * f); e.source = "mahlzeit"; e.mealId = m.id; e.factor = f;
   addEntry(e, addTarget.meal);
 }
 function openBuilder(meal) {
@@ -725,9 +801,13 @@ function saveMeal() {
   var meals = load(K.meals, []);
   var copy = JSON.parse(JSON.stringify({ id: builder.id || uid(), name: builder.name, items: builder.items, updated: Date.now() }));
   var idx = meals.findIndex(function(m) { return m.id === copy.id; });
+  var oldName = idx >= 0 ? meals[idx].name : copy.name;
   if (idx >= 0) meals[idx] = copy; else meals.push(copy);
   save(K.meals, meals);
-  toast("\"" + copy.name + "\" gespeichert");
+  var changed = idx >= 0 ? refreshMealEntries(copy, oldName) : [];
+  toast("\"" + copy.name + "\" gespeichert" + (changed.length ? " – Tagebuch aktualisiert" : ""));
+  changed.forEach(function(d) { syncDay(d, true); });
+  renderDiary();
   closeBuilder();
   renderMealList();
 }
@@ -1440,7 +1520,9 @@ document.addEventListener("click", function(ev) {
     case "search": doSearch(); break;
     case "scan": toggleScanner(); break;
     case "code": lookupBarcode(document.getElementById("code").value); break;
-    case "pick": openAmount(d.src === "search" ? lastResults[+d.i] : recentList()[+d.i]); break;
+    case "pick": openAmount(productFrom(d.src, +d.i)); break;
+    case "fav-toggle": toggleFav(productFrom(d.src, +d.i)); renderRecent(); renderFavs(); break;
+    case "amt-fav": toggleFav(current); updateFavBtn(); renderRecent(); renderFavs(); break;
     case "grams": document.getElementById("aGrams").value = d.g; updateAmountPreview(); break;
     case "amt-add": confirmAmount(); break;
     case "amt-cancel": closeAmount(); break;
@@ -1473,6 +1555,7 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("date").addEventListener("change", renderAll);
   document.getElementById("q").addEventListener("keydown", function(e) { if (e.key === "Enter") doSearch(); });
   document.getElementById("extraName").addEventListener("keydown", function(e) { if (e.key === "Enter") addCustomExtra(); });
+  document.getElementById("recentQ").addEventListener("input", renderRecent);
   document.getElementById("aGrams").addEventListener("input", updateAmountPreview);
   document.getElementById("bName").addEventListener("input", function() { builder.name = this.value; });
   renderAll();
