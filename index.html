@@ -155,28 +155,6 @@
     .coach-quote-label{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
     .coach-quote-text{font-size:0.88rem;color:var(--text);line-height:1.6;font-style:italic;}
 
-    /* DRAG & DROP */
-    .trello-card-draggable {
-      padding: 8px 10px;
-      border-bottom: 1px solid #1a2a3a;
-      cursor: grab;
-      border-radius: 6px;
-      transition: background 0.15s, transform 0.15s;
-      user-select: none;
-    }
-    .trello-card-draggable:active { cursor: grabbing; transform: scale(0.97); }
-    .trello-card-draggable.dragging { opacity: 0.4; background: #1a3a5c; }
-    .meal-drop-zone {
-      border: 2px dashed #383838;
-      border-radius: 10px;
-      transition: border-color 0.2s, background 0.2s;
-      padding: 2px;
-    }
-    .meal-drop-zone.drag-over {
-      border-color: #29b6f6;
-      background: #0d1b2a;
-    }
-
 
     /* NÄHRWERTE */
     .nutrient-grid {
@@ -539,8 +517,16 @@
 <!-- ERNAEHRUNG -->
 <section id="nutrition" class="tab-page">
   <div class="card">
-    <h2>Ernaehrung</h2>
-    <a href="./ernaehrung.html" class="btn" style="text-align:center;text-decoration:none;margin:0 0 12px;">&#129367; Kalorien &amp; Mahlzeiten erfassen</a>
+    <h2>&#129367; Ernaehrung heute</h2>
+    <div id="foodOverview"></div>
+    <a href="./ernaehrung.html" class="btn" style="text-align:center;text-decoration:none;">&#129367; Kalorien &amp; Mahlzeiten erfassen</a>
+  </div>
+  <div class="card">
+    <h2>&#128293; Kalorienverbrauch <span style="font-size:0.75rem;color:var(--muted);font-weight:400;">(7 Tage)</span></h2>
+    <div id="kcalOverview"></div>
+  </div>
+  <div class="card">
+    <h2>Eingenommen</h2>
     <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px;">Dr.-Feil-Protokoll</p>
     <label>Datum</label><input id="nutritionDate" type="date">
 
@@ -559,46 +545,6 @@
         <label class="check-item"><input type="checkbox" id="chili"><span>Chili</span></label>
         <label class="check-item"><input type="checkbox" id="cinnamon"><span>Zimt</span></label>
       </div>
-    </div>
-    <div style="margin-top:16px;">
-      <div style="font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Wann &amp; Was</div>
-      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 1</div>
-        <div class="nutrition-time-row"><input class="time-input" id="meal1Time" type="time"><input class="note-input meal-drop-zone" id="meal1Note" data-meal="1" placeholder="z.B. Haferflocken, Protein"></div></div>
-      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 2</div>
-        <div class="nutrition-time-row"><input class="time-input" id="meal2Time" type="time"><input class="note-input meal-drop-zone" id="meal2Note" data-meal="2" placeholder="z.B. Salat, Huehnchen"></div></div>
-      <div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Mahlzeit 3</div>
-        <div class="nutrition-time-row"><input class="time-input" id="meal3Time" type="time"><input class="note-input meal-drop-zone" id="meal3Note" data-meal="3" placeholder="z.B. Abendessen"></div></div>
-      <div><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">Snack / Supplement</div>
-        <div class="nutrition-time-row"><input class="time-input" id="meal4Time" type="time"><input class="note-input meal-drop-zone" id="meal4Note" data-meal="4" placeholder="z.B. Kreatin, Magnesium"></div></div>
-    </div>
-
-    <!-- TRELLO -->
-    <div style="background:#0d1b2a;border:1px solid #0052cc;border-radius:10px;padding:12px;margin-top:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span style="color:#29b6f6;font-weight:700;font-size:0.88rem;">&#128203; Trello Essen</span>
-        <button onclick="loadTrelloCards()" style="background:#0052cc;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;">Laden</button>
-      </div>
-      <div id="trelloStatus" style="font-size:0.75rem;color:#5a8ab0;margin-bottom:8px;">Einstellungen unten eingeben</div>
-      <input id="trelloSearchInput" placeholder="Rezept suchen..." oninput="filterTrelloCards()" style="margin-bottom:8px;background:#0a1520;border:1px solid #1a3a5c;font-size:0.85rem;padding:8px 10px;display:none;">
-      <div id="trelloCards" style="font-size:0.83rem;color:var(--text);max-height:280px;overflow-y:auto;"></div>
-      <details style="margin-top:8px;">
-        <summary style="font-size:0.75rem;color:#5a8ab0;cursor:pointer;">Trello Einstellungen</summary>
-        <div style="margin-top:8px;">
-          <label style="margin-top:6px;">API Key</label>
-          <input id="trelloApiKey" placeholder="Trello API Key" type="password">
-          <label style="margin-top:6px;">Token</label>
-          <input id="trelloToken" placeholder="Trello Token" type="password">
-          <label style="margin-top:6px;">Board ID oder URL</label>
-          <input id="trelloBoardId" placeholder="z.B. abc123 oder https://trello.com/b/abc123/...">
-          <label style="margin-top:6px;">Listen-Name (Filter)</label>
-          <input id="trelloListName" placeholder="z.B. Essen, Ernaehrung (leer = alle)">
-          <button class="btn" onclick="saveTrelloSettings()" style="margin-top:8px;padding:8px 14px;font-size:0.8rem;">Einstellungen speichern</button>
-          <div style="margin-top:8px;font-size:0.72rem;color:#3a6a8a;line-height:1.6;">
-            API Key: <a href="https://trello.com/app-key" target="_blank" style="color:#29b6f6;">trello.com/app-key</a><br>
-            Token: Nach API Key-Seite auf "Token" klicken
-          </div>
-        </div>
-      </details>
     </div>
 
     <button class="btn" onclick="confirmSave('nutrition')">Ernaehrung speichern</button>
@@ -771,7 +717,7 @@
   <!-- WIEDERHERSTELLEN -->
   <div class="card" style="border:1px solid #5a2d2d;">
     <h2 style="color:var(--danger);">&#9888; App aus Sheet wiederherstellen</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">Nach geloeschtem Browser-Cache oder auf einem neuen Geraet: holt Training, Tagescheck, Garmin, Ernaehrung, Kraft, Plan und Coach-Notizen zurueck. Eintraege mit gleichem Datum werden ueberschrieben. Ziele und Trello-Einstellungen stehen nicht im Sheet.</p>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">Nach geloeschtem Browser-Cache oder auf einem neuen Geraet: holt Training, Tagescheck, Garmin, Ernaehrung, Kraft, Plan und Coach-Notizen zurueck. Eintraege mit gleichem Datum werden ueberschrieben. Ziele stehen nicht im Sheet.</p>
     <button class="btn secondary" id="sheetsRestoreBtn">Jetzt wiederherstellen</button>
   </div>
 </section>
@@ -1880,7 +1826,7 @@ var SHEET_TABS = {
   "Training":   { keyCols: 2, headers: ["Datum","Einheit","Disziplin","km","Zeit","Pace","Geschwindigkeit km/h","HF","Kadenz spm","Trittfrequenz rpm","BKT ms","Vertikal cm","Hoehenmeter","Leistung W","RPE","Gefuehl","Thule kg gesamt","Notizen","kcal Verbrauch","Fokus","TE aerob","TE anaerob"] },
   "Tagescheck": { keyCols: 1, headers: ["Datum","Gewicht kg","Energie","Motivation","Stress","Muskelkater","Notizen","Wade links","Wade rechts"] }, // Abfrage-Spalten: siehe addTcCols()
   "Garmin":     { keyCols: 1, headers: ["Datum","Body Battery","Schlaf","Ruhepuls","HRV","Trainingsstatus","Schlafscore","Laktatschwelle HF","Laktatschwelle Pace","Ausdauerwert","Bergwert"] },
-  "Ernaehrung": { keyCols: 1, headers: ["Datum","Protein","Gemuese","Omega 3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Mahlzeit 1","Mahlzeit 2","Mahlzeit 3","Snack/Supplement","kcal","Protein g","KH g","Fett g","Ballaststoffe g","Zucker g","Chili","Zimt"] },
+  "Ernaehrung": { keyCols: 1, headers: ["Datum","Protein","Gemuese","Omega 3","Arginin","Kurkuma","Ingwer","Trinkziel","Kreatin","Magnesium","Fruehstueck","Mittagessen","Abendessen","Snacks","kcal","Protein g","KH g","Fett g","Ballaststoffe g","Zucker g","Chili","Zimt"] },
   "Kraft":      { keyCols: 2, headers: ["Datum","Uebung","Soll","Ist"] },
   // Plaene und Coach schreibt Coach Bjoern (Claude) - die App liest sie nur.
   "Plaene":     { keyCols: 2, headers: ["KW","Jahr","Phase","Fokus","Ziel","Coach-Nachricht","Wetter","Hydration","Ernaehrung","Einheiten","Abgeschlossen","Plan-ID","JSON"] },
@@ -2147,10 +2093,14 @@ function buildNutritionRow(date, d) {
   var checks = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium"];
   var row = [date];
   checks.forEach(function(c) { row.push(d[c] ? "ja" : "nein"); });
-  for (var n = 1; n <= 4; n++) {
-    var t = d["meal" + n + "Time"], note = d["meal" + n + "Note"];
+  // Mahlzeiten aus dem Tagebuch der Ernaehrungsseite; aeltere Eintraege aus "Wann & Was" bleiben erhalten
+  var foodDayEntries = (foodLoad("coach_bjoern_food_log", {})[date]) || [];
+  ["fruehstueck", "mittag", "abend", "snack"].forEach(function(mealId, i) {
+    var items = foodDayEntries.filter(function(e) { return (e.meal || "snack") === mealId; });
+    if (items.length) { row.push(items.map(function(e) { return e.name; }).join(", ")); return; }
+    var n = i + 1, t = d["meal" + n + "Time"], note = d["meal" + n + "Note"];
     row.push(t || note ? ((t ? t + " " : "") + (note || "")).trim() : "");
-  }
+  });
   var tot = getNutrientTotalsForDate(date);
   row.push(tot ? tot.kcal : "", tot ? tot.protein : "", tot ? tot.carbs : "", tot ? tot.fat : "", tot ? tot.fiber : "", tot ? tot.sugar : "");
   row.push(d.chili ? "ja" : "nein", d.cinnamon ? "ja" : "nein");
@@ -2679,6 +2629,7 @@ function switchTab(tabId) {
   if (tabId === "athlete") {
     requestAnimationFrame(function() { updateAthleteTab(); });
   }
+  if (tabId === "nutrition") renderFoodOverviews();
 }
 
 function updateCoachBriefing(now) {
@@ -2912,242 +2863,114 @@ if ("serviceWorker" in navigator) {
 
 
 // ============================================================
-// DRAG & DROP: Trello -> Mahlzeit
+// ERNAEHRUNGS-UEBERSICHT (Daten aus ernaehrung.html, gleicher Speicher)
 // ============================================================
-function onTrelloDragStart(e) {
-  var cardName = e.currentTarget.dataset.cardName || "";
-  e.dataTransfer.setData("text/plain", cardName);
-  e.dataTransfer.effectAllowed = "copy";
-  e.currentTarget.classList.add("dragging");
-  // Remove dragging class after drag ends
-  e.currentTarget.addEventListener("dragend", function() {
-    e.currentTarget.classList.remove("dragging");
-  }, { once: true });
+var FOOD_MEALS = [["fruehstueck", "Fr\u00fchst\u00fcck"], ["mittag", "Mittagessen"], ["abend", "Abendessen"], ["snack", "Snacks"]];
+function foodLoad(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch(e) { return d; } }
+function foodIso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+function foodAddDays(iso, n) { var p = iso.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2] + n); return foodIso(d); }
+function foodSum(list) { var t = { kcal: 0, protein: 0, carbs: 0, fat: 0 }; list.forEach(function(e) { for (var k in t) t[k] += parseFloat(e[k]) || 0; }); return t; }
+function foodKc(n) { return Math.round(n).toLocaleString("de-DE"); }
+function foodWeightNear(date) {
+  for (var i = 0; i < 14; i++) {
+    try { var w = parseFloat(JSON.parse(localStorage.getItem("date_entry_todayDate_" + foodAddDays(date, -i))).currentWeight); if (w > 30) return w; } catch(e) {}
+  }
+  return 75;
 }
-
-function initMealDropZones() {
-  var zones = document.querySelectorAll(".meal-drop-zone");
-  zones.forEach(function(zone) {
-    zone.addEventListener("dragover", function(e) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-      zone.classList.add("drag-over");
-    });
-    zone.addEventListener("dragleave", function() {
-      zone.classList.remove("drag-over");
-    });
-    zone.addEventListener("drop", function(e) {
-      e.preventDefault();
-      zone.classList.remove("drag-over");
-      var cardName = e.dataTransfer.getData("text/plain");
-      if (!cardName) return;
-      // Append to existing note or set
-      var current = zone.value ? zone.value.trim() : "";
-      zone.value = current ? current + ", " + cardName : cardName;
-      saveData();
-      showToast("\u2705 " + cardName + " eingetragen");
-    });
+function foodDur(s) { s = String(s || "").trim(); if (!s) return 0; var p = s.split(/[:.]/).map(Number); if (p.some(isNaN)) return 0; return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p.length === 2 ? p[0] * 60 + p[1] : p[0] * 60; }
+// Trainingsverbrauch wie auf der Ernaehrungsseite: Garmin-kcal, sonst Schaetzung
+function foodTrainingKcal(date) {
+  var sessions = [];
+  try { var o = JSON.parse(localStorage.getItem("date_entry_runDate_" + date)); if (o) sessions = Array.isArray(o.sessions) ? o.sessions : [o]; } catch(e) {}
+  var w = foodWeightNear(date), k = 0, est = false, n = 0;
+  sessions.forEach(function(s) {
+    var kcal = parseFloat(s.runKcal) || 0;
+    if (kcal > 0) { k += kcal; n++; return; }
+    var km = parseFloat(String(s.runKm || "").replace(",", ".")) || 0, sec = foodDur(s.runTime), watt = parseFloat(s.bikePower) || 0;
+    if (s.trainingDiscipline === "bike") { if (sec && watt) { k += watt * sec / 1000; est = true; n++; } else if (sec) { k += sec / 3600 * w * 7; est = true; n++; } }
+    else if (km > 0) { k += km * w; est = true; n++; }
   });
+  return { k: Math.round(k), est: est, n: n };
 }
-
-// ============================================================
-// TRELLO API
-// ============================================================
-var TRELLO_STORAGE = "coach_bjoern_trello";
-
-function saveTrelloSettings() {
-  var settings = {
-    apiKey:   document.getElementById("trelloApiKey")   ? document.getElementById("trelloApiKey").value   : "",
-    token:    document.getElementById("trelloToken")    ? document.getElementById("trelloToken").value    : "",
-    boardId:  document.getElementById("trelloBoardId")  ? document.getElementById("trelloBoardId").value  : "",
-    listName: document.getElementById("trelloListName") ? document.getElementById("trelloListName").value : ""
-  };
-  // Extract board ID from URL if full URL given
-  var urlMatch = settings.boardId.match(/trello\.com\/b\/([a-zA-Z0-9]+)/);
-  if (urlMatch) settings.boardId = urlMatch[1];
-  localStorage.setItem(TRELLO_STORAGE, JSON.stringify(settings));
-  showToast("Trello Einstellungen gespeichert");
-}
-
-function loadTrelloSettings() {
-  var raw = localStorage.getItem(TRELLO_STORAGE);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch(e) { return null; }
-}
-
-function restoreTrelloSettings() {
-  var s = loadTrelloSettings();
-  if (!s) return;
-  if (document.getElementById("trelloApiKey"))   document.getElementById("trelloApiKey").value   = s.apiKey   || "";
-  if (document.getElementById("trelloToken"))    document.getElementById("trelloToken").value    = s.token    || "";
-  if (document.getElementById("trelloBoardId"))  document.getElementById("trelloBoardId").value  = s.boardId  || "";
-  if (document.getElementById("trelloListName")) document.getElementById("trelloListName").value = s.listName || "";
-}
-
-var _trelloCardsCache = [];
-var TRELLO_CACHE_KEY = "coach_bjoern_trello_cache";
-var TRELLO_CACHE_MAX_AGE_MS = 60 * 60 * 1000; // 1 Stunde
-
-function saveTrelloCache(cards) {
-  var cacheData = { timestamp: Date.now(), date: document.getElementById("nutritionDate") ? document.getElementById("nutritionDate").value : "", cards: cards };
-  try { localStorage.setItem(TRELLO_CACHE_KEY, JSON.stringify(cacheData)); } catch(e) {}
-}
-
-function loadTrelloCache() {
-  var raw = localStorage.getItem(TRELLO_CACHE_KEY);
-  if (!raw) return null;
-  try {
-    var cacheData = JSON.parse(raw);
-    var age = Date.now() - cacheData.timestamp;
-    var currentDate = document.getElementById("nutritionDate") ? document.getElementById("nutritionDate").value : "";
-    // Cache nur gueltig wenn nicht zu alt UND gleiches Datum gewaehlt
-    if (age < TRELLO_CACHE_MAX_AGE_MS && cacheData.date === currentDate) {
-      return cacheData.cards;
-    }
-    return null;
-  } catch(e) { return null; }
-}
-
-function tryRestoreTrelloFromCache() {
-  var cached = loadTrelloCache();
-  var searchInp = document.getElementById("trelloSearchInput");
-  if (cached && cached.length > 0) {
-    _trelloCardsCache = cached;
-    if (searchInp) { searchInp.style.display = "block"; }
-    renderTrelloCards(cached);
-    var statusEl = document.getElementById("trelloStatus");
-    if (statusEl) statusEl.textContent = cached.length + " Eintraege (zwischengespeichert)";
-  }
-}
-
-async function loadTrelloCards() {
-  var s = loadTrelloSettings();
-  var statusEl = document.getElementById("trelloStatus");
-  var cardsEl  = document.getElementById("trelloCards");
-  var searchInp = document.getElementById("trelloSearchInput");
-  if (!s || !s.apiKey || !s.token || !s.boardId) {
-    if (statusEl) statusEl.textContent = "Bitte erst Einstellungen speichern.";
-    return;
-  }
-  if (statusEl) statusEl.textContent = "Lade Trello...";
-  if (cardsEl)  cardsEl.innerHTML = "";
-  try {
-    // 1. Get lists for board
-    var listsUrl = "https://api.trello.com/1/boards/" + s.boardId + "/lists?key=" + s.apiKey + "&token=" + s.token;
-    var listsResp = await fetch(listsUrl);
-    if (!listsResp.ok) throw new Error("Board nicht gefunden (Status " + listsResp.status + ")");
-    var lists = await listsResp.json();
-
-    // Filter by list name if set
-    var targetLists = lists;
-    if (s.listName && s.listName.trim() !== "") {
-      var filterName = s.listName.trim().toLowerCase();
-      targetLists = lists.filter(function(l) {
-        return l.name.toLowerCase().indexOf(filterName) >= 0;
-      });
-    }
-    if (targetLists.length === 0) {
-      if (statusEl) statusEl.textContent = "Keine passende Liste gefunden.";
-      return;
-    }
-
-    // 2. Get cards for each matching list
-    var allCards = [];
-    for (var i = 0; i < targetLists.length; i++) {
-      var cardsUrl = "https://api.trello.com/1/lists/" + targetLists[i].id + "/cards?key=" + s.apiKey + "&token=" + s.token + "&fields=name,desc,due,labels";
-      var cardsResp = await fetch(cardsUrl);
-      if (!cardsResp.ok) continue;
-      var cards = await cardsResp.json();
-      cards.forEach(function(card) { card._listName = targetLists[i].name; });
-      allCards = allCards.concat(cards);
-    }
-
-    if (allCards.length === 0) {
-      if (statusEl) statusEl.textContent = "Keine Karten gefunden.";
-      return;
-    }
-
-    // 3. Filter by today's date if cards have due dates
-    var today = document.getElementById("nutritionDate") ? document.getElementById("nutritionDate").value : "";
-    var todayCards = today ? allCards.filter(function(card) {
-      if (!card.due) return true; // show cards without due date always
-      return card.due.slice(0,10) === today;
-    }) : allCards;
-
-    // Cache fuer Suche (RAM + localStorage)
-    _trelloCardsCache = todayCards;
-    saveTrelloCache(todayCards);
-    if (searchInp) {
-      searchInp.style.display = "block";
-      searchInp.value = "";
-    }
-
-    renderTrelloCards(todayCards);
-
-  } catch(e) {
-    if (statusEl) statusEl.textContent = "Fehler: " + e.message;
-    console.error("Trello error:", e);
-  }
-}
-
-function renderTrelloCards(cardsToShow) {
-  var statusEl = document.getElementById("trelloStatus");
-  var cardsEl  = document.getElementById("trelloCards");
-  if (statusEl) statusEl.textContent = cardsToShow.length + " Eintraege";
-  if (!cardsEl) return;
-
-  if (cardsToShow.length === 0) {
-    cardsEl.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;">Keine Eintraege gefunden.</div>';
-    return;
-  }
-
-  var html = "";
-  cardsToShow.forEach(function(card) {
-    var labelHtml = "";
-    if (card.labels && card.labels.length > 0) {
-      card.labels.forEach(function(lbl) {
-        var colors = { green:"#4caf50", yellow:"#ffb300", red:"#e53935", blue:"#29b6f6", purple:"#9c27b0", orange:"#ff9800" };
-        var bg = colors[lbl.color] || "#555";
-        labelHtml += '<span style="background:' + bg + ';color:#000;font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:4px;">' + (lbl.name || lbl.color) + '</span>';
-      });
-    }
-    var descText = card.desc ? card.desc.slice(0,120) + (card.desc.length > 120 ? "..." : "") : "";
-    html += '<div class="trello-card-draggable" draggable="true" data-card-name="' + card.name.replace(/"/g, '&quot;') + '" ondragstart="onTrelloDragStart(event)">';
-    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">';
-    html += '<span style="font-size:0.7rem;color:#3a6a8a;">&#9776;</span>';
-    html += '<span style="font-weight:600;font-size:0.85rem;">' + card.name + '</span></div>';
-    if (labelHtml) html += '<div style="margin-bottom:3px;">' + labelHtml + '</div>';
-    if (descText)  html += '<div style="font-size:0.78rem;color:var(--muted);">' + descText + '</div>';
-
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">';
-    html += '<div style="font-size:0.7rem;color:#3a6a8a;">' + card._listName + (card.due ? " &middot; " + card.due.slice(0,10) : "") + '</div>';
-    html += '</div></div>';
+// Tagestyp wie auf der Ernaehrungsseite, aber immer aus dem aktuellen Training berechnet
+function foodDayInfo(date, snap) {
+  var sessions = [];
+  try { var o = JSON.parse(localStorage.getItem("date_entry_runDate_" + date)); if (o) sessions = Array.isArray(o.sessions) ? o.sessions : [o]; } catch(e) {}
+  sessions = sessions.filter(function(s) { return parseFloat(s.runKm) > 0 || s.runTime || parseFloat(s.runKcal) > 0; });
+  var rank = { rest: 0, kraft: 1, ausdauer: 2, schwelle: 3, hiit: 4 }, type = "rest";
+  sessions.forEach(function(s) {
+    var f = s.runFocus, an = parseFloat(s.runTeAnaerob) || 0, ae = parseFloat(s.runTeAerob) || 0, rpe = parseFloat(s.runRPE) || 0;
+    if (!f) f = an >= 3 ? "hiit" : ae >= 4 ? "schwelle" : (ae || an) ? "ausdauer" : rpe >= 8 ? "hiit" : rpe >= 7 ? "schwelle" : "ausdauer";
+    if (rank[f] > rank[type]) type = f;
   });
-
-  cardsEl.innerHTML = html;
-}
-
-function filterTrelloCards() {
-  var searchInp = document.getElementById("trelloSearchInput");
-  var query = searchInp ? searchInp.value.trim().toLowerCase() : "";
-  if (!query) {
-    renderTrelloCards(_trelloCardsCache);
-    return;
+  if (type === "rest") {
+    try { var st = JSON.parse(localStorage.getItem("date_entry_strengthDate_" + date)) || {}; if (Object.keys(st).some(function(k) { return k.indexOf("str-") === 0 && st[k]; })) type = "kraft"; } catch(e) {}
   }
-  var filtered = _trelloCardsCache.filter(function(card) {
-    var nameMatch = card.name && card.name.toLowerCase().indexOf(query) >= 0;
-    var descMatch = card.desc && card.desc.toLowerCase().indexOf(query) >= 0;
-    return nameMatch || descMatch;
-  });
-  renderTrelloCards(filtered);
+  // Ohne erfasstes Training: Einschaetzung der Ernaehrungsseite (enthaelt den Plan) uebernehmen
+  if (type === "rest" && snap.days && snap.days[date]) return snap.days[date];
+  var g = foodLoad("coach_bjoern_food_goals", {}) || {}, w = foodWeightNear(date);
+  var low = parseFloat(g.low) || 100, end = parseFloat(g.end) || 130, thr = (parseFloat(g.thr) || 3) * w, hiit = (parseFloat(g.hiit) || 4) * w;
+  var T = {
+    hiit: ["HIIT-Tag", hiit, false, "High Carb: ca. " + Math.round(hiit) + " g Kohlenhydrate, vor allem vor und nach der Einheit."],
+    schwelle: ["Schwellentag", thr, false, "Mehr Kohlenhydrate: ca. " + Math.round(thr) + " g, gezielt rund um die Einheit."],
+    ausdauer: ["Ausdauer / Fettstoffwechsel", end, true, "Low Carb: max. " + end + " g. Lockere Einheit m\u00f6glichst ohne Kohlenhydrate davor."],
+    kraft: ["Krafttag", low, true, "Low Carb: max. " + low + " g, Eiwei\u00df nach dem Training."],
+    rest: ["Ruhetag", low, true, "Low Carb: max. " + low + " g. Gem\u00fcse, Eiwei\u00df und gute Fette als Basis."]
+  }[type];
+  return { label: T[0], carbs: T[1], carbsIsMax: T[2], strategy: T[3] };
 }
-
+function foodContext() {
+  var snap = foodLoad("coach_bjoern_food_snapshot", {}), goals = foodLoad("coach_bjoern_food_goals", {}) || {};
+  var base = parseFloat(snap.baseGoal) || parseFloat(goals.base) || parseFloat(goals.kcal) || 2200;
+  return { snap: snap, base: base, baseTdee: parseFloat(snap.baseTdee) || null };
+}
+function renderFoodOverview() {
+  var box = document.getElementById("foodOverview"); if (!box) return;
+  var dEl = document.getElementById("nutritionDate"), date = dEl && dEl.value ? dEl.value : foodIso(new Date());
+  var ctx = foodContext(), day = (foodLoad("coach_bjoern_food_log", {})[date]) || [], t = foodSum(day), tr = foodTrainingKcal(date);
+  var info = foodDayInfo(date, ctx.snap), goal = ctx.base + tr.k, left = goal - t.kcal;
+  var h = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:10px;">' +
+    [["Grundziel", foodKc(ctx.base), "var(--text)"], ["+ Training" + (tr.est ? "*" : ""), foodKc(tr.k), "#29b6f6"], ["Gegessen", foodKc(t.kcal), "#ff9800"], ["\u00dcbrig", foodKc(left), left < 0 ? "var(--danger)" : "var(--accent)"]]
+      .map(function(x) { return '<div style="background:var(--surface-2);border-radius:10px;padding:8px 2px;"><div style="font-size:1.05rem;font-weight:800;color:' + x[2] + ';">' + x[1] + '</div><div style="font-size:0.62rem;color:var(--muted);text-transform:uppercase;">' + x[0] + '</div></div>'; }).join("") + '</div>';
+  h += '<div style="font-size:0.82rem;margin-bottom:8px;">Protein <b>' + Math.round(t.protein) + ' g</b> &middot; KH <b>' + Math.round(t.carbs) + ' g</b>' +
+    (info && info.carbs ? ' <span style="color:var(--muted);">(' + (info.carbsIsMax ? 'max. ' : 'Ziel ') + Math.round(info.carbs) + ' g)</span>' : '') + ' &middot; Fett <b>' + Math.round(t.fat) + ' g</b></div>';
+  if (info && info.label) h += '<div style="font-size:0.8rem;background:var(--surface-2);border-left:3px solid #ff9800;border-radius:8px;padding:7px 9px;margin-bottom:8px;"><b>' + info.label + ':</b> ' + (info.strategy || "") + '</div>';
+  if (!day.length) h += '<div style="font-size:0.8rem;color:var(--muted);">F\u00fcr diesen Tag ist noch nichts erfasst.</div>';
+  else h += FOOD_MEALS.map(function(m) {
+    var items = day.filter(function(e) { return (e.meal || "snack") === m[0]; }); if (!items.length) return "";
+    return '<div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:5px 0;border-top:1px solid var(--surface-3);"><span><b>' + m[1] + '</b> <span style="color:var(--muted);">' +
+      items.map(function(e) { return String(e.name).replace(/</g, "&lt;"); }).join(", ") + '</span></span><span style="white-space:nowrap;padding-left:8px;">' + foodKc(foodSum(items).kcal) + ' kcal</span></div>';
+  }).join("");
+  if (tr.est) h += '<div style="font-size:0.7rem;color:var(--muted);margin-top:6px;">* Training gesch\u00e4tzt \u2013 genauer mit "Verbrauch (kcal)" im Training.</div>';
+  box.innerHTML = h;
+}
+function renderKcalOverview() {
+  var box = document.getElementById("kcalOverview"); if (!box) return;
+  var dEl = document.getElementById("nutritionDate"), end = dEl && dEl.value ? dEl.value : foodIso(new Date());
+  var ctx = foodContext(), log = foodLoad("coach_bjoern_food_log", {}), B = ctx.baseTdee || ctx.base, rows = [], sumTr = 0, sumUse = 0, bal = [];
+  var wd = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  for (var i = 6; i >= 0; i--) {
+    var d = foodAddDays(end, -i), tr = foodTrainingKcal(d), use = B + tr.k, eaten = log[d] && log[d].length ? foodSum(log[d]).kcal : null;
+    sumTr += tr.k; sumUse += use; if (eaten != null) bal.push(eaten - use);
+    var p = d.split("-");
+    rows.push('<tr><td>' + wd[new Date(+p[0], +p[1] - 1, +p[2]).getDay()] + ' ' + p[2] + '.' + p[1] + '.</td><td style="text-align:right;">' + (tr.k ? foodKc(tr.k) + (tr.est ? '*' : '') : '\u2013') + '</td><td style="text-align:right;">' + foodKc(use) +
+      '</td><td style="text-align:right;">' + (eaten != null ? foodKc(eaten) : '\u2013') + '</td><td style="text-align:right;color:' + (eaten == null ? 'var(--muted)' : eaten - use < -500 ? 'var(--warning)' : 'inherit') + ';">' +
+      (eaten != null ? (eaten - use > 0 ? '+' : '') + foodKc(eaten - use) : '\u2013') + '</td></tr>');
+  }
+  var avgBal = bal.length ? bal.reduce(function(s, x) { return s + x; }, 0) / bal.length : null;
+  box.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><tr style="color:var(--muted);font-size:0.7rem;"><th style="text-align:left;">Tag</th><th style="text-align:right;">Training</th><th style="text-align:right;">Verbrauch</th><th style="text-align:right;">Gegessen</th><th style="text-align:right;">Bilanz</th></tr>' +
+    rows.join("") + '</table>' +
+    '<div style="font-size:0.82rem;margin-top:8px;">Training gesamt <b>' + foodKc(sumTr) + ' kcal</b> &middot; \u00d8 Verbrauch <b>' + foodKc(sumUse / 7) + ' kcal/Tag</b>' +
+    (avgBal != null ? ' &middot; \u00d8 Bilanz <b>' + (avgBal > 0 ? '+' : '') + foodKc(avgBal) + ' kcal</b>' : '') + '</div>' +
+    '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Verbrauch = ' + (ctx.baseTdee ? 'gesch\u00e4tzter Grundbedarf ' + foodKc(B) + ' kcal (aus deinen Daten)' : 'Grundziel ' + foodKc(B) + ' kcal (genauer, sobald die Ern\u00e4hrungsseite deinen Bedarf gesch\u00e4tzt hat)') + ' + Training. * = gesch\u00e4tzt.</div>';
+}
+function renderFoodOverviews() { renderFoodOverview(); renderKcalOverview(); }
 
 // ============================================================
 // DATUM-RESET: Felder leeren wenn neues Datum ohne Daten
 // ============================================================
 var trainingFields  = ["runKm","runTime","runPace","runHF","runCadence","runBKT","runElevation","runVertical","runRPE","runFeeling","runNotes","thuleChariot","thuleChildWeight","trainingDiscipline","bikeSpeed","bikeCadence","bikeElevation","bikePower","runKcal","runFocus","runTeAerob","runTeAnaerob"];
-var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","chili","cinnamon","meal1Time","meal1Note","meal2Time","meal2Note","meal3Time","meal3Note","meal4Time","meal4Note"];
+var nutritionFields = ["protein","vegetables","omega3","arginine","turmeric","ginger","waterGoal","kreatin","magnesium","chili","cinnamon"];
 var todayFields      = ["currentWeight","energy","motivation","stress","soreness","recoveryNotes","calfLeft","calfRight"]; // wird von renderDynamicChecks() angepasst
 var garminFields     = ["bodyBattery","garminSleep","garminRHR","garminHRV","garminTrainingStatus","garminSleepScore","garminLtHr","garminLtPace","garminEndurance","garminHill"];
 var strengthFields   = []; // wird dynamisch befuellt sobald Kraftuebungen gerendert sind
@@ -3456,6 +3279,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // bevor die Charts gezeichnet werden - sonst clientWidth=0 direkt nach dem Sichtbarwerden.
         requestAnimationFrame(function() { updateAthleteTab(); });
       }
+      if (t === "nutrition") renderFoodOverviews();
     });
   }
 
@@ -3466,6 +3290,7 @@ document.addEventListener("DOMContentLoaded", function() {
   loadData();
   initFeelingButtons();
   initThuleChariot();
+  setTimeout(renderFoodOverviews, 0);
   initDisciplineButtons();
 
   // Alle Datumsfelder IMMER zwingend auf "heute" setzen beim Oeffnen der App.
@@ -3482,6 +3307,8 @@ document.addEventListener("DOMContentLoaded", function() {
   onDateChange("runDate",       trainingFields);
   onDateChange("strengthDate",  strengthFields);
   onDateChange("nutritionDate", nutritionFields);
+  window.addEventListener("pageshow", function() { renderFoodOverviews(); });
+  var nd = document.getElementById("nutritionDate"); if (nd) nd.addEventListener("change", renderFoodOverviews);
 
   // Direkt beim Start pruefen: gibt es fuer "heute" schon gespeicherte Werte?
   // Falls nicht, Felder leeren (z.B. nach Mitternacht von gestern auf heute).
@@ -3503,9 +3330,6 @@ document.addEventListener("DOMContentLoaded", function() {
   updateRecoveryGarmin();
   updateGoalDiff();
   updateAthleteTab();
-  restoreTrelloSettings();
-  tryRestoreTrelloFromCache();
-  initMealDropZones();
 
   document.getElementById("runCoachAnalysis").addEventListener("click", runCoachAnalysis);
   document.getElementById("sheetsSaveBtn").addEventListener("click", saveSheetsSettings);
