@@ -117,6 +117,12 @@
   .rrow .result{flex:1;border-bottom:none;}
   .xchip .rm{margin-left:6px;color:var(--danger);font-weight:900;}
   .cover{font-size:0.7rem;color:var(--muted);}
+  .cbg{display:none;position:fixed;inset:0;background:rgba(43,36,32,0.45);z-index:300;align-items:center;justify-content:center;padding:20px;}
+  .cbg.open{display:flex;}
+  .cbox{background:var(--surface);border-radius:16px;padding:18px;max-width:380px;width:100%;box-shadow:0 10px 30px rgba(60,40,20,0.3);border-top:5px solid var(--danger);}
+  .cbox h3{font-size:1.02rem;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .cbox p{font-size:0.88rem;color:var(--text);line-height:1.5;}
+  .btn.del{background:linear-gradient(180deg,#e85a4d,var(--danger));box-shadow:0 2px 0 rgba(120,20,10,0.25);}
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-weight:700;font-size:0.82rem;padding:8px 18px;border-radius:20px;opacity:0;transition:opacity 0.3s;z-index:200;pointer-events:none;white-space:nowrap;}
   #toast.show{opacity:1;}
 </style>
@@ -159,8 +165,13 @@
   </div>
 
   <div class="card">
-    <div class="meal-h"><h2 style="margin:0;">&#11088; Meine Mahlzeiten</h2><button class="btn small" data-act="meal-new">+ Neu</button></div>
+    <div class="meal-h"><h2 style="margin:0;">&#11088; Meine Mahlzeiten</h2>
+      <div style="display:flex;gap:6px;"><button class="btn small sec" data-act="lib-save">&#128190; Sichern</button><button class="btn small" data-act="meal-new">+ Neu</button></div></div>
     <div id="mealList" style="margin-top:8px;"></div>
+    <div class="row" style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px;">
+      <div class="status" id="libStatus" style="margin:0;"></div>
+      <button class="btn small sec" data-act="lib-restore" style="flex:0 0 auto;">Wiederherstellen</button>
+    </div>
   </div>
 
   <div class="card" id="builderCard" style="display:none;">
@@ -309,6 +320,16 @@
     <button class="btn sec" data-act="amt-cancel">Abbrechen</button>
   </div>
 </div>
+<div class="cbg" id="confirmBg">
+  <div class="cbox" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <h3 id="confirmTitle"><span style="color:var(--danger);">&#9888;</span> <span id="confirmTitleText"></span></h3>
+    <p id="confirmText"></p>
+    <div class="row" style="margin-top:6px;">
+      <button class="btn sec" data-act="confirm-no">Abbrechen</button>
+      <button class="btn del" data-act="confirm-yes" id="confirmYes">Löschen</button>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 <script>
 // ============================================================
@@ -320,7 +341,8 @@ var K = {
   goals: "coach_bjoern_food_goals", pending: "coach_bjoern_food_pending",
   sheets: "coach_bjoern_sheets", token: "coach_bjoern_sheets_token",
   extrasList: "coach_bjoern_food_extras_list", extras: "coach_bjoern_food_extras",
-  favs: "coach_bjoern_food_favs"     // Favoriten getrennt vom Zwischenspeicher, damit sie nie verdraengt werden
+  favs: "coach_bjoern_food_favs",    // Favoriten getrennt vom Zwischenspeicher, damit sie nie verdraengt werden
+  snapshot: "coach_bjoern_food_snapshot", libSync: "coach_bjoern_food_libsync", libPending: "coach_bjoern_food_libpending"
 };
 var NUT = ["kcal", "protein", "carbs", "fat", "fiber", "sugar"];
 var NUT_LABEL = { kcal: "kcal", protein: "Protein", carbs: "KH", fat: "Fett", fiber: "Ballastst.", sugar: "Zucker" };
@@ -663,6 +685,7 @@ function toggleFav(prod) {
   if (f[prod.key]) { delete f[prod.key]; toast(prod.name + " aus Favoriten entfernt"); }
   else { var copy = JSON.parse(JSON.stringify(prod)); f[prod.key] = copy; toast(prod.name + " als Favorit gemerkt"); }
   save(K.favs, f);
+  syncLibrary(false);
 }
 function favList() { var f = getFavs(); return Object.keys(f).map(function(k) { return f[k]; }).sort(function(a, b) { return a.name.localeCompare(b.name, "de"); }); }
 function productRow(p, src, i) {
@@ -857,14 +880,41 @@ function saveMeal() {
   var changed = idx >= 0 ? refreshMealEntries(copy, oldName) : [];
   toast("\"" + copy.name + "\" gespeichert" + (changed.length ? " – Tagebuch aktualisiert" : ""));
   changed.forEach(function(d) { syncDay(d, true); });
+  syncLibrary(true);
   renderDiary();
   closeBuilder();
   renderMealList();
 }
+// Eigener Sicherheitsdialog: die Browser-Bestaetigung wird in installierten Web-Apps teils unterdrueckt
+var confirmCb = null;
+function askConfirm(title, text, yesLabel, cb) {
+  confirmCb = cb;
+  document.getElementById("confirmTitleText").textContent = title;
+  document.getElementById("confirmText").textContent = text;
+  document.getElementById("confirmYes").textContent = yesLabel || "Löschen";
+  document.getElementById("confirmBg").classList.add("open");
+}
+function closeConfirm(ok) {
+  document.getElementById("confirmBg").classList.remove("open");
+  var cb = confirmCb; confirmCb = null;
+  if (ok && cb) cb();
+}
 function deleteMeal(id) {
-  var m = findMeal(id); if (!m || !confirm("\"" + m.name + "\" löschen?")) return;
-  save(K.meals, load(K.meals, []).filter(function(x) { return x.id !== id; }));
-  renderMealList();
+  var m = findMeal(id); if (!m) return;
+  var log = load(K.log, {}), days = Object.keys(log).filter(function(d) {
+    return log[d].some(function(e) { return e.mealId === id || (e.source === "mahlzeit" && stripAmountSuffix(e.name) === m.name); });
+  }).length;
+  askConfirm("Mahlzeit löschen?",
+    "\u201E" + m.name + "\u201C mit " + m.items.length + " Zutaten wird dauerhaft gelöscht und kann nicht wiederhergestellt werden." +
+    (days ? " Im Tagebuch bleibt sie an " + days + (days === 1 ? " Tag" : " Tagen") + " mit ihren Werten erhalten." : ""),
+    "Endgültig löschen", function() {
+      save(K.meals, load(K.meals, []).filter(function(x) { return x.id !== id; }));
+      if (builder.id === id) closeBuilder();
+      renderMealList(); renderPickMeals();
+      toast("\u201E" + m.name + "\u201C gelöscht");
+      syncLibrary(true);
+    });
+  return;
 }
 
 // ============================================================
@@ -1539,11 +1589,106 @@ function syncDay(date, interactive) { runSync([date], interactive); }
 function syncAll() { runSync(Object.keys(load(K.log, {})), true); }
 
 // ============================================================
+// SICHERUNG: Meine Mahlzeiten & Favoriten im Sheet (Tabs "Mahlzeiten", "Favoriten")
+// Lokal liegen sie im Browser-Speicher; das Sheet ist die Sicherung fuer Cache-Loeschen oder Geraetewechsel.
+// ============================================================
+var LIB = {
+  meals: { tab: "Mahlzeiten", head: ["Name", "Fertiggewicht g", "Portionen", "Zutaten", "kcal gesamt", "kcal pro 100 g", "ID", "Daten (nicht bearbeiten)"] },
+  favs:  { tab: "Favoriten",  head: ["Name", "Marke", "kcal/100 g", "Protein/100 g", "KH/100 g", "Fett/100 g", "Schluessel", "Daten (nicht bearbeiten)"] }
+};
+function libRows(kind) {
+  if (kind === "meals") return getMeals().map(function(m) {
+    var t = mealTotals(m), fw = finishedWeight(m);
+    return [m.name, num(m.finalWeight) || "", num(m.portions) || "", m.items.map(function(it) { return it.name + " " + round1(it.grams) + " g"; }).join("; "),
+      Math.round(t.kcal), fw ? Math.round(t.kcal / fw * 100) : "", m.id, JSON.stringify(m)];
+  });
+  return favList().map(function(p) { return [p.name, p.brand || "", p.per100.kcal, p.per100.protein, p.per100.carbs, p.per100.fat, p.key, JSON.stringify(p)]; });
+}
+var libTabsReady = {};
+async function ensureNamedTab(token, title, head) {
+  if (libTabsReady[title]) return;
+  var meta = await api(token, "GET", "?fields=sheets.properties.title");
+  var titles = (meta.sheets || []).map(function(s) { return s.properties.title; });
+  if (titles.indexOf(title) === -1) await api(token, "POST", ":batchUpdate", { requests: [{ addSheet: { properties: { title: title, gridProperties: { frozenRowCount: 1 } } } }] });
+  await api(token, "PUT", "/values/" + encodeURIComponent("'" + title + "'!A1:H1") + "?valueInputOption=RAW", { values: [head] });
+  libTabsReady[title] = true;
+}
+async function writeLibrary(token) {
+  for (var kind in LIB) {
+    var L = LIB[kind], rows = libRows(kind);
+    await ensureNamedTab(token, L.tab, L.head);
+    await api(token, "POST", "/values/" + encodeURIComponent("'" + L.tab + "'!A2:H") + ":clear", {});
+    if (rows.length) await api(token, "PUT", "/values/" + encodeURIComponent("'" + L.tab + "'!A2:H" + (rows.length + 1)) + "?valueInputOption=RAW", { values: rows });
+  }
+}
+function renderLibStatus(state, msg) {
+  var el = document.getElementById("libStatus"); if (!el) return;
+  if (!sheetsOn()) { el.textContent = "Nur auf diesem Gerät gespeichert – Sheet in der App unter Im/Export einrichten."; el.className = "status warn"; return; }
+  if (state === "busy") { el.textContent = "Sichere im Sheet ..."; el.className = "status"; return; }
+  if (state === "err") { el.textContent = "Sicherung fehlgeschlagen: " + msg; el.className = "status err"; return; }
+  var last = load(K.libSync, null), pending = load(K.libPending, false);
+  if (pending) { el.textContent = "Änderungen noch nicht im Sheet – \uD83D\uDCBE Sichern tippen."; el.className = "status warn"; }
+  else if (last) { el.textContent = "Im Sheet gesichert: " + new Date(last).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); el.className = "status ok"; }
+  else { el.textContent = "Noch nicht im Sheet gesichert."; el.className = "status warn"; }
+}
+function syncLibrary(interactive) {
+  if (!sheetsOn()) { if (interactive) toast("Sheet erst in der App unter Im/Export einrichten"); renderLibStatus(); return; }
+  save(K.libPending, true);
+  var started = withToken(function(token) {
+    renderLibStatus("busy");
+    chain = chain.then(function() { return writeLibrary(token); })
+      .then(function() { save(K.libSync, Date.now()); localStorage.removeItem(K.libPending); renderLibStatus(); if (interactive) toast("Mahlzeiten & Favoriten gesichert"); })
+      .catch(function(e) { renderLibStatus("err", e.message); });
+  }, interactive);
+  if (!started) renderLibStatus();
+}
+function restoreLibrary() {
+  if (!sheetsOn()) { toast("Sheet erst in der App unter Im/Export einrichten"); return; }
+  withToken(function(token) {
+    renderLibStatus("busy");
+    chain = chain.then(async function() {
+      var res = {};
+      for (var kind in LIB) {
+        try { var r = await api(token, "GET", "/values/" + encodeURIComponent("'" + LIB[kind].tab + "'!H2:H")); res[kind] = (r.values || []).map(function(x) { try { return JSON.parse(x[0]); } catch(e) { return null; } }).filter(Boolean); }
+        catch(e) { res[kind] = []; }
+      }
+      // Zusammenfuehren: Fehlendes ergaenzen, bei gleicher Mahlzeit gewinnt die neuere Fassung
+      var meals = load(K.meals, []), addedM = 0, addedF = 0;
+      res.meals.forEach(function(m) {
+        var i = meals.findIndex(function(x) { return x.id === m.id; });
+        if (i < 0) { meals.push(m); addedM++; } else if ((m.updated || 0) > (meals[i].updated || 0)) meals[i] = m;
+      });
+      save(K.meals, meals);
+      var favs = getFavs();
+      res.favs.forEach(function(p) { if (p.key && !favs[p.key]) { favs[p.key] = p; addedF++; } });
+      save(K.favs, favs);
+      renderMealList(); renderPickMeals(); renderFavs(); renderLibStatus();
+      toast(addedM + " Mahlzeit(en) und " + addedF + " Favorit(en) wiederhergestellt");
+    }).catch(function(e) { renderLibStatus("err", e.message); });
+  }, true);
+}
+
+// ---- Uebergabe an die App-Uebersicht: Tagestyp, Ziele und Grundbedarf ----
+function writeSnapshot() {
+  try {
+    var today = isoLocal(new Date()), days = {};
+    for (var i = -7; i <= 3; i++) {
+      var d = dateAdd(today, i), tg = dayTargets(d);
+      days[d] = { label: tg.label, strategy: tg.strategy, carbs: Math.round(tg.carbs), carbsIsMax: tg.carbsIsMax, kcalGoal: Math.round(tg.kcal) };
+    }
+    var wt = weightTrend(today);
+    save(K.snapshot, { updated: Date.now(), baseGoal: getGoals().base, baseTdee: wt.baseTdee || null, days: days });
+  } catch(e) { console.warn("Snapshot", e); }
+}
+
+// ============================================================
 // STEUERUNG
 // ============================================================
 var activeTab = "input";
 function renderAll() {
   renderDiary();
+  writeSnapshot();
+  renderLibStatus();
   renderMealList();
   if (activeTab === "eval") renderEval();
   if (activeTab === "ana") renderAnalysis();
@@ -1584,6 +1729,8 @@ document.addEventListener("click", function(ev) {
     case "meal-new": openBuilder(null); break;
     case "meal-edit": openBuilder(findMeal(d.id)); break;
     case "meal-del": deleteMeal(d.id); break;
+    case "confirm-yes": closeConfirm(true); break;
+    case "confirm-no": closeConfirm(false); break;
     case "b-del": builder.items.splice(+d.i, 1); renderBuilder(); break;
     case "b-save": saveMeal(); break;
     case "b-cancel": closeBuilder(); break;
@@ -1591,6 +1738,8 @@ document.addEventListener("click", function(ev) {
     case "goals-save": saveGoals(false); break;
     case "goals-tdee": saveGoals(true); break;
     case "sync": syncAll(); break;
+    case "lib-save": syncLibrary(true); break;
+    case "lib-restore": restoreLibrary(); break;
     case "extra": toggleExtra(d.id); break;
     case "extra-rm": removeCustomExtra(d.id); break;
     case "extras-edit": extrasEdit = !extrasEdit; renderExtras(); break;
@@ -1598,6 +1747,7 @@ document.addEventListener("click", function(ev) {
     case "top-k": topKey = d.k; renderEval(); break;
   }
 });
+document.addEventListener("keydown", function(ev) { if (ev.key === "Escape" && confirmCb) closeConfirm(false); });
 document.addEventListener("change", function(ev) {
   if (ev.target.dataset && ev.target.dataset.bi != null) { builder.items[+ev.target.dataset.bi].grams = num(ev.target.value); renderBuilder(); }
 });
