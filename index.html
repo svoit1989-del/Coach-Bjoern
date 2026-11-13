@@ -60,11 +60,15 @@
     .app-header h1{font-size:1.1rem;color:var(--accent);}
     .header-stats{display:flex;gap:10px;font-size:0.8rem;color:var(--muted);}
     .header-stats span{background:var(--surface-2);padding:3px 10px;border-radius:20px;}
-    .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:flex;overflow-x:auto;background:linear-gradient(180deg,#1a1c20 0%,#141518 100%);border-top:1px solid var(--border-highlight);box-shadow:0 -4px 16px rgba(0,0,0,0.35);height:var(--nav-height);scrollbar-width:none;}
+    .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:flex;overflow-x:auto;background:rgba(22,23,27,0.82);-webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);border-top:1px solid var(--border-highlight);box-shadow:0 -6px 20px rgba(0,0,0,0.4);height:var(--nav-height);scrollbar-width:none;}
     .bottom-nav::-webkit-scrollbar{display:none;}
     .tab-btn{flex:0 0 auto;min-width:70px;background:transparent;color:var(--muted);border:none;border-top:2px solid transparent;padding:6px 8px;font-size:0.68rem;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.03em;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color 0.15s,background 0.15s;}
-    .tab-btn .ni{font-size:1.15rem;}
-    .tab-btn.active{color:var(--accent);border-top-color:var(--accent);background:linear-gradient(180deg,#26292e 0%,#1e2024 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);}
+    .tab-btn .ni{width:44px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;transition:background 0.25s,transform 0.25s,box-shadow 0.25s,color 0.25s;}
+    .tab-btn .ni svg{width:22px;height:22px;}
+    .tab-btn.active .ni{background:linear-gradient(135deg,var(--accent-light),var(--accent-dim));color:#0a1a0a;box-shadow:0 4px 14px rgba(76,175,80,0.45);transform:translateY(-2px);}
+    .tab-btn.active .ni svg{animation:niPop 0.35s ease;}
+    @keyframes niPop{0%{transform:scale(0.7)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+    .tab-btn.active{color:var(--accent-light);}
     main{padding:12px;max-width:680px;margin:auto;}
     .tab-page{display:none;}
     .tab-page.active{display:block;}
@@ -191,6 +195,15 @@
     .food-search-result .fs-brand { font-size: 0.72rem; color: var(--muted); }
     .food-search-result .fs-nut { font-size: 0.72rem; color: #29b6f6; margin-top: 2px; }
 
+    .wf-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;font-size:0.8rem;color:var(--muted);}
+    .wf-row b{color:var(--text);font-size:0.92rem;}
+    input[type=range].wf-range{-webkit-appearance:none;appearance:none;width:100%;padding:0;border:none;background:transparent;box-shadow:none;height:30px;--p:50%;}
+    input[type=range].wf-range::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to right,var(--accent) var(--p),#34373d var(--p));}
+    input[type=range].wf-range::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#1c1e22;border:4px solid var(--accent-light);box-shadow:0 2px 6px rgba(0,0,0,0.5);margin-top:-8px;}
+    input[type=range].wf-range::-moz-range-track{height:8px;border-radius:4px;background:#34373d;}
+    input[type=range].wf-range::-moz-range-progress{height:8px;border-radius:4px;background:var(--accent);}
+    input[type=range].wf-range::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#1c1e22;border:4px solid var(--accent-light);}
+
     /* ATHLET-PROFIL */
     .athlete-hero {
       background: linear-gradient(145deg,#1a2e1a,#0f1f0f);
@@ -258,15 +271,15 @@
 </header>
 
 <nav class="bottom-nav">
-  <button class="tab-btn active" data-tab="start"><span class="ni">&#127968;</span>Start</button>
-  <button class="tab-btn" data-tab="today"><span class="ni">&#127780;</span>Heute</button>
-  <button class="tab-btn" data-tab="plan"><span class="ni">&#128197;</span>Plan</button>
-  <button class="tab-btn" data-tab="training"><span class="ni">&#127939;</span>Training</button>
-  <button class="tab-btn" data-tab="strength"><span class="ni">&#128170;</span>Kraft</button>
-  <button class="tab-btn" data-tab="nutrition"><span class="ni">&#129367;</span>Ern&auml;hrung</button>
-  <button class="tab-btn" data-tab="athlete"><span class="ni">&#128100;</span>Athlet</button>
-  <button class="tab-btn" data-tab="analysis"><span class="ni">&#129302;</span>Auswertung</button>
-  <button class="tab-btn" data-tab="export"><span class="ni">&#128202;</span>Sheet</button>
+  <button class="tab-btn active" data-tab="start"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h4.5v-5.5h3V20H18V9.5"/></svg></span>Start</button>
+  <button class="tab-btn" data-tab="today"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12.5h4l2.2-5.5 4.6 11 2.4-5.5h5.8"/></svg></span>Heute</button>
+  <button class="tab-btn" data-tab="plan"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8.5 3v4M15.5 3v4"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/></svg></span>Plan</button>
+  <button class="tab-btn" data-tab="training"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5l3.2-3.2M10 2.8h4M12 2.8V6"/></svg></span>Training</button>
+  <button class="tab-btn" data-tab="strength"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7.5v9M3.5 10v4M17.5 7.5v9M20.5 10v4M6.5 12h11"/></svg></span>Kraft</button>
+  <button class="tab-btn" data-tab="nutrition"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5c-2.2-2.6-7-1.7-7 3 0 5.3 3.6 10 7 10s7-4.7 7-10c0-4.7-4.8-5.6-7-3z"/><path d="M12 7.5c0-2.3 1.2-4.2 3.5-4.7"/></svg></span>Ern&auml;hrung</button>
+  <button class="tab-btn" data-tab="athlete"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="15" r="5"/><path d="M8.3 3.5 12 10l3.7-6.5"/><path d="m12 12.6.9 1.7 1.9.3-1.4 1.3.3 1.9-1.7-.9-1.7.9.3-1.9-1.4-1.3 1.9-.3z" fill="currentColor" stroke-width="0.8"/></svg></span>Athlet</button>
+  <button class="tab-btn" data-tab="analysis"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20h17"/><path d="M6.5 16.5v-4M11 16.5V8M15.5 16.5v-6M20 16.5V5"/><path d="m5 9 5-4 4.5 3L20 3.5" stroke-width="1.5" opacity="0.55"/></svg></span>Auswertung</button>
+  <button class="tab-btn" data-tab="export"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5a4.2 4.2 0 0 1-.7-8.4 6 6 0 0 1 11.6 1.4 3.5 3.5 0 0 1-.4 7"/><path d="M12 11v8M9 16l3 3 3-3"/></svg></span>Sheet</button>
 </nav>
 
 <main>
@@ -562,6 +575,35 @@
   </div>
 
   <div class="card">
+    <h2>&#127937; Weg nach Oberhof</h2>
+    <div id="athRoad"></div>
+  </div>
+
+  <div class="card">
+    <h2>&#128293; Trainings-Kalender <span style="font-size:0.75rem;color:var(--muted);font-weight:400;">(12 Wochen)</span></h2>
+    <div id="athHeat"></div>
+  </div>
+
+  <div class="card">
+    <h2>&#128302; Was waere wenn? <span style="font-size:0.75rem;color:var(--muted);font-weight:400;">10 km &amp; Halbmarathon</span></h2>
+    <div class="wf-row"><span>Gewicht am Zieltag</span><b id="wf10WeightV"></b></div><input type="range" class="wf-range" id="wf10Weight" step="0.5">
+    <div class="wf-row"><span>Lauf-km pro Woche</span><b id="wf10KmV"></b></div><input type="range" class="wf-range" id="wf10Km" min="10" max="70" step="1">
+    <div class="wf-row"><span>Zeitraum</span><b id="wf10WeeksV"></b></div><input type="range" class="wf-range" id="wf10Weeks" min="4" max="30" step="1">
+    <div class="wf-row"><span>Harte Einheiten pro Woche</span></div>
+    <div class="feeling-row" id="wf10Q" style="margin-top:6px;">
+      <button type="button" class="feel-btn" data-q="0">keine</button>
+      <button type="button" class="feel-btn" data-q="1">1 (CV / Schwelle)</button>
+      <button type="button" class="feel-btn" data-q="2">2</button>
+    </div>
+    <div id="wf10Chart" style="margin-top:12px;"></div>
+    <div id="wf10Out" style="background:var(--surface-2);border-radius:12px;padding:12px;margin-top:10px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn secondary" style="font-size:0.72rem;padding:10px 6px;" onclick="wf10FromNutrition()">Gewicht aus Ernaehrungs-Prognose</button>
+      <button class="btn secondary" style="font-size:0.72rem;padding:10px 6px;" onclick="renderWhatIf10(true)">Zuruecksetzen</button>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>&#127942; Profil</h2>
     <div class="stat-row"><span class="stat-row-label">Aktuelles Gewicht</span><span class="stat-row-value" id="athProfileWeight">-</span></div>
     <div class="stat-row"><span class="stat-row-label">Zielgewicht</span><span class="stat-row-value" id="athProfileGoalWeight">-</span></div>
@@ -583,14 +625,12 @@
     <div class="stat-row"><span class="stat-row-label">Restgewicht bis Ziel</span><span class="stat-row-value" id="athProgressWeightLeft">-</span></div>
     <div class="stat-row"><span class="stat-row-label">Trainingseinheiten gesamt</span><span class="stat-row-value" id="athProgressTotalSessions">-</span></div>
     <div style="margin-top:14px;">
-      <div style="font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">&#9878; Gewichtsverlauf</div>
-      <canvas id="weightChart" height="140" style="width:100%;background:var(--surface-2);border-radius:10px;"></canvas>
-      <div id="weightChartEmpty" style="display:none;text-align:center;color:var(--muted);font-size:0.8rem;padding:24px;background:var(--surface-2);border-radius:10px;border:1px dashed #444;">Noch keine Gewichtsdaten erfasst.</div>
+      <div style="font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">&#9878; Gewichtsverlauf (12 Wochen)</div>
+      <div id="athWeightSvg"></div>
     </div>
     <div style="margin-top:16px;">
-      <div style="font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">&#128202; Wochenvolumen (km)</div>
-      <canvas id="volumeChart" height="140" style="width:100%;background:var(--surface-2);border-radius:10px;"></canvas>
-      <div id="volumeChartEmpty" style="display:none;text-align:center;color:var(--muted);font-size:0.8rem;padding:24px;background:var(--surface-2);border-radius:10px;border:1px dashed #444;">Noch keine Trainingswochen erfasst.</div>
+      <div style="font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">&#128202; Trainingszeit pro Woche</div>
+      <div id="athLoadSvg"></div>
     </div>
   </div>
 
@@ -799,17 +839,21 @@ for (var _pw = 1; _pw <= PLACEHOLDER_WEEKS_COUNT; _pw++) {
 }
 
 const strengthA = [
-  { name:"Kniebeuge",               sets:"3 x 8",  link:"https://www.youtube.com/watch?v=ultWZbUMPL8" },
-  { name:"Rumaenisches Kreuzheben", sets:"3 x 8",  link:"https://www.youtube.com/watch?v=JCXUYuzwNrM" },
-  { name:"Ausfallschritte",         sets:"3 x 10", link:"https://www.youtube.com/watch?v=QOVaHwm-Q6U" },
-  { name:"Wadenheben",              sets:"3 x 15", link:"https://www.youtube.com/watch?v=-M4-G8p1fCI" },
-  { name:"Plank",                   sets:"3 x 60s",link:"https://www.youtube.com/watch?v=pvIjsG5Svdk" }
+  { name:"Kniebeuge",                sets:"3 x 8",   link:"https://www.youtube.com/watch?v=ultWZbUMPL8" },
+  { name:"Ausfallschritte",          sets:"3 x 10",  link:"https://www.youtube.com/watch?v=QOVaHwm-Q6U" },
+  { name:"Wadenheben",               sets:"3 x 15",  link:"https://www.youtube.com/watch?v=-M4-G8p1fCI" },
+  { name:"Plank",                    sets:"3 x 60s", link:"https://www.youtube.com/watch?v=pvIjsG5Svdk" },
+  { name:"Dead Bug",                 sets:"3 x 10" },
+  { name:"Y-T-W",                    sets:"3 x 8" },
+  { name:"Liegestuetze",             sets:"3 x 10" }
 ];
 const strengthB = [
-  { name:"Bulgarian Split Squat",    sets:"3 x 8",  link:"https://www.youtube.com/watch?v=2C-uNgKwPLE" },
-  { name:"Step Ups",                 sets:"3 x 10", link:"https://www.youtube.com/watch?v=dQqApCGd5Ss" },
-  { name:"Exzentrisches Wadenheben", sets:"3 x 12", link:"https://www.youtube.com/watch?v=g0CkGCCSoSk" },
-  { name:"Seitshtz",                 sets:"3 x 45s",link:"https://www.youtube.com/watch?v=K5iMYpjhQO4" }
+  { name:"Glute Bridge",             sets:"3 x 12" },
+  { name:"Exzentrisches Wadenheben", sets:"3 x 12",  link:"https://www.youtube.com/watch?v=g0CkGCCSoSk" },
+  { name:"Seitstuetz",               sets:"3 x 45s", link:"https://www.youtube.com/watch?v=K5iMYpjhQO4" },
+  { name:"Bird Dog",                 sets:"3 x 10" },
+  { name:"Scapula Push-ups",         sets:"3 x 12" },
+  { name:"Superman",                 sets:"3 x 12" }
 ];
 
 // ============================================================
@@ -891,9 +935,10 @@ function getDayOffset(dayName) {
 
 function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 
-function toICSDate(d) {
-  return "" + d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate())
-       + "T" + pad2(d.getHours()) + pad2(d.getMinutes()) + "00";
+// Heutiges Datum in Ortszeit (toISOString liefert UTC und damit nach Mitternacht noch den Vortag)
+function localISODate(d) {
+  d = d || new Date();
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
 }
 
 // ============================================================
@@ -992,16 +1037,13 @@ function exportWeekICS(planWeek) {
     // Dauer inkl. 15 min Auf-/Abwaermen bei Laufeinheiten
     var durNum = getEffectiveDauerMinutes(d);
 
-    // Build start/end as local Berlin time, exported as UTC
-    // Berlin summer time = UTC+2 (KW26 onwards)
-    var berlinOffset = 2; // CEST
+    // Start in Ortszeit; die Umrechnung nach UTC (inkl. Sommer-/Winterzeit) macht toICSDateUTC
     var dtStartLocal = new Date(eventDate);
     dtStartLocal.setHours(startHour, 0, 0, 0);
-    // Shift to UTC
-    var dtStartUTC = new Date(dtStartLocal.getTime() - berlinOffset * 3600000);
+    var dtStartUTC = dtStartLocal;
     var dtEndUTC   = new Date(dtStartUTC.getTime() + durNum * 60000);
 
-    var summary = d.type
+    var summary = (({ run: "Lauf", bike: "Rad", strength: "Kraft", rest: "Pause" })[d.type] || d.type)
       + (d.title   ? ": " + d.title    : "")
       + (d.workout ? " (" + d.workout + ")" : "");
 
@@ -1246,7 +1288,7 @@ function renderStrength() {
   var c = document.getElementById("strengthContainer");
   if (!c) return;
   var dateEl = document.getElementById("strengthDate");
-  var dateStr = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0, 10);
+  var dateStr = dateEl && dateEl.value ? dateEl.value : localISODate();
   var sessions = getWeekStrengthSessions(dateStr);
   if (_strengthSelIdx >= sessions.length) _strengthSelIdx = 0;
   var sel = sessions[_strengthSelIdx];
@@ -1289,7 +1331,7 @@ function restoreStrengthValues(dateStr) {
 function loadStrengthForDate() {
   // Auswahl: gespeicherte Einheit dieses Tages > Einheit, die laut Plan auf diesen Wochentag faellt > erste
   var dateEl = document.getElementById("strengthDate");
-  var dateStr = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0, 10);
+  var dateStr = dateEl && dateEl.value ? dateEl.value : localISODate();
   var sessions = getWeekStrengthSessions(dateStr);
   var entry = getStrengthEntry(dateStr);
   var weekday = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"][parseLocalDate(dateStr).getDay()];
@@ -2828,38 +2870,6 @@ function triggerInstall() {
 // ============================================================
 // SERVICE WORKER
 // ============================================================
-if ("serviceWorker" in navigator) {
-  var swLines = [
-    'const CACHE="coach-bjoern-v1";',
-    'self.addEventListener("install",function(){self.skipWaiting();});',
-    'self.addEventListener("activate",function(e){',
-    '  e.waitUntil(caches.keys().then(function(keys){',
-    '    return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));',
-    '  }));',
-    '  self.clients.claim();',
-    '});',
-    'self.addEventListener("fetch",function(e){',
-    '  e.respondWith(caches.match(e.request).then(function(cached){',
-    '    if(cached)return cached;',
-    '    return fetch(e.request).then(function(resp){',
-    '      if(!resp||resp.status!==200||resp.type!=="basic")return resp;',
-    '      var clone=resp.clone();',
-    '      caches.open(CACHE).then(function(c){c.put(e.request,clone);});',
-    '      return resp;',
-    '    }).catch(function(){return cached;});',
-    '  }));',
-    '});'
-  ];
-  var swBlob = new Blob([swLines.join("\n")], { type: "application/javascript" });
-  navigator.serviceWorker.register(URL.createObjectURL(swBlob))
-    .then(function(reg) {
-      caches.open("coach-bjoern-v1").then(function(cache) { cache.add(window.location.href); }).catch(function(){});
-    }).catch(function(){});
-}
-
-
-
-
 
 
 // ============================================================
@@ -3045,138 +3055,209 @@ function saveDateEntry(dateFieldId, fields) {
 // ============================================================
 // ATHLET-DIAGRAMME (leichtgewichtige Canvas-Charts, kein externes Lib noetig)
 // ============================================================
-function drawLineChart(canvasId, emptyId, points, opts) {
-  var canvas = document.getElementById(canvasId);
-  var emptyEl = document.getElementById(emptyId);
-  if (!canvas) return;
-
-  if (!points || points.length === 0) {
-    canvas.style.display = "none";
-    if (emptyEl) emptyEl.style.display = "block";
-    return;
-  }
-  canvas.style.display = "block";
-  if (emptyEl) emptyEl.style.display = "none";
-
-  opts = opts || {};
-  var lineColor = opts.color || "#4caf50";
-  var unit = opts.unit || "";
-
-  // Breite robust ermitteln: clientWidth ist 0, wenn der Tab (noch) unsichtbar ist
-  // (display:none-Elternelemente liefern keine Layout-Groesse). Fallback auf einen
-  // sinnvollen Standardwert verhindert ein leeres/verzerrtes Chart in diesem Fall.
-  var displayWidth = canvas.clientWidth || (canvas.parentElement ? canvas.parentElement.clientWidth : 0) || 320;
-  var displayHeight = parseInt(canvas.getAttribute("height")) || 140;
-
-  var dpr = window.devicePixelRatio || 1;
-  canvas.width = displayWidth * dpr;
-  canvas.height = displayHeight * dpr;
-  canvas.style.width = displayWidth + "px";
-  canvas.style.height = displayHeight + "px";
-  var ctx = canvas.getContext("2d");
-  ctx.setTransform(1, 0, 0, 1, 0, 0); // vorherige Skalierung zuruecksetzen bei Redraw
-  ctx.scale(dpr, dpr);
-
-  var padding = { top: 16, right: 12, bottom: 24, left: 12 };
-  var chartW = displayWidth - padding.left - padding.right;
-  var chartH = displayHeight - padding.top - padding.bottom;
-
-  var values = points.map(function(p) { return p.value; });
-  var minV = Math.min.apply(null, values);
-  var maxV = Math.max.apply(null, values);
-  if (minV === maxV) { minV -= 1; maxV += 1; }
-  var vRange = maxV - minV;
-
-  ctx.clearRect(0, 0, displayWidth, displayHeight);
-
-  function xFor(i) { return padding.left + (points.length === 1 ? chartW / 2 : (i / (points.length - 1)) * chartW); }
-  function yFor(v) { return padding.top + chartH - ((v - minV) / vRange) * chartH; }
-
-  // Fuellflaeche unter der Linie
-  ctx.beginPath();
-  ctx.moveTo(xFor(0), padding.top + chartH);
-  points.forEach(function(p, i) { ctx.lineTo(xFor(i), yFor(p.value)); });
-  ctx.lineTo(xFor(points.length - 1), padding.top + chartH);
-  ctx.closePath();
-  ctx.fillStyle = lineColor + "22";
-  ctx.fill();
-
-  // Linie
-  ctx.beginPath();
-  points.forEach(function(p, i) {
-    var x = xFor(i), y = yFor(p.value);
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Punkte
-  points.forEach(function(p, i) {
-    ctx.beginPath();
-    ctx.arc(xFor(i), yFor(p.value), 3, 0, Math.PI * 2);
-    ctx.fillStyle = lineColor;
-    ctx.fill();
-  });
-
-  // Erster/letzter Wert als Beschriftung
-  ctx.font = "11px Arial";
-  ctx.fillStyle = "#b5b5b5";
-  ctx.textAlign = "left";
-  ctx.fillText(points[0].value + unit, xFor(0), padding.top + chartH + 16);
-  ctx.textAlign = "right";
-  ctx.fillText(points[points.length - 1].value + unit, xFor(points.length - 1), padding.top + chartH + 16);
-
-  // Min/Max rechts oben als Kontext
-  ctx.textAlign = "left";
-  ctx.fillStyle = lineColor;
-  ctx.font = "bold 12px Arial";
-  ctx.fillText(maxV.toFixed(1) + unit, padding.left, 12);
+// ============================================================
+// ATHLET-GRAFIKEN (SVG) UND 10-KM-PROGNOSE
+// ============================================================
+var RACE_DATE = new Date(2027, 4, 22); // Rennsteiglauf Halbmarathon, Oberhof -> Schmiedefeld
+function athIso(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+function athMonday(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+function athWeeksToRace() { return Math.round((athMonday(RACE_DATE) - athMonday(new Date())) / (7 * 86400000)); }
+function athPhase(w) {
+  if (w < 0) return ["Regeneration", "#9e9e9e"]; if (w === 0) return ["Rennwoche", "#e53935"]; if (w <= 2) return ["Tapering", "#ffb300"];
+  if (w <= 8) return ["Aufbau 2", "#ff7043"]; if (w <= 16) return ["Aufbau 1", "#29b6f6"]; return ["Grundlage", "#4caf50"];
 }
-
-function getWeightHistory(maxEntries) {
-  var entries = [];
+function athNum(v) { var n = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(n) ? 0 : n; }
+function athFmt(n, d) { return n.toFixed(d == null ? 1 : d).replace(".", ","); }
+function athDur(s) { s = String(s || "").trim(); if (!s) return 0; var p = s.split(/[:.]/).map(Number); if (p.some(isNaN)) return 0; return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p.length === 2 ? p[0] * 60 + p[1] : p[0] * 60; }
+function athWeights() {
+  var m = {};
   for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (!key || key.indexOf("date_entry_todayDate_") !== 0) continue;
-    var dateStr = key.replace("date_entry_todayDate_", "");
-    try {
-      var data = JSON.parse(localStorage.getItem(key));
-      var w = parseFloat(data.currentWeight);
-      if (w && w > 0) entries.push({ date: dateStr, value: w });
-    } catch(e) {}
+    var k = localStorage.key(i);
+    if (k && k.indexOf("date_entry_todayDate_") === 0) { try { var w = athNum(JSON.parse(localStorage.getItem(k)).currentWeight); if (w > 30 && w < 250) m[k.slice(21)] = w; } catch(e) {} }
   }
-  entries.sort(function(a, b) { return a.date.localeCompare(b.date); });
-  if (maxEntries && entries.length > maxEntries) entries = entries.slice(entries.length - maxEntries);
-  return entries;
+  return m;
+}
+function athDay(date) {
+  // Zusammenfassung eines Tages fuer Kalender und Wochenbalken
+  var s = getTrainingSessions(date).filter(function(x) { return athNum(x.runKm) > 0 || x.runTime; }), o = { run: 0, bike: 0, runMin: 0, bikeMin: 0, quality: false, strength: false, n: s.length };
+  s.forEach(function(x) {
+    var km = athNum(x.runKm), sec = athDur(x.runTime), bike = x.trainingDiscipline === "bike";
+    if (bike) { o.bike += km; o.bikeMin += sec ? sec / 60 : km / 25 * 60; } else { o.run += km; o.runMin += sec ? sec / 60 : km * 6; }
+    var f = x.runFocus || (athNum(x.runTeAnaerob) >= 3 ? "hiit" : athNum(x.runTeAerob) >= 4 ? "schwelle" : athNum(x.runRPE) >= 7 ? "schwelle" : "");
+    if (f === "hiit" || f === "schwelle") o.quality = true;
+  });
+  try { var st = JSON.parse(localStorage.getItem("date_entry_strengthDate_" + date)) || {}; o.strength = Object.keys(st).some(function(k) { return k.indexOf("str-") === 0 && st[k]; }); } catch(e) {}
+  return o;
 }
 
-function getWeeklyVolumeHistory(maxWeeks) {
-  // Gruppiert alle erfassten Laufeinheiten nach Kalenderwoche und summiert die km
-  var weekTotals = {}; // key: "YYYY-Www" -> { km, mondayDate }
-  collectTrainingSessions().forEach(function(s) {
-    if (s.data.trainingDiscipline === "bike") return; // Laufvolumen, Rad separat
-    var km = parseFloat(s.data.runKm) || 0;
-    if (km <= 0) return;
-    var range = getWeekDateRange(s.dateObj);
-    var wKey = range.monday.getFullYear() + "-" + pad2(range.monday.getMonth() + 1) + "-" + pad2(range.monday.getDate());
-    if (!weekTotals[wKey]) weekTotals[wKey] = { km: 0, monday: wKey };
-    weekTotals[wKey].km += km;
+// ---- 1) Weg nach Oberhof: stilisiertes Hoehenprofil mit Phasen und Standort ----
+function renderRaceRoad() {
+  var box = document.getElementById("athRoad"); if (!box) return;
+  var w = athWeeksToRace(), ph = athPhase(w), SPAN = 32, W = 340, H = 150, x0 = 12, x1 = 318, base = 112;
+  var prof = [0.42, 0.50, 0.46, 0.60, 0.55, 0.70, 0.66, 0.82, 0.78, 0.95, 0.88, 1.0, 0.86, 0.72, 0.60, 0.44, 0.34]; // stilisiert, kein echtes Profil
+  var px = function(i) { return x0 + i / (prof.length - 1) * (x1 - x0); }, py = function(v) { return base - v * 70; };
+  var yAt = function(p) { var f = p * (prof.length - 1), i = Math.min(prof.length - 2, Math.floor(f)), t = f - i; return py(prof[i] + (prof[i + 1] - prof[i]) * t); };
+  var line = prof.map(function(v, i) { return (i ? "L" : "M") + px(i).toFixed(1) + " " + py(v).toFixed(1); }).join(" ");
+  var segs = [[32, 17, "#4caf50", "Grundlage"], [17, 9, "#29b6f6", "Aufbau 1"], [9, 3, "#ff7043", "Aufbau 2"], [3, 0, "#ffb300", "Taper"]];
+  var xw = function(weeksLeft) { return x0 + (1 - weeksLeft / SPAN) * (x1 - x0); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;"><defs><clipPath id="roadClip"><path d="' + line + ' L ' + x1 + ' ' + base + ' L ' + x0 + ' ' + base + ' Z"/></clipPath>' +
+    '<radialGradient id="youGlow"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>';
+  segs.forEach(function(s) {
+    svg += '<rect x="' + xw(s[0]) + '" y="30" width="' + (xw(s[1]) - xw(s[0])) + '" height="' + (base - 30) + '" fill="' + s[2] + '" opacity="0.32" clip-path="url(#roadClip)"/>';
+    svg += '<rect x="' + (xw(s[0]) + 1) + '" y="' + (base + 6) + '" width="' + (xw(s[1]) - xw(s[0]) - 2) + '" height="5" rx="2.5" fill="' + s[2] + '"/>';
+    svg += '<text x="' + ((xw(s[0]) + xw(s[1])) / 2) + '" y="' + (base + 24) + '" text-anchor="middle" font-size="8.5" fill="#9a9fa6">' + s[3] + '</text>';
   });
-  var weeks = Object.keys(weekTotals).map(function(k) {
-    return { date: weekTotals[k].monday, value: Math.round(weekTotals[k].km * 10) / 10 };
+  svg += '<path d="' + line + '" fill="none" stroke="#f5f6f7" stroke-width="2" stroke-linejoin="round" opacity="0.85"/>';
+  // Ziel-Fahne
+  svg += '<line x1="' + x1 + '" y1="' + (py(prof[prof.length - 1]) - 26) + '" x2="' + x1 + '" y2="' + py(prof[prof.length - 1]) + '" stroke="#f5f6f7" stroke-width="1.5"/><path d="M ' + x1 + ' ' + (py(prof[prof.length - 1]) - 26) + ' l 14 5 l -14 5 Z" fill="#e53935"/>';
+  svg += '<text x="' + x0 + '" y="' + (py(prof[0]) + 14) + '" font-size="8" fill="#9a9fa6"></text>';
+  var p = Math.max(0, Math.min(1, 1 - w / SPAN)), cx = x0 + p * (x1 - x0), cy = yAt(p);
+  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="14" fill="url(#youGlow)"/><circle cx="' + cx + '" cy="' + cy + '" r="5.5" fill="' + ph[1] + '" stroke="#fff" stroke-width="2"/>';
+  svg += '<text x="' + Math.min(W - 40, Math.max(30, cx)) + '" y="' + (cy - 14) + '" text-anchor="middle" font-size="9" font-weight="700" fill="#f5f6f7">Du bist hier</text></svg>';
+  var raceTxt = RACE_DATE.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  box.innerHTML = '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;"><span style="font-size:2rem;font-weight:800;line-height:1;">' + (w >= 0 ? w : 0) + '</span><span style="font-size:0.9rem;color:var(--muted);">' + (w === 1 ? 'Woche' : 'Wochen') + ' bis Oberhof</span>' +
+    '<span style="margin-left:auto;background:' + ph[1] + ';color:#0a1a0a;border-radius:8px;padding:3px 10px;font-size:0.75rem;font-weight:800;">' + ph[0] + '</span></div>' + svg +
+    '<div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">Rennsteiglauf Halbmarathon am ' + raceTxt + ' &middot; Profil stilisiert</div>';
+}
+
+// ---- 2) Trainings-Kalender: 12 Wochen als Farbfelder ----
+function renderTrainHeatmap() {
+  var box = document.getElementById("athHeat"); if (!box) return;
+  var WEEKS = 12, cell = 22, gap = 4, left = 22, top = 4, start = athMonday(new Date()); start.setDate(start.getDate() - (WEEKS - 1) * 7);
+  var todayIso = athIso(new Date()), svg = "", total = 0, activeDays = 0, goodWeeks = 0, maxLoad = 1, days = [];
+  for (var wk = 0; wk < WEEKS; wk++) { var cnt = 0;
+    for (var d = 0; d < 7; d++) { var dt = new Date(start); dt.setDate(start.getDate() + wk * 7 + d); var iso = athIso(dt), o = athDay(iso); o.iso = iso; o.wk = wk; o.d = d; o.future = iso > todayIso;
+      o.load = o.runMin + o.bikeMin + (o.strength ? 20 : 0); maxLoad = Math.max(maxLoad, o.load); var units = o.n + (o.strength ? 1 : 0); total += units; cnt += units; if (units) activeDays++; days.push(o); }
+    if (cnt >= 3) goodWeeks++;
+  }
+  days.forEach(function(o) {
+    var x = left + o.wk * (cell + gap), y = top + o.d * (cell + gap), col = "#2d3036", op = 1;
+    if (o.load > 0) { col = o.quality ? "#ff7043" : o.run > 0 ? "#4caf50" : o.bike > 0 ? "#29b6f6" : "#ab47bc"; op = 0.45 + 0.55 * Math.min(1, o.load / (maxLoad * 0.8)); }
+    svg += '<rect x="' + x + '" y="' + y + '" width="' + cell + '" height="' + cell + '" rx="5" fill="' + col + '" opacity="' + (o.future ? 0.25 : op).toFixed(2) + '"' + (o.iso === todayIso ? ' stroke="#fff" stroke-width="2"' : '') + '/>';
+    if (o.load > 0 && o.strength && (o.run > 0 || o.bike > 0)) svg += '<circle cx="' + (x + cell - 5) + '" cy="' + (y + 5) + '" r="2.5" fill="#ab47bc" stroke="#1c1e22" stroke-width="1"/>';
   });
-  weeks.sort(function(a, b) { return a.date.localeCompare(b.date); });
-  if (maxWeeks && weeks.length > maxWeeks) weeks = weeks.slice(weeks.length - maxWeeks);
-  return weeks;
+  ["Mo", "", "Mi", "", "Fr", "", "So"].forEach(function(l, i) { if (l) svg += '<text x="0" y="' + (top + i * (cell + gap) + 15) + '" font-size="9" fill="#9a9fa6">' + l + '</text>'; });
+  var Wd = left + WEEKS * (cell + gap), Hd = top + 7 * (cell + gap);
+  box.innerHTML = '<svg viewBox="0 0 ' + Wd + ' ' + Hd + '" style="width:100%;height:auto;display:block;">' + svg + '</svg>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:0.7rem;color:var(--muted);margin-top:8px;">' +
+    [["#4caf50", "Lauf locker"], ["#ff7043", "Schwelle / HIIT"], ["#29b6f6", "Rad"], ["#ab47bc", "Kraft"]].map(function(l) { return '<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + l[0] + ';margin-right:4px;vertical-align:-1px;"></i>' + l[1] + '</span>'; }).join("") + '<span>kräftiger = länger</span></div>' +
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;text-align:center;">' +
+    [[total, "Einheiten"], [activeDays, "aktive Tage"], [goodWeeks + "/" + WEEKS, "Wochen mit 3+"]].map(function(x) { return '<div style="background:var(--surface-2);border-radius:10px;padding:8px 2px;"><div style="font-size:1.15rem;font-weight:800;">' + x[0] + '</div><div style="font-size:0.62rem;color:var(--muted);text-transform:uppercase;">' + x[1] + '</div></div>'; }).join("") + '</div>';
+}
+
+// ---- 3) Gewicht: Punkte, 7-Tage-Mittel und Ziel ----
+function renderWeightSvg() {
+  var box = document.getElementById("athWeightSvg"); if (!box) return;
+  var wm = athWeights(), N = 84, today = new Date(), pts = [];
+  for (var i = N - 1; i >= 0; i--) { var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i), w = wm[athIso(d)]; if (w) pts.push({ x: N - 1 - i, w: w }); }
+  if (pts.length < 2) { box.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:0.8rem;padding:24px;background:var(--surface-2);border-radius:10px;border:1px dashed #444;">Noch zu wenige Gewichtswerte. Trag dein Gewicht im Tagescheck ein.</div>'; return; }
+  var goalEl = document.getElementById("goalWeight"), goal = athNum(goalEl ? goalEl.value : 69) || 69;
+  var avgPts = pts.map(function(p) { var near = pts.filter(function(q) { return q.x <= p.x && q.x > p.x - 7; }); return { x: p.x, w: near.reduce(function(s, q) { return s + q.w; }, 0) / near.length }; });
+  var all = pts.map(function(p) { return p.w; }).concat([goal]), mn = Math.min.apply(null, all) - 0.5, mx = Math.max.apply(null, all) + 0.5;
+  var W = 340, H = 170, pl = 30, pr = 8, pt = 10, pb = 20, X = function(x) { return pl + x / (N - 1) * (W - pl - pr); }, Y = function(w) { return pt + (H - pt - pb) * (1 - (w - mn) / (mx - mn)); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;"><defs><linearGradient id="gW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4caf50" stop-opacity="0.35"/><stop offset="1" stop-color="#4caf50" stop-opacity="0"/></linearGradient></defs>';
+  for (var k = Math.ceil(mn); k <= mx; k++) svg += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(k) + '" y2="' + Y(k) + '" stroke="#2d3036"/><text x="' + (pl - 4) + '" y="' + (Y(k) + 3) + '" text-anchor="end" font-size="8" fill="#9a9fa6">' + k + '</text>';
+  svg += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(goal) + '" y2="' + Y(goal) + '" stroke="#ffb300" stroke-dasharray="5 4" stroke-width="1.5"/><text x="' + (W - pr) + '" y="' + (Y(goal) - 4) + '" text-anchor="end" font-size="8.5" font-weight="700" fill="#ffb300">Ziel ' + athFmt(goal) + ' kg</text>';
+  var lineA = avgPts.map(function(p, i) { return (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p.w).toFixed(1); }).join(" ");
+  svg += '<path d="' + lineA + ' L ' + X(avgPts[avgPts.length - 1].x) + ' ' + (H - pb) + ' L ' + X(avgPts[0].x) + ' ' + (H - pb) + ' Z" fill="url(#gW)"/>';
+  svg += pts.map(function(p) { return '<circle cx="' + X(p.x) + '" cy="' + Y(p.w) + '" r="1.6" fill="#9a9fa6" opacity="0.7"/>'; }).join("");
+  svg += '<path d="' + lineA + '" fill="none" stroke="#66d16a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  var last = avgPts[avgPts.length - 1]; svg += '<circle cx="' + X(last.x) + '" cy="' + Y(last.w) + '" r="4" fill="#66d16a" stroke="#fff" stroke-width="1.5"/>';
+  [[0, "vor 12 Wo."], [(N - 1) / 2, "vor 6 Wo."], [N - 1, "heute"]].forEach(function(t, i) { svg += '<text x="' + X(t[0]) + '" y="' + (H - 6) + '" text-anchor="' + (i === 0 ? "start" : i === 2 ? "end" : "middle") + '" font-size="8" fill="#9a9fa6">' + t[1] + '</text>'; });
+  svg += '</svg>';
+  var first = avgPts[0], d = last.w - first.w;
+  box.innerHTML = svg + '<div style="font-size:0.82rem;margin-top:6px;">7-Tage-Mittel <b>' + athFmt(last.w) + ' kg</b> &middot; ' + (d > 0 ? '+' : '') + athFmt(d) + ' kg im Zeitraum &middot; noch <b>' + athFmt(Math.max(0, last.w - goal)) + ' kg</b> bis zum Ziel</div>';
+}
+
+// ---- 4) Trainingszeit pro Woche, gestapelt nach Disziplin ----
+function renderLoadSvg() {
+  var box = document.getElementById("athLoadSvg"); if (!box) return;
+  var WEEKS = 10, start = athMonday(new Date()); start.setDate(start.getDate() - (WEEKS - 1) * 7); var weeks = [];
+  for (var wk = 0; wk < WEEKS; wk++) { var o = { run: 0, bike: 0, str: 0, km: 0, mon: null };
+    for (var d = 0; d < 7; d++) { var dt = new Date(start); dt.setDate(start.getDate() + wk * 7 + d); if (!d) o.mon = dt; var x = athDay(athIso(dt)); o.run += x.runMin; o.bike += x.bikeMin; o.str += x.strength ? 20 : 0; o.km += x.run; }
+    weeks.push(o); }
+  var mx = Math.max.apply(null, weeks.map(function(w) { return w.run + w.bike + w.str; }).concat([60])) / 60;
+  var W = 340, H = 170, pl = 26, pb = 22, pt = 14, bw = (W - pl - 4) / WEEKS, Y = function(h) { return pt + (H - pt - pb) * (1 - h / mx); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;">';
+  for (var h = 1; h <= mx; h += (mx > 6 ? 2 : 1)) svg += '<line x1="' + pl + '" x2="' + W + '" y1="' + Y(h) + '" y2="' + Y(h) + '" stroke="#2d3036"/><text x="' + (pl - 4) + '" y="' + (Y(h) + 3) + '" text-anchor="end" font-size="8" fill="#9a9fa6">' + h + ' h</text>';
+  weeks.forEach(function(w, i) {
+    var x = pl + i * bw + 3, bwid = bw - 6, y = H - pb;
+    [[w.run, "#4caf50"], [w.bike, "#29b6f6"], [w.str, "#ab47bc"]].forEach(function(s) { if (s[0] <= 0) return; var hh = (H - pt - pb) * (s[0] / 60) / mx; y -= hh; svg += '<rect x="' + x + '" y="' + y + '" width="' + bwid + '" height="' + hh + '" rx="2" fill="' + s[1] + '"' + (i === WEEKS - 1 ? '' : ' opacity="0.8"') + '/>'; });
+    if (w.km > 0) svg += '<text x="' + (x + bwid / 2) + '" y="' + (y - 3) + '" text-anchor="middle" font-size="7.5" fill="#f5f6f7">' + Math.round(w.km) + '</text>';
+    svg += '<text x="' + (x + bwid / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="7.5" fill="#9a9fa6">' + w.mon.getDate() + '.' + (w.mon.getMonth() + 1) + '.</text>';
+  });
+  box.innerHTML = svg + '</svg><div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:0.7rem;color:var(--muted);margin-top:6px;">' +
+    [["#4caf50", "Laufen"], ["#29b6f6", "Rad"], ["#ab47bc", "Kraft"]].map(function(l) { return '<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + l[0] + ';margin-right:4px;vertical-align:-1px;"></i>' + l[1] + '</span>'; }).join("") + '<span>Zahl über dem Balken = Lauf-km</span></div>';
+}
+
+// ---- 5) Was waere wenn: 10 km und Halbmarathon ----
+// Grobes Modell: Trainingsgewinn waechst mit Umfang und Qualitaet und flacht ueber die Wochen ab;
+// weniger Gewicht macht bei gleicher Leistung schneller (etwa 0,9 % Zeit pro 1 % Gewicht).
+var wf10 = null;
+function wf10Pace(str) { var p = String(str || "").split(":"); var v = (+p[0] || 0) * 60 + (+p[1] || 0); return v > 150 && v < 600 ? v : 295; }
+function wf10Fmt(sec) { sec = Math.round(sec); var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return (h ? h + ":" + pad2(m) : m) + ":" + pad2(s); }
+function wf10Defaults() {
+  var wm = athWeights(), ks = Object.keys(wm).sort(), w0 = ks.length ? wm[ks[ks.length - 1]] : 74, km = 0, start = athMonday(new Date());
+  for (var i = 1; i <= 28; i++) { var d = new Date(start); d.setDate(start.getDate() - i); km += athDay(athIso(d)).run; }
+  var avgKm = Math.round(km / 4) || 20, weeks = Math.max(4, Math.min(30, athWeeksToRace() || 12));
+  var goalEl = document.getElementById("goalWeight"), goalW = athNum(goalEl ? goalEl.value : 69) || 69;
+  return { w0: w0, weight: Math.round(Math.min(w0, Math.max(goalW, w0 - 0.25 * weeks)) * 2) / 2, avgKm: avgKm, km: avgKm, q: 1, weeks: weeks,
+           p0: wf10Pace((document.getElementById("current10kPace") || {}).value), goal: wf10Pace((document.getElementById("goal10kPace") || {}).value) };
+}
+function wf10Gain(km, q, avgKm, weeks) {
+  var gmax = 1.0 + 4.0 * (1 - Math.exp(-Math.max(0, km - 8) / 22)) + [-1.0, 1.5, 2.2][q];
+  if (km < avgKm * 0.7) gmax -= 1.5 * (1 - km / avgKm);
+  return gmax * (1 - Math.exp(-weeks / 10));
+}
+function renderWhatIf10(reset) {
+  if (!document.getElementById("wf10Weight")) return;
+  if (!wf10 || reset) wf10 = wf10Defaults();
+  var s = wf10, el = function(id) { return document.getElementById(id); };
+  var wEl = el("wf10Weight"); wEl.min = Math.floor(s.w0 - 7); wEl.max = Math.ceil(s.w0 + 2); wEl.value = s.weight;
+  el("wf10Km").value = s.km; el("wf10Weeks").value = s.weeks;
+  ["wf10Weight", "wf10Km", "wf10Weeks"].forEach(function(id) { var e = el(id); e.style.setProperty("--p", ((e.value - e.min) / (e.max - e.min) * 100) + "%"); });
+  el("wf10WeightV").textContent = athFmt(s.weight) + " kg (" + (s.weight - s.w0 > 0 ? "+" : "") + athFmt(s.weight - s.w0) + ")";
+  el("wf10KmV").textContent = s.km + " km (zuletzt Ø " + s.avgKm + ")";
+  el("wf10WeeksV").textContent = s.weeks + " Wochen";
+  document.querySelectorAll("#wf10Q button").forEach(function(b) { b.classList.toggle("selected", +b.dataset.q === s.q); });
+  var series = [];
+  for (var t = 0; t <= s.weeks; t++) { var wt = s.w0 + (s.weight - s.w0) * t / s.weeks; series.push(s.p0 * (1 - wf10Gain(s.km, s.q, s.avgKm, t) / 100) * Math.pow(wt / s.w0, 0.9)); }
+  var pEnd = series[series.length - 1], t10 = pEnd * 10, hm = t10 * Math.pow(21.0975 / 10, 1.06);
+  // Diagramm: Pace-Verlauf (schneller = oben)
+  var W = 340, H = 160, pl = 34, pr = 10, pt = 12, pb = 22, all = series.concat([s.goal, s.p0]), mn = Math.min.apply(null, all) - 4, mx = Math.max.apply(null, all) + 4;
+  var X = function(t) { return pl + t / s.weeks * (W - pl - pr); }, Y = function(p) { return pt + (H - pt - pb) * ((p - mn) / (mx - mn)); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;"><defs><linearGradient id="gP" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#29b6f6"/><stop offset="1" stop-color="#66d16a"/></linearGradient></defs>';
+  for (var k = Math.ceil(mn / 10) * 10; k <= mx; k += 10) svg += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(k) + '" y2="' + Y(k) + '" stroke="#2d3036"/><text x="' + (pl - 4) + '" y="' + (Y(k) + 3) + '" text-anchor="end" font-size="8" fill="#9a9fa6">' + wf10Fmt(k) + '</text>';
+  svg += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(s.goal) + '" y2="' + Y(s.goal) + '" stroke="#ffb300" stroke-dasharray="5 4" stroke-width="1.5"/><text x="' + (pl + 4) + '" y="' + (Y(s.goal) - 4) + '" font-size="8.5" font-weight="700" fill="#ffb300">Ziel ' + wf10Fmt(s.goal) + '/km</text>';
+  svg += '<polyline fill="none" stroke="url(#gP)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="' + series.map(function(p, t) { return X(t).toFixed(1) + "," + Y(p).toFixed(1); }).join(" ") + '"/>';
+  svg += '<circle cx="' + X(0) + '" cy="' + Y(s.p0) + '" r="3.5" fill="#1c1e22" stroke="#29b6f6" stroke-width="2"/><circle cx="' + X(s.weeks) + '" cy="' + Y(pEnd) + '" r="4.5" fill="#66d16a" stroke="#fff" stroke-width="1.5"/>';
+  svg += '<text x="' + (X(s.weeks) - 8) + '" y="' + (Y(pEnd) + 16) + '" text-anchor="end" font-size="10" font-weight="800" fill="#66d16a">' + wf10Fmt(pEnd) + '/km</text>';
+  svg += '<text x="' + X(0) + '" y="' + (H - 7) + '" font-size="8" fill="#9a9fa6">heute</text><text x="' + X(s.weeks) + '" y="' + (H - 7) + '" text-anchor="end" font-size="8" fill="#9a9fa6">+' + s.weeks + ' Wochen</text></svg>';
+  el("wf10Chart").innerHTML = svg;
+  var dPace = pEnd - s.p0, toGoal = pEnd - s.goal, notes = [];
+  var wPart = s.p0 * (Math.pow(s.weight / s.w0, 0.9) - 1), tPart = dPace - wPart;
+  if (s.q === 2) notes.push("Zwei harte Einheiten pro Woche: Deine Regel ist höchstens ein CV-Lauf. Mehr Intensität erhöht das Verletzungsrisiko, vor allem für die Wade.");
+  if (s.km > s.avgKm * 1.1) notes.push("Von " + s.avgKm + " auf " + s.km + " km braucht bei höchstens +10 % pro Woche etwa " + Math.ceil(Math.log(s.km / s.avgKm) / Math.log(1.1)) + " Wochen Anlauf.");
+  if (s.w0 - s.weight > 0.5 * s.weeks) notes.push("Mehr als 0,5 kg Abnahme pro Woche kostet Trainingsqualität – der Gewinn auf dem Papier kommt dann nicht an.");
+  if (s.q === 0) notes.push("Ohne Qualitätseinheit fehlt der Tempo-Reiz – das Modell rechnet deshalb mit weniger Fortschritt.");
+  el("wf10Out").innerHTML = '<div style="font-size:1.5rem;font-weight:800;color:#66d16a;line-height:1.2;">10 km in ' + wf10Fmt(t10) + '</div>' +
+    '<div style="font-size:0.85rem;margin-top:2px;">' + wf10Fmt(pEnd) + ' min/km &middot; ' + (dPace < 0 ? Math.round(-dPace) + ' s/km schneller' : Math.round(dPace) + ' s/km langsamer') + ' als heute (' + wf10Fmt(s.p0) + ')</div>' +
+    '<div style="font-size:0.85rem;margin-top:4px;">' + (toGoal <= 0 ? '<b style="color:#66d16a;">Ziel ' + wf10Fmt(s.goal) + '/km erreicht</b> (' + Math.round(-toGoal) + ' s/km Reserve)' : 'Bis zum Ziel ' + wf10Fmt(s.goal) + '/km fehlen noch <b>' + Math.round(toGoal) + ' s/km</b>') + '</div>' +
+    '<div style="font-size:0.8rem;color:var(--muted);margin-top:6px;">Davon Training: ' + (tPart <= 0 ? '−' : '+') + Math.abs(Math.round(tPart)) + ' s/km &middot; Gewicht: ' + (wPart <= 0 ? '−' : '+') + Math.abs(Math.round(wPart)) + ' s/km</div>' +
+    '<div style="font-size:0.85rem;margin-top:8px;padding-top:8px;border-top:1px solid var(--surface-3);">Halbmarathon flach: <b>' + wf10Fmt(hm) + '</b> (' + wf10Fmt(hm / 21.0975) + '/km). Der Rennsteig ist wellig – dort eher einige Minuten mehr.</div>' +
+    notes.map(function(n) { return '<div style="font-size:0.8rem;background:var(--surface-2);border-left:3px solid #ffb300;border-radius:8px;padding:7px 9px;margin-top:8px;">' + n + '</div>'; }).join("") +
+    '<div style="font-size:0.7rem;color:var(--muted);margin-top:8px;">Grobe Modellrechnung zur Orientierung, keine Zusage. Schlaf, Gesundheit und Tagesform sind nicht eingerechnet.</div>';
+}
+function wf10FromNutrition() {
+  var r = null; try { r = JSON.parse(localStorage.getItem("coach_bjoern_whatif_weight")); } catch(e) {}
+  if (!r || !r.weight) { showToast("Erst die Prognose auf der Ernaehrungsseite oeffnen"); return; }
+  if (!wf10) wf10 = wf10Defaults();
+  wf10.weight = Math.max(wf10.w0 - 7, Math.min(wf10.w0 + 2, r.weight)); wf10.weeks = Math.max(4, Math.min(30, r.weeks || wf10.weeks));
+  renderWhatIf10(false); showToast("Gewicht aus der Ernaehrungs-Prognose uebernommen");
 }
 
 function updateAthleteCharts() {
-  var weightHistory = getWeightHistory(14); // letzte 14 Eintraege
-  drawLineChart("weightChart", "weightChartEmpty", weightHistory, { color: "#4caf50", unit: " kg" });
-
-  var volumeHistory = getWeeklyVolumeHistory(8); // letzte 8 Wochen
-  drawLineChart("volumeChart", "volumeChartEmpty", volumeHistory, { color: "#29b6f6", unit: " km" });
+  renderRaceRoad(); renderTrainHeatmap(); renderWeightSvg(); renderLoadSvg(); renderWhatIf10(false);
 }
 
 function updateAthleteTab() {
@@ -3184,7 +3265,8 @@ function updateAthleteTab() {
   var setEl = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
 
   // Profil
-  var weight  = parseFloat(d.currentWeight || 74);
+  // Heute eingetragen > zuletzt eingetragenes Gewicht > Standardwert
+  var weight  = parseFloat(d.currentWeight) || (function() { var wm = athWeights(), ks = Object.keys(wm).sort(); return ks.length ? wm[ks[ks.length - 1]] : 74; })();
   var goalW   = parseFloat(d.goalWeight    || 69);
   setEl("athProfileWeight",     weight + " kg");
   setEl("athProfileGoalWeight", goalW + " kg");
@@ -3290,12 +3372,17 @@ document.addEventListener("DOMContentLoaded", function() {
   loadData();
   initFeelingButtons();
   initThuleChariot();
+  ["wf10Weight", "wf10Km", "wf10Weeks"].forEach(function(id) {
+    var el = document.getElementById(id); if (!el) return;
+    el.addEventListener("input", function() { if (!wf10) return; wf10[{ wf10Weight: "weight", wf10Km: "km", wf10Weeks: "weeks" }[id]] = +el.value; renderWhatIf10(false); });
+  });
+  document.querySelectorAll("#wf10Q button").forEach(function(b) { b.addEventListener("click", function() { if (!wf10) return; wf10.q = +b.dataset.q; renderWhatIf10(false); }); });
   setTimeout(renderFoodOverviews, 0);
   initDisciplineButtons();
 
   // Alle Datumsfelder IMMER zwingend auf "heute" setzen beim Oeffnen der App.
   // loadData() koennte sonst ein altes gespeichertes Datum wiederherstellen.
-  var todayISO = new Date().toISOString().slice(0,10);
+  var todayISO = localISODate();
   ["todayDate","garminDate","runDate","strengthDate","nutritionDate"].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = todayISO;
