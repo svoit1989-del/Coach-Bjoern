@@ -25,8 +25,12 @@
   .hbar h1{font-size:1.05rem;color:#fff;}
   .hbar a{color:#fff;text-decoration:none;font-size:0.85rem;font-weight:700;opacity:0.95;}
   .maintabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:0 12px 10px;max-width:680px;margin:auto;}
-  .maintabs button{border:none;border-radius:10px;background:rgba(255,255,255,0.22);color:#fff;padding:9px 4px;font-weight:700;font-size:0.82rem;}
-  .maintabs button.on{background:#fff;color:var(--accent-dim);box-shadow:0 2px 6px rgba(120,50,0,0.18);}
+  .maintabs button{border:none;border-radius:12px;background:rgba(255,255,255,0.18);color:#fff;padding:8px 4px;font-weight:700;font-size:0.8rem;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.25s,color 0.25s,transform 0.2s;}
+  .maintabs button svg{width:17px;height:17px;flex:0 0 17px;}
+  .maintabs button:active{transform:scale(0.96);}
+  .maintabs button.on{background:#fff;color:var(--accent-dim);box-shadow:0 4px 12px rgba(120,50,0,0.22);}
+  .maintabs button.on svg{animation:niPop 0.35s ease;}
+  @keyframes niPop{0%{transform:scale(0.7) rotate(-8deg)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
   main{max-width:680px;margin:auto;padding:12px;}
   .tab{display:none;} .tab.on{display:block;}
   .card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow-card);}
@@ -123,6 +127,28 @@
   .cbox h3{font-size:1.02rem;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
   .cbox p{font-size:0.88rem;color:var(--text);line-height:1.5;}
   .btn.del{background:linear-gradient(180deg,#e85a4d,var(--danger));box-shadow:0 2px 0 rgba(120,20,10,0.25);}
+  input[type=range]{-webkit-appearance:none;appearance:none;padding:0;border:none;background:transparent;box-shadow:none;height:30px;--p:50%;}
+  input[type=range]:focus{box-shadow:none;}
+  input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to right,var(--accent) var(--p),var(--track) var(--p));}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;border:4px solid var(--accent);box-shadow:0 2px 5px rgba(60,40,20,0.25);margin-top:-8px;}
+  input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:var(--track);}
+  input[type=range]::-moz-range-progress{height:8px;border-radius:4px;background:var(--accent);}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--accent);}
+  .rings-wrap{display:flex;gap:14px;align-items:center;}
+  .rings{width:150px;height:150px;flex:0 0 150px;}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .cal .hd{font-size:0.62rem;color:var(--muted);text-align:center;text-transform:uppercase;}
+  .cal .c{position:relative;aspect-ratio:1;border-radius:10px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;color:var(--muted);cursor:pointer;border:2px solid transparent;}
+  .cal .c.sel{border-color:var(--text);}
+  .cal .c.fut{opacity:0.35;cursor:default;}
+  .cal .c .dot{position:absolute;right:4px;top:4px;width:7px;height:7px;border-radius:50%;}
+  .cal-leg{display:flex;flex-wrap:wrap;gap:8px 12px;font-size:0.7rem;color:var(--muted);margin-top:10px;}
+  .cal-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;}
+  .chart{width:100%;height:auto;display:block;}
+  .wi-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;font-size:0.8rem;color:var(--muted);}
+  .wi-row b{color:var(--text);font-size:0.95rem;}
+  .wi-out{background:var(--accent-soft);border:1px solid #f6dcc3;border-radius:12px;padding:12px;margin-top:12px;}
+  .wi-big{font-size:1.5rem;font-weight:800;color:var(--accent-dim);line-height:1.2;}
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-weight:700;font-size:0.82rem;padding:8px 18px;border-radius:20px;opacity:0;transition:opacity 0.3s;z-index:200;pointer-events:none;white-space:nowrap;}
   #toast.show{opacity:1;}
 </style>
@@ -131,9 +157,9 @@
 <header>
   <div class="hbar"><h1>&#129367; Ernährung</h1><a href="./">&larr; Zur App</a></div>
   <nav class="maintabs">
-    <button data-act="tab" data-tab="input" class="on">Eingabe</button>
-    <button data-act="tab" data-tab="eval">Auswertung</button>
-    <button data-act="tab" data-tab="ana">Analyse</button>
+    <button data-act="tab" data-tab="input" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>Eingabe</button>
+    <button data-act="tab" data-tab="eval"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Auswertung</button>
+    <button data-act="tab" data-tab="ana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>Analyse</button>
   </nav>
 </header>
 <main>
@@ -203,6 +229,9 @@
     </div>
     <div class="hint" id="evalInfo" style="margin-top:6px;"></div>
   </div>
+  <div class="card"><h2>Ringe</h2><div id="ringsBox"></div></div>
+  <div class="card"><h2>4-Wochen-Kalender</h2><div id="calBox"></div></div>
+  <div class="card" id="weekCard" style="display:none;"><h2>Energiebilanz</h2><div id="weekCols"></div></div>
   <div class="card"><h2>Kalorien nach Mahlzeit</h2><div id="pieMeals"></div></div>
   <div class="card"><h2>Makros</h2><div id="pieMacros"></div></div>
   <div class="card"><h2>Nährwerte gegen Ziel</h2><div id="nutBars"></div></div>
@@ -220,12 +249,22 @@
     <div id="topList" style="margin-top:8px;"></div>
   </div>
   <div class="card"><h2>Zusätze</h2><div id="extrasStats"></div></div>
-  <div class="card" id="weekCard" style="display:none;"><h2>Kalorien pro Tag</h2><div id="weekCols"></div></div>
 </section>
 
 <!-- ===================== ANALYSE & EMPFEHLUNGEN ===================== -->
 <section class="tab" id="t-ana">
   <div class="card"><h2>&#128161; Empfehlungen</h2><div id="recs"></div></div>
+  <div class="card">
+    <h2>&#128302; Was wäre wenn?</h2>
+    <div class="hint">Schiebe die Regler und sieh, wohin dein Gewicht läuft.</div>
+    <div class="wi-row"><span>Ø Essen pro Tag</span><b id="wiKcalV"></b></div><input type="range" id="wiKcal" step="50">
+    <div class="wi-row"><span>Training pro Woche</span><b id="wiTrainV"></b></div><input type="range" id="wiTrain" min="0" max="7000" step="100">
+    <div class="wi-row"><span>Zeitraum</span><b id="wiWeeksV"></b></div><input type="range" id="wiWeeks" min="4" max="30" step="1">
+    <div id="wiBaseRow"><div class="wi-row"><span>Grundbedarf ohne Training <span id="wiBaseHint"></span></span><b id="wiBaseV"></b></div><input type="range" id="wiBase" min="1600" max="3400" step="50"></div>
+    <div id="wiChart" style="margin-top:10px;"></div>
+    <div class="wi-out" id="wiOut"></div>
+    <button class="btn small sec" data-act="wi-reset" style="margin-top:10px;">Auf meine aktuellen Werte zurücksetzen</button>
+  </div>
   <div class="card"><h2>Kohlenhydrat-Strategie <span class="hint">(14 Tage)</span></h2><div id="carbPlan"></div></div>
   <div class="card"><h2>Protein pro kg</h2><div id="anaProtein"></div></div>
   <div class="card"><h2>Trainingstag gegen Ruhetag</h2><div id="anaTraining"></div></div>
@@ -728,7 +767,6 @@ function manualAdd() {
 // MEINE MAHLZEITEN & BAUKASTEN
 // ============================================================
 var builder = { id: null, name: "", items: [] };
-var mealFactors = {};
 function itemVals(it) { return scale(it.per100, it.grams); }
 function mealTotals(m) {
   var t = sumVals(m.items.map(itemVals));
@@ -815,24 +853,6 @@ function addMealGrams(id, grams) {
   var f = grams / (finishedWeight(m) || 1), e = mealEntryValues(m, f);
   e.name = m.name + " (" + fmt(grams) + " g)"; e.grams = grams; e.eatenGrams = grams;
   e.source = "mahlzeit"; e.mealId = m.id; e.factor = f;
-  addEntry(e, addTarget.meal);
-}
-function addMealToDay(id) {
-  var m = findMeal(id); if (!m) return;
-  var f = mealFactors[id] || 1, t = mealTotals(m), e = {};
-  NUT.forEach(function(k) { e[k] = round1(t[k] * f); }); // Werte festschreiben: spaetere Aenderungen an der Mahlzeit aendern den Tag nicht
-  // Zutaten mitspeichern, damit "Top-Lebensmittel" einzelne Zutaten statt nur der Mahlzeit zeigt
-  e.items = m.items.map(function(it) {
-    var v = scale(it.per100, it.grams * f); v.name = it.name; v.grams = round1(it.grams * f); v.ext = scaleExt(it.ext, it.grams * f); return v;
-  });
-  var ext = {};
-  EXT.forEach(function(x) {
-    var known = e.items.filter(function(it) { return it.ext[x.k] != null; });
-    ext[x.k] = known.length ? Math.round(known.reduce(function(s, it) { return s + it.ext[x.k]; }, 0) * 1000) / 1000 : null;
-  });
-  e.ext = ext;
-  e.name = m.name + (f !== 1 ? " (" + String(f).replace(".", ",") + "×)" : "");
-  e.grams = round1(t.grams * f); e.source = "mahlzeit"; e.mealId = m.id; e.factor = f;
   addEntry(e, addTarget.meal);
 }
 function openBuilder(meal) {
@@ -1209,6 +1229,9 @@ function renderEval() {
   var allEntries = []; base.forEach(function(r) { allEntries = allEntries.concat(r.entries); });
   var none = '<div class="hint">Keine Daten im gewählten Zeitraum.</div>';
 
+  document.getElementById("ringsBox").innerHTML = empty ? none : ringsSvg(t, tg);
+  document.getElementById("calBox").innerHTML = calendarHtml(B.end);
+
   // Kalorien nach Mahlzeit
   var mealSegs = MEALS.map(function(m) {
     var v = base.reduce(function(s, r) { return s + sumVals(r.entries.filter(function(e) { return mealOf(e) === m.id; })).kcal; }, 0) / cnt;
@@ -1297,16 +1320,7 @@ function renderEval() {
   // Saeulen pro Tag
   var wc = document.getElementById("weekCard");
   wc.style.display = evalMode === "day" ? "none" : "block";
-  if (evalMode !== "day") {
-    var goalK = avgTargets(B.rows.map(function(r) { return r.date; })).kcal;
-    var maxV = Math.max.apply(null, B.rows.map(function(r) { return r.t.kcal; }).concat([goalK * 1.15]));
-    var gl = 100 - goalK / maxV * 100;
-    document.getElementById("weekCols").innerHTML = '<div class="cols" style="gap:' + (B.n > 7 ? 2 : 6) + 'px;"><div class="goal-line" style="top:calc(10px + ' + gl + '% * (130/140))"><span>Ø Ziel ' + kc(goalK) + '</span></div>' +
-      B.rows.map(function(r, i) {
-        var lab = B.n > 7 ? (i % 7 === 6 ? parseIso(r.date).getDate() + "." : "") : shortDay(r.date);
-        return '<div class="col"><div class="b ' + r.status + '" style="height:' + (r.t.kcal / maxV * 100) + '%"></div><div class="lab">' + lab + '</div></div>';
-      }).join("") + '</div><div class="hint" style="margin-top:6px;">Schraffiert = vermutlich unvollständig erfasst.</div>';
-  }
+  if (evalMode !== "day") document.getElementById("weekCols").innerHTML = energyChartSvg(B.rows);
 }
 
 // ============================================================
@@ -1412,6 +1426,7 @@ function renderAnalysis() {
   document.getElementById("goalInfo").textContent = "Bei " + fmt(w) + " kg: Protein " + Math.round(g.prot * w) + " g, KH Schwelle ca. " + Math.round(g.thr * w) + " g, HIIT ca. " + Math.round(g.hiit * w) + " g. Fett ergibt sich aus den restlichen Kalorien.";
 
   document.getElementById("recs").innerHTML = buildRecommendations(rows14, pk, ts, wt, g);
+  renderWhatIf(false);
 }
 
 function buildRecommendations(rows, pk, ts, wt, g) {
@@ -1482,6 +1497,177 @@ function saveGoals(fromTdee) {
   save(K.goals, g);
   toast("Ziele gespeichert");
   renderAll();
+}
+
+// ============================================================
+// GRAFIKEN: Ringe, 4-Wochen-Kalender, Energiebilanz
+// ============================================================
+function ringsSvg(t, tg) {
+  // Drei Ringe wie bei einer Sportuhr: aussen Protein, Mitte Kohlenhydrate, innen Fett
+  var defs = [["protein", 66, "#2f9e55", false], ["carbs", 53.5, "#1d86c4", tg.carbsIsMax], ["fat", 41, "#d6336c", false]];
+  var svg = '<svg viewBox="0 0 150 150" class="rings">';
+  defs.forEach(function(d) {
+    var r = d[1], circ = 2 * Math.PI * r, goal = tg[d[0]] || 1, frac = t[d[0]] / goal, over = d[3] && frac > 1;
+    var col = over ? "#d63a2c" : d[2], shown = Math.min(frac, 1);
+    svg += '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="' + d[2] + '22" stroke-width="10"/>';
+    if (shown > 0) svg += '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (circ * shown).toFixed(1) + ' ' + circ.toFixed(1) + '" transform="rotate(-90 75 75)"/>';
+    if (frac > 1 && !d[3]) svg += '<circle cx="75" cy="' + (75 - r) + '" r="3" fill="#fff"/>'; // Ziel uebertroffen
+  });
+  svg += '<text x="75" y="73" text-anchor="middle" fill="#2b2420" font-size="16" font-weight="800">' + kc(t.kcal) + '</text>';
+  svg += '<text x="75" y="87" text-anchor="middle" fill="#7c726a" font-size="7.5">von ' + kc(tg.kcal) + '</text></svg>';
+  var leg = '<div class="legend">' + [["protein", "Protein", "#2f9e55", false], ["carbs", "Kohlenhydrate", "#1d86c4", tg.carbsIsMax], ["fat", "Fett", "#d6336c", false]].map(function(d) {
+    var pct = Math.round(t[d[0]] / (tg[d[0]] || 1) * 100);
+    return '<div><span class="sw" style="background:' + d[2] + ';border-radius:50%;"></span>' + d[1] + (d[3] ? ' <span class="hint">max.</span>' : '') +
+      '<span class="val" style="color:' + (d[3] && pct > 100 ? 'var(--danger)' : 'inherit') + '">' + Math.round(t[d[0]]) + ' / ' + Math.round(tg[d[0]]) + ' g</span></div>';
+  }).join("") + '</div>';
+  return '<div class="rings-wrap">' + svg + leg + '</div>';
+}
+
+function calendarHtml(end) {
+  // Die letzten vier Kalenderwochen, Mo-So. Farbe = Kalorien gegen Tagesziel, Punkt = Trainingstag.
+  var endD = parseIso(end), monday = new Date(endD); monday.setDate(endD.getDate() - ((endD.getDay() + 6) % 7) - 21);
+  var dates = []; for (var i = 0; i < 28; i++) { var d = new Date(monday); d.setDate(monday.getDate() + i); dates.push(isoLocal(d)); }
+  var stats = dayStats(dates), today = isoLocal(new Date());
+  var h = '<div class="cal">' + ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map(function(x) { return '<div class="hd">' + x + '</div>'; }).join("");
+  stats.forEach(function(r) {
+    var fut = r.date > today, tg = fut ? null : dayTargets(r.date), bg = "", fg = "", cls = "c" + (r.date === end ? " sel" : "") + (fut ? " fut" : "");
+    if (!fut && r.n) {
+      var ratio = r.t.kcal / tg.kcal;
+      if (r.status === "unvollst") { bg = "repeating-linear-gradient(45deg,#f1e6d8,#f1e6d8 4px,#faf3ea 4px,#faf3ea 8px)"; fg = "#9a8f85"; }
+      else if (ratio > 1.1) { bg = "#f6c9c2"; fg = "#8f2218"; }
+      else if (ratio < 0.8) { bg = "#cfe3f2"; fg = "#17567f"; }
+      else { bg = "#cdebd6"; fg = "#1d6b38"; }
+    }
+    var dot = (!fut && tg.type !== "rest") ? '<span class="dot" style="background:' + TYPE_INFO[tg.type].color + '"></span>' : '';
+    h += '<div class="' + cls + '"' + (fut ? '' : ' data-act="goto-date" data-date="' + r.date + '"') + ' style="' + (bg ? 'background:' + bg + ';color:' + fg + ';' : '') + '">' + parseIso(r.date).getDate() + dot + '</div>';
+  });
+  h += '</div><div class="cal-leg"><span><i style="background:#cdebd6"></i>im Ziel</span><span><i style="background:#cfe3f2"></i>deutlich darunter</span><span><i style="background:#f6c9c2"></i>darüber</span>' +
+    '<span><i style="background:repeating-linear-gradient(45deg,#f1e6d8,#f1e6d8 3px,#faf3ea 3px,#faf3ea 6px)"></i>unvollständig</span>' +
+    ["hiit", "schwelle", "ausdauer", "kraft"].map(function(k) { return '<span><i style="background:' + TYPE_INFO[k].color + ';border-radius:50%;width:8px;height:8px;"></i>' + TYPE_INFO[k].label.replace(" / Fettstoffwechsel", "") + '</span>'; }).join("") +
+    '</div><div class="hint" style="margin-top:6px;">Tag antippen, um ihn in der Eingabe zu öffnen.</div>';
+  return h;
+}
+
+function energyChartSvg(rows) {
+  // Balken = gegessen; Stufenlinie = Verbrauchsziel (Grundziel + Training), blauer Aufsatz = Trainingsanteil
+  var W = 320, H = 170, padL = 34, padB = 20, padT = 10, n = rows.length, bw = (W - padL - 4) / n;
+  var tgs = rows.map(function(r) { return dayTargets(r.date); });
+  var maxV = Math.max.apply(null, rows.map(function(r) { return r.t.kcal; }).concat(tgs.map(function(t) { return t.kcal; }))) * 1.08 || 1;
+  var y = function(v) { return padT + (H - padT - padB) * (1 - v / maxV); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart"><defs><linearGradient id="gEat" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9b47"/><stop offset="1" stop-color="#ef7b1a"/></linearGradient>' +
+    '<pattern id="pInc" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#fbe8d5"/><rect width="3" height="6" fill="#f6d2ad"/></pattern></defs>';
+  var tickStep = maxV > 2400 ? 1000 : 500;
+  for (var tv = tickStep; tv <= maxV; tv += tickStep) (function(v) {
+    svg += '<line x1="' + padL + '" x2="' + W + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#ebe4da" stroke-width="1"/><text x="' + (padL - 4) + '" y="' + (y(v) + 3) + '" text-anchor="end" font-size="8" fill="#7c726a">' + kc(v) + '</text>';
+  })(tv);
+  var step = "";
+  rows.forEach(function(r, i) {
+    var x = padL + i * bw, t = tgs[i], gap = n > 10 ? 1 : 3;
+    if (t.exKcal > 0) svg += '<rect x="' + (x + gap) + '" y="' + y(t.kcal) + '" width="' + (bw - 2 * gap) + '" height="' + (y(t.base) - y(t.kcal)) + '" fill="#1d86c4" opacity="0.18"/>';
+    if (r.n) svg += '<rect x="' + (x + gap) + '" y="' + y(r.t.kcal) + '" width="' + (bw - 2 * gap) + '" height="' + (H - padB - y(r.t.kcal)) + '" rx="' + (n > 10 ? 1.5 : 3) + '" fill="' + (r.status === "unvollst" ? "url(#pInc)" : "url(#gEat)") + '"/>';
+    step += (i ? " L " : "M ") + x + " " + y(t.kcal) + " L " + (x + bw) + " " + y(t.kcal);
+    var lab = n > 7 ? (i % 7 === n % 7 - 1 || (n % 7 === 0 && i % 7 === 6) ? parseIso(r.date).getDate() + "." : "") : shortDay(r.date);
+    if (lab) svg += '<text x="' + (x + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="8.5" fill="#7c726a">' + lab + '</text>';
+  });
+  svg += '<path d="' + step + '" fill="none" stroke="#2f9e55" stroke-width="2" stroke-linejoin="round"/></svg>';
+  var eaten = rows.filter(function(r) { return r.status === "ok"; }), bal = eaten.map(function(r) { return r.t.kcal - dayTargets(r.date).kcal; });
+  return svg + '<div class="cal-leg"><span><i style="background:#ef7b1a"></i>gegessen</span><span><i style="background:#2f9e55;height:3px;vertical-align:3px;"></i>Ziel inkl. Training</span><span><i style="background:#1d86c4;opacity:0.3"></i>Trainingsanteil</span></div>' +
+    (bal.length ? '<div style="margin-top:8px;font-size:0.85rem;">Ø Abstand zum Ziel: <b style="color:' + (avg(bal) < -500 ? 'var(--warning)' : 'inherit') + '">' + (avg(bal) > 0 ? '+' : '') + kc(avg(bal)) + ' kcal/Tag</b> <span class="hint">(' + bal.length + ' vollständige Tage)</span></div>' : '');
+}
+
+// ============================================================
+// WAS WAERE WENN: Gewichtsprognose
+// Modell: Bilanz = Essen - (Grundbedarf + Training). 7700 kcal entsprechen etwa 1 kg.
+// Der Bedarf sinkt mit dem Gewicht leicht mit (ca. 22 kcal pro kg und Tag).
+// ============================================================
+var wi = null;
+function wiDefaults() {
+  var today = isoLocal(new Date()), wt = weightTrend(today), g = getGoals(), wm = weightMap();
+  var days = rangeDates(today, 28), exAvg = avg(days.map(function(d) { return dayInfo(d).exKcal; }));
+  var base = wt.baseTdee || Math.round((g.base + 275) / 50) * 50, train = Math.round(exAvg * 7 / 100) * 100;
+  var kcal = wt.ok.length >= 4 ? Math.round(wt.avgK / 50) * 50 : Math.round((g.base + train / 7) / 50) * 50;
+  var raceWeeks = Math.round((new Date(2027, 4, 22) - new Date()) / (7 * 86400000));
+  return { base: base, baseKnown: !!wt.baseTdee, train: train, kcal: kcal, weeks: Math.max(4, Math.min(30, raceWeeks > 0 ? raceWeeks : 12)), w0: lastWeight(wm) || 75, hasWeight: !!lastWeight(wm) };
+}
+function simulateWeight(w0, base, kcal, trainWeek, weeks, shift) {
+  var w = w0, out = [w0];
+  for (var d = 1; d <= weeks * 7; d++) {
+    var need = base + shift + 22 * (w - w0) + trainWeek / 7 * (w / w0);
+    w += (kcal - need) / KCAL_PER_KG;
+    if (d % 7 === 0) out.push(w);
+  }
+  return out;
+}
+function renderWhatIf(reset) {
+  if (!document.getElementById("wiKcal")) return;
+  if (!wi || reset) wi = wiDefaults();
+  var need0 = wi.base + wi.train / 7;
+  var kEl = document.getElementById("wiKcal"), lo = Math.round(Math.max(1600, need0 - 700) / 50) * 50, hi = Math.round((need0 + 500) / 50) * 50;
+  kEl.min = lo; kEl.max = hi; wi.kcal = Math.min(hi, Math.max(lo, wi.kcal)); kEl.value = wi.kcal;
+  document.getElementById("wiTrain").value = wi.train; document.getElementById("wiWeeks").value = wi.weeks; document.getElementById("wiBase").value = wi.base;
+  ["wiKcal", "wiTrain", "wiWeeks", "wiBase"].forEach(function(id) {
+    var el = document.getElementById(id); el.style.setProperty("--p", ((el.value - el.min) / (el.max - el.min) * 100) + "%");
+  });
+  document.getElementById("wiKcalV").textContent = kc(wi.kcal) + " kcal";
+  document.getElementById("wiTrainV").textContent = kc(wi.train) + " kcal (≈ " + fmt(wi.train / 600) + " h)";
+  document.getElementById("wiWeeksV").textContent = wi.weeks + " Wochen";
+  document.getElementById("wiBaseV").textContent = kc(wi.base) + " kcal";
+  document.getElementById("wiBaseHint").innerHTML = wi.baseKnown ? '<span style="color:var(--c-p)">(aus deinen Daten)</span>' : '<span style="color:var(--warning)">(Annahme – bitte anpassen)</span>';
+
+  var mid = simulateWeight(wi.w0, wi.base, wi.kcal, wi.train, wi.weeks, 0);
+  var low = simulateWeight(wi.w0, wi.base, wi.kcal, wi.train, wi.weeks, 150), high = simulateWeight(wi.w0, wi.base, wi.kcal, wi.train, wi.weeks, -150);
+  var goalW = num((load("coach_bjoern_v21", {}) || {}).goalWeight) || 69, endW = mid[mid.length - 1], rate = mid[1] - mid[0];
+  // Wann wird das Zielgewicht erreicht? (bis zu einem Jahr vorausrechnen)
+  var longRun = simulateWeight(wi.w0, wi.base, wi.kcal, wi.train, 52, 0), hitWeek = -1;
+  if (wi.w0 > goalW) { for (var i = 1; i < longRun.length; i++) if (longRun[i] <= goalW) { hitWeek = i; break; } }
+
+  // Diagramm: Verlauf (28 Tage) + Prognose mit Unsicherheitsband
+  var wm = weightMap(), today = isoLocal(new Date()), hist = [];
+  rangeDates(today, 28).forEach(function(d, i) { if (wm[d]) hist.push({ x: i - 27, w: wm[d] }); });
+  var W = 320, H = 180, padL = 30, padR = 8, padT = 12, padB = 22, histW = hist.length > 1 ? 60 : 0;
+  var all = low.concat(high).concat(hist.map(function(p) { return p.w; })).concat([goalW, wi.w0]);
+  var minW = Math.min.apply(null, all) - 0.4, maxW = Math.max.apply(null, all) + 0.4;
+  var xF = function(week) { return padL + histW + week / wi.weeks * (W - padL - padR - histW); };
+  var xH = function(day) { return padL + (day + 27) / 27 * histW; };
+  var y = function(w) { return padT + (H - padT - padB) * (1 - (w - minW) / (maxW - minW)); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart"><defs><linearGradient id="gFan" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ef7b1a" stop-opacity="0.08"/><stop offset="1" stop-color="#ef7b1a" stop-opacity="0.28"/></linearGradient></defs>';
+  var ticks = [], stepKg = (maxW - minW) > 6 ? 2 : 1;
+  for (var k = Math.ceil(minW / stepKg) * stepKg; k <= maxW; k += stepKg) ticks.push(k);
+  ticks.forEach(function(k) { svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(k) + '" y2="' + y(k) + '" stroke="#ebe4da"/><text x="' + (padL - 4) + '" y="' + (y(k) + 3) + '" text-anchor="end" font-size="8" fill="#7c726a">' + k + '</text>'; });
+  svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(goalW) + '" y2="' + y(goalW) + '" stroke="#2f9e55" stroke-width="1.5" stroke-dasharray="5 4"/><text x="' + (W - padR) + '" y="' + (y(goalW) - 4) + '" text-anchor="end" font-size="8.5" fill="#2f9e55" font-weight="700">Ziel ' + fmt(goalW) + ' kg</text>';
+  var band = "M " + mid.map(function(_, i) { return xF(i) + " " + y(high[i]); }).join(" L ") + " L " + mid.map(function(_, i) { var j = mid.length - 1 - i; return xF(j) + " " + y(low[j]); }).join(" L ") + " Z";
+  svg += '<path d="' + band + '" fill="url(#gFan)"/>';
+  if (hist.length > 1) svg += '<polyline fill="none" stroke="#b8aea4" stroke-width="1.5" points="' + hist.map(function(p) { return xH(p.x) + "," + y(p.w); }).join(" ") + '"/>' + hist.map(function(p) { return '<circle cx="' + xH(p.x) + '" cy="' + y(p.w) + '" r="1.8" fill="#b8aea4"/>'; }).join("");
+  svg += '<line x1="' + xF(0) + '" x2="' + xF(0) + '" y1="' + padT + '" y2="' + (H - padB) + '" stroke="#b8aea4" stroke-dasharray="2 3"/><text x="' + xF(0) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="8" fill="#7c726a">heute</text>';
+  svg += '<polyline fill="none" stroke="#ef7b1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + mid.map(function(w, i) { return xF(i) + "," + y(w); }).join(" ") + '"/>';
+  svg += '<circle cx="' + xF(0) + '" cy="' + y(wi.w0) + '" r="3.5" fill="#fff" stroke="#ef7b1a" stroke-width="2"/><circle cx="' + xF(wi.weeks) + '" cy="' + y(endW) + '" r="4" fill="#ef7b1a"/>';
+  svg += '<text x="' + (xF(wi.weeks) - 6) + '" y="' + (y(endW) + (endW > goalW ? -8 : 14)) + '" text-anchor="end" font-size="10" font-weight="800" fill="#d4640a">' + fmt(endW) + ' kg</text>';
+  if (hitWeek > 0 && hitWeek <= wi.weeks) svg += '<circle cx="' + xF(hitWeek) + '" cy="' + y(goalW) + '" r="5" fill="#2f9e55" stroke="#fff" stroke-width="2"/>';
+  [0.5, 1].forEach(function(f) { var wk = Math.round(wi.weeks * f); svg += '<text x="' + xF(wk) + '" y="' + (H - 8) + '" text-anchor="' + (f === 1 ? "end" : "middle") + '" font-size="8" fill="#7c726a">+' + wk + ' Wo.</text>'; });
+  svg += '</svg>';
+  document.getElementById("wiChart").innerHTML = svg;
+
+  var diff = endW - wi.w0, deficit = need0 - wi.kcal, out = '<div class="wi-big">' + fmt(endW) + ' kg <span style="font-size:0.9rem;font-weight:700;">in ' + wi.weeks + ' Wochen</span></div>' +
+    '<div style="font-size:0.85rem;margin-top:2px;">' + (Math.abs(diff) < 0.15 ? 'Gewicht bleibt etwa gleich' : (diff < 0 ? '−' : '+') + fmt(Math.abs(diff)) + ' kg gegenüber heute (' + fmt(wi.w0) + ' kg)') +
+    ' &middot; anfangs ' + (rate > 0 ? '+' : rate < -0.005 ? '−' : '') + fmt(Math.abs(rate)) + ' kg/Woche &middot; Spanne ' + fmt(low[low.length - 1]) + '–' + fmt(high[high.length - 1]) + ' kg</div>';
+  if (wi.w0 > goalW) {
+    if (hitWeek > 0) { var hd = new Date(); hd.setDate(hd.getDate() + hitWeek * 7); out += '<div style="margin-top:6px;font-size:0.85rem;"><b style="color:var(--c-p)">Zielgewicht ' + fmt(goalW) + ' kg in ca. ' + hitWeek + ' Wochen</b> (um den ' + hd.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) + ')</div>'; }
+    else out += '<div style="margin-top:6px;font-size:0.85rem;">Mit diesen Werten wird das Zielgewicht ' + fmt(goalW) + ' kg innerhalb eines Jahres nicht erreicht.</div>';
+  }
+  var notes = [];
+  if (deficit > 500 || rate < -0.0075 * wi.w0) notes.push(['Zu schnell für gutes Training', 'Ein Defizit von ' + kc(deficit) + ' kcal pro Tag kostet Regeneration und Leistung. Moderat sind bis etwa 300–500 kcal.', ""]);
+  else if (deficit > 100) notes.push(['Moderates Defizit', kc(deficit) + ' kcal pro Tag unter Bedarf – gut mit dem Training vereinbar, vor allem an lockeren Tagen einsparen.', "good"]);
+  else if (deficit < -150) notes.push(['Über Bedarf', kc(-deficit) + ' kcal pro Tag über dem Bedarf – das Gewicht steigt.', ""]);
+  if (wi.w0 > goalW && endW < goalW - 0.5) {
+    var keep = Math.round((wi.base + 22 * (goalW - wi.w0) + wi.train / 7 * (goalW / wi.w0)) / 50) * 50;
+    notes.push(['Prognose läuft unter dein Zielgewicht', 'Nach etwa ' + hitWeek + ' Wochen wären ' + fmt(goalW) + ' kg erreicht. Ab dann auf Erhaltung umstellen: etwa ' + kc(keep) + ' kcal pro Tag bei diesem Training. Weiter abzunehmen kostet Leistung und Gesundheit.', ""]);
+  }
+  if (!wi.hasWeight) notes.push(['Gewicht fehlt', 'Im Tagescheck der App ist kein Gewicht erfasst – gerechnet wird mit 75 kg.', "info"]);
+  out += notes.map(function(n) { return '<div class="note ' + n[2] + '" style="margin-bottom:0;"><b>' + n[0] + '</b>' + n[1] + '</div>'; }).join("");
+  out += '<div class="hint" style="margin-top:8px;">Modellrechnung: 7.700 kcal ≈ 1 kg, Bedarf sinkt mit dem Gewicht leicht mit. Das Band zeigt ±150 kcal Unsicherheit beim Grundbedarf. Wasser und Glykogen schwanken zusätzlich um 1–2 kg.</div>';
+  document.getElementById("wiOut").innerHTML = out;
+  // Ergebnis fuer die 10-km-Prognose in der App bereitstellen
+  save("coach_bjoern_whatif_weight", { weight: Math.round(endW * 10) / 10, weeks: wi.weeks, updated: Date.now() });
 }
 
 // ============================================================
@@ -1723,8 +1909,6 @@ document.addEventListener("click", function(ev) {
     case "amt-cancel": closeAmount(); break;
     case "manual-add": manualAdd(); break;
     case "del-entry": removeEntry(d.id); break;
-    case "meal-factor": mealFactors[d.id] = +d.f; renderPickMeals(); break;
-    case "meal-add": addMealToDay(d.id); break;
     case "meal-amount": openAmount(mealAsProduct(findMeal(d.id))); break;
     case "meal-new": openBuilder(null); break;
     case "meal-edit": openBuilder(findMeal(d.id)); break;
@@ -1739,6 +1923,8 @@ document.addEventListener("click", function(ev) {
     case "goals-tdee": saveGoals(true); break;
     case "sync": syncAll(); break;
     case "lib-save": syncLibrary(true); break;
+    case "wi-reset": renderWhatIf(true); break;
+    case "goto-date": document.getElementById("date").value = d.date; switchTab("input"); break;
     case "lib-restore": restoreLibrary(); break;
     case "extra": toggleExtra(d.id); break;
     case "extra-rm": removeCustomExtra(d.id); break;
@@ -1748,6 +1934,10 @@ document.addEventListener("click", function(ev) {
   }
 });
 document.addEventListener("keydown", function(ev) { if (ev.key === "Escape" && confirmCb) closeConfirm(false); });
+document.addEventListener("input", function(ev) {
+  var map = { wiKcal: "kcal", wiTrain: "train", wiWeeks: "weeks", wiBase: "base" }, k = map[ev.target.id];
+  if (k && wi) { wi[k] = +ev.target.value; if (k === "base") wi.baseKnown = false; renderWhatIf(false); }
+});
 document.addEventListener("change", function(ev) {
   if (ev.target.dataset && ev.target.dataset.bi != null) { builder.items[+ev.target.dataset.bi].grams = num(ev.target.value); renderBuilder(); }
 });
