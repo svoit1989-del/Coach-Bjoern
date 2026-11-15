@@ -620,7 +620,7 @@
 
   <div class="card">
     <h2>&#128201; Fortschritt</h2>
-    <div class="stat-row"><span class="stat-row-label">Wochen-km (aktuell)</span><span class="stat-row-value" id="athProgressKm">-</span></div>
+    <div class="stat-row"><span class="stat-row-label">Diese Woche</span><span class="stat-row-value" id="athProgressKm" style="text-align:right;font-size:0.82rem;">-</span></div>
     <div class="stat-row"><span class="stat-row-label">Planerfuellung</span><span class="stat-row-value" id="athProgressCompletion">-</span></div>
     <div class="stat-row"><span class="stat-row-label">Restgewicht bis Ziel</span><span class="stat-row-value" id="athProgressWeightLeft">-</span></div>
     <div class="stat-row"><span class="stat-row-label">Trainingseinheiten gesamt</span><span class="stat-row-value" id="athProgressTotalSessions">-</span></div>
@@ -1672,39 +1672,109 @@ function getRecommendation(completion, calf, sleep) {
   return "Belastung reduzieren. Fokus auf Konstanz. Naechste Woche identisch wiederholen.";
 }
 
+// Coach-Analyse: liest die zuletzt GESPEICHERTEN Daten (nicht nur die Formularfelder von heute),
+// sonst bleibt nach Datumswechsel / Sheet-Wiederherstellung alles leer.
+function caNum(v) { var n = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(n) ? 0 : n; }
+function caLatest(prefix, test) {
+  // juengster Eintrag (bis heute) eines Bereichs, der test(entry) erfuellt
+  var today = localISODate(), keys = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k && k.indexOf("date_entry_" + prefix + "_") === 0) { var d = k.slice(("date_entry_" + prefix + "_").length); if (d <= today) keys.push(d); }
+  }
+  keys.sort().reverse();
+  for (var j = 0; j < keys.length; j++) {
+    try { var e = JSON.parse(localStorage.getItem("date_entry_" + prefix + "_" + keys[j])); if (e && (!test || test(e))) return { date: keys[j], data: e }; } catch(err) {}
+  }
+  return null;
+}
+function caFieldVal(id) { var el = document.getElementById(id); return el ? el.value : ""; }
+function caDateLabel(iso) {
+  var p = iso.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
+  return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()] + " " + p[2] + "." + p[1] + ".";
+}
+
+// Aktuelles Gewicht: heutiges Feld, sonst letzter gespeicherter Tagescheck (mit Datum)
+function getCurrentWeightInfo() {
+  var el = document.getElementById("currentWeight");
+  var v = el ? caNum(el.value) : 0;
+  if (v > 30) return { kg: v, date: localISODate(), fromToday: true };
+  var tc = caLatest("todayDate", function(e) { return caNum(e.currentWeight) > 30; });
+  if (tc) return { kg: caNum(tc.data.currentWeight), date: tc.date, fromToday: tc.date === localISODate() };
+  return null;
+}
+function getCurrentWeight() { var i = getCurrentWeightInfo(); return i ? i.kg : 74; }
+function fmtKg(n) { return String(Math.round(n * 10) / 10).replace(".", ","); }
+
 function runCoachAnalysis() {
-  var weight   = parseFloat(document.getElementById("currentWeight").value || 74);
-  var goalW    = parseFloat(document.getElementById("goalWeight").value    || 69);
-  var complaint = getComplaintStatus(collectData());
-  var sleep    = sleepToHours(document.getElementById("garminSleep").value);
-  var pace     = document.getElementById("runPace").value;
-  var hf       = parseFloat(document.getElementById("runHF").value         || 0);
-  var cadence  = parseFloat(document.getElementById("runCadence").value    || 0);
-  var bkt      = parseFloat(document.getElementById("runBKT").value        || 0);
-  var km       = getWeeklyKm();
-  var feeling  = document.getElementById("runFeeling").value;
-  var hrv      = document.getElementById("garminHRV").value;
-  var battery  = document.getElementById("bodyBattery").value;
-  var tStatus  = document.getElementById("garminTrainingStatus").value;
-  var calfScore   = complaint.score;
-  var calfSt      = getCalfStatus(calfScore);
-  var econScore   = calcEconomyScore(hf, cadence, bkt, weight);
-  var completion  = calcCompletion(km, getPlanWeekTargetKm());
-  var rec         = getRecommendation(completion, calfScore, sleep);
-  var wt          = weightProgress(weight, goalW);
-  var fMap = { "sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht" };
-  document.getElementById("coachOutput").innerHTML =
-    '<div class="metric-grid">'
-    + '<div class="metric"><div class="metric-label">' + (complaint.name || "Beschwerden") + '</div><div class="metric-value ' + calfSt.cls + '" style="font-size:0.85rem">' + calfSt.text + '</div></div>'
-    + '<div class="metric"><div class="metric-label">Economy Score</div><div class="metric-value">' + econScore + ' / 100</div></div>'
-    + '<div class="metric"><div class="metric-label">Planerfuellung</div><div class="metric-value">' + completion + '%</div></div>'
-    + '<div class="metric"><div class="metric-label">Gewicht</div><div class="metric-value">' + wt + '</div></div>'
-    + '</div><hr>'
-    + '<h3>Garmin</h3><p>Body Battery: <strong>' + (battery||"-") + '</strong> | HRV: <strong>' + (hrv||"-") + '</strong> | Status: <strong>' + (tStatus||"-") + '</strong></p>'
-    + '<h3>Letzte Einheit</h3><p>Pace: <strong>' + (pace||"-") + '</strong> | HF: <strong>' + (hf||"-") + ' bpm</strong> | Schlaf: <strong>' + (document.getElementById("garminSleep").value||"-") + '</strong></p>'
-    + '<p>Gefuehl: <strong>' + (fMap[feeling]||"-") + '</strong></p>'
-    + (getThuleTotalWeight() > 0 ? '<p>Thule Chariot: <strong>' + getThuleTotalWeight() + ' kg gesamt</strong></p>' : '')
-    + '<h3>Empfehlung</h3><p>' + rec + '</p>';
+  var out = document.getElementById("coachOutput");
+  try {
+    // Gewicht + Beschwerden: heutiges Formular, sonst letzter gespeicherter Tagescheck
+    var weight = getCurrentWeight();
+    var goalW  = caNum(caFieldVal("goalWeight")) || 69;
+    var formD  = collectData();
+    var complaint = getComplaintStatus(formD);
+    if (!complaint.score) {
+      var tcAny = caLatest("todayDate", function(e) { return getComplaintStatus(e).score > 0 || Object.keys(e).length > 2; });
+      if (tcAny) { var c2 = getComplaintStatus(tcAny.data); if (c2.score > complaint.score) complaint = c2; }
+    }
+
+    // Garmin: heutiges Formular, sonst letzter Eintrag
+    var g = caLatest("garminDate", function(e) { return e.garminSleep || e.bodyBattery || e.garminHRV; });
+    var gd = g ? g.data : {};
+    var sleepStr = caFieldVal("garminSleep") || gd.garminSleep || "";
+    var sleep    = sleepToHours(String(sleepStr).replace(".", ":"));
+    var hrv      = caFieldVal("garminHRV") || gd.garminHRV || "";
+    var battery  = caFieldVal("bodyBattery") || gd.bodyBattery || "";
+    var tStatus  = caFieldVal("garminTrainingStatus") || gd.garminTrainingStatus || "";
+
+    // Letzte Einheit: letzte gespeicherte Session (fuer Economy Score die letzte Lauf-Einheit)
+    var all = collectTrainingSessions().filter(function(x) { return x.date <= localISODate() && (caNum(x.data.runKm) > 0 || x.data.runTime); });
+    var last = all.length ? all[all.length - 1] : null;
+    var lastRun = null;
+    for (var i = all.length - 1; i >= 0; i--) { if (all[i].data.trainingDiscipline !== "bike") { lastRun = all[i]; break; } }
+    var ls = last ? last.data : {}, lr = lastRun ? lastRun.data : {};
+    var isBike = ls.trainingDiscipline === "bike";
+    var pace    = caFieldVal("runPace") || ls.runPace || "";
+    var hf      = caNum(caFieldVal("runHF")) || caNum(ls.runHF);
+    var cadence = caNum(caFieldVal("runCadence")) || caNum(lr.runCadence);
+    var bkt     = caNum(caFieldVal("runBKT")) || caNum(lr.runBKT);
+    var econHf  = caNum(caFieldVal("runHF")) || caNum(lr.runHF);
+    var feeling = caFieldVal("runFeeling") || ls.runFeeling || "";
+
+    var calfScore  = complaint.score;
+    var calfSt     = getCalfStatus(calfScore);
+    var econScore  = calcEconomyScore(econHf, cadence, bkt, weight);
+    var wp         = getWeekProgress(new Date());
+    var completion = wp.completion != null ? wp.completion : calcCompletion(getWeeklyKm(), getPlanWeekTargetKm());
+    var rec        = getRecommendation(completion, calfScore, sleep);
+    var wt         = weightProgress(weight, goalW);
+    var fMap = { "sehr-gut":"Sehr gut","gut":"Gut","okay":"Okay","schwer":"Schwer","schlecht":"Schlecht" };
+    var lastLabel = last ? ' <span style="color:var(--text-muted,#888);font-size:0.8rem">(' + caDateLabel(last.date) + ', ' + (isBike ? "Rad" : "Lauf") + (caNum(ls.runKm) ? " " + String(ls.runKm).replace(".", ",") + " km" : "") + ')</span>' : "";
+    var thule = 0; try { thule = getThuleTotalWeight(); } catch(e) {}
+
+    out.innerHTML =
+      '<div class="metric-grid">'
+      + '<div class="metric"><div class="metric-label">' + (complaint.name || "Beschwerden") + '</div><div class="metric-value ' + calfSt.cls + '" style="font-size:0.85rem">' + calfSt.text + '</div></div>'
+      + '<div class="metric"><div class="metric-label">Economy Score</div><div class="metric-value">' + econScore + ' / 100</div></div>'
+      + '<div class="metric"><div class="metric-label">Planerfuellung</div><div class="metric-value">' + completion + '%</div></div>'
+      + '<div class="metric"><div class="metric-label">Gewicht</div><div class="metric-value">' + wt + '</div></div>'
+      + '</div>'
+      + '<p style="font-size:0.85rem;margin-top:8px">' + weekProgressText(wp) + '</p><hr>'
+      + '<h3>Garmin' + (g && !caFieldVal("garminSleep") ? ' <span style="color:var(--text-muted,#888);font-size:0.8rem">(' + caDateLabel(g.date) + ')</span>' : '') + '</h3>'
+      + '<p>Body Battery: <strong>' + (battery||"-") + '</strong> | HRV: <strong>' + (hrv||"-") + '</strong> | Status: <strong>' + (tStatus||"-") + '</strong></p>'
+      + '<h3>Letzte Einheit' + lastLabel + '</h3>'
+      + '<p>' + (isBike && !caFieldVal("runPace")
+          ? 'Tempo: <strong>' + (ls.bikeSpeed ? String(ls.bikeSpeed).replace(".", ",") + ' km/h' : "-") + '</strong> | Leistung: <strong>' + (ls.bikePower ? ls.bikePower + ' W' : "-") + '</strong>'
+          : 'Pace: <strong>' + (String(pace).replace(",", ":").replace(".", ":") || "-") + '</strong>')
+      + ' | HF: <strong>' + (hf || "-") + ' bpm</strong> | Schlaf: <strong>' + (sleepStr || "-") + '</strong></p>'
+      + '<p>Gefuehl: <strong>' + (fMap[feeling] || "-") + '</strong></p>'
+      + (thule > 0 ? '<p>Thule Chariot: <strong>' + thule + ' kg gesamt</strong></p>' : '')
+      + '<h3>Empfehlung</h3><p>' + rec + '</p>';
+  } catch (err) {
+    out.innerHTML = '<p class="status-red">Analyse fehlgeschlagen: ' + String(err && err.message || err) + '</p>';
+    if (window.console) console.error(err);
+  }
 }
 
 // ============================================================
@@ -1743,9 +1813,9 @@ function loadData() {
   updateHeaderStats();
 }
 function updateHeaderStats() {
-  var w  = document.getElementById("currentWeight") ? document.getElementById("currentWeight").value : "74";
-  var gw = document.getElementById("goalWeight")    ? document.getElementById("goalWeight").value    : "69";
-  document.getElementById("weightStatus").textContent = w + " kg -> " + gw + " kg";
+  var wi = getCurrentWeightInfo();
+  var gw = document.getElementById("goalWeight") ? document.getElementById("goalWeight").value : "69";
+  document.getElementById("weightStatus").textContent = (wi ? fmtKg(wi.kg) : "-") + " kg \u2192 " + String(gw || "69").replace(".", ",") + " kg";
 }
 
 // ============================================================
@@ -1811,6 +1881,56 @@ function getWeeklyBikeKm() {
   return Math.round(total * 10) / 10;
 }
 
+// Wochenfortschritt ueber alle Disziplinen: erledigte gegen geplante Einheiten (Lauf, Rad, Kraft).
+// Optionale Plan-Einheiten zaehlen nicht zum Soll; Zusatz-Einheiten werden angezeigt, heben die Quote aber nicht ueber 100 %.
+function getWeekProgress(refDate) {
+  var range = getWeekDateRange(refDate || new Date()), week = findPlanWeekForDate(range.monday);
+  var P = { run: { plan: 0, done: 0, km: 0, planKm: 0 }, bike: { plan: 0, done: 0, km: 0, planKm: 0 }, strength: { plan: 0, done: 0 } };
+  if (week && week.days) week.days.forEach(function(d) {
+    if (d.optional === true) return;
+    var t = d.type === "bike" ? "bike" : (d.type === "strength" || /kraft/i.test(d.type || "")) ? "strength" : isRunType(d.type) ? "run" : null;
+    if (!t) return;
+    P[t].plan++;
+    if (t !== "strength") P[t].planKm += parseFloat(d.km) || 0;
+  });
+  for (var i = 0; i < 7; i++) {
+    var dt = new Date(range.monday); dt.setDate(range.monday.getDate() + i);
+    var iso = dt.getFullYear() + "-" + pad2(dt.getMonth() + 1) + "-" + pad2(dt.getDate());
+    getTrainingSessions(iso).forEach(function(s) {
+      var km = parseFloat(String(s.runKm || "").replace(",", ".")) || 0;
+      if (!(km > 0 || s.runTime)) return;
+      var t = s.trainingDiscipline === "bike" ? "bike" : "run";
+      P[t].done++; P[t].km += km;
+    });
+    try {
+      var st = JSON.parse(localStorage.getItem("date_entry_strengthDate_" + iso)) || {};
+      if (Object.keys(st).some(function(k) { return k.indexOf("str-") === 0 && st[k]; })) P.strength.done++;
+    } catch(e) {}
+  }
+  var plan = P.run.plan + P.bike.plan + P.strength.plan, matched = 0, done = P.run.done + P.bike.done + P.strength.done;
+  ["run", "bike", "strength"].forEach(function(k) { P[k].matched = Math.min(P[k].done, P[k].plan); matched += P[k].matched; });
+  P.run.km = Math.round(P.run.km * 10) / 10; P.bike.km = Math.round(P.bike.km * 10) / 10;
+  return { parts: P, plan: plan, done: done, matched: matched, completion: plan ? Math.round(matched / plan * 100) : null, hasPlan: !!plan };
+}
+function weekProgressText(wp) {
+  var P = wp.parts, out = [];
+  if (P.run.plan || P.run.done) out.push("Lauf " + P.run.done + (P.run.plan ? "/" + P.run.plan : "") + (P.run.km || P.run.planKm ? " &middot; " + P.run.km + (P.run.planKm ? "/" + P.run.planKm : "") + " km" : ""));
+  if (P.bike.plan || P.bike.done) out.push("Rad " + P.bike.done + (P.bike.plan ? "/" + P.bike.plan : "") + (P.bike.km ? " &middot; " + P.bike.km + " km" : ""));
+  if (P.strength.plan || P.strength.done) out.push("Kraft " + P.strength.done + (P.strength.plan ? "/" + P.strength.plan : ""));
+  return out.length ? out.join(" &nbsp;|&nbsp; ").replace(/(\d)\.(\d)/g, "$1,$2") : "Noch keine Einheit diese Woche";
+}
+function renderWeekProgressBar(el, wp) {
+  // Balken aus Segmenten: je Disziplin farbig, Breite nach Anteil am Wochensoll
+  if (!el) return;
+  var cols = { run: "#4caf50", bike: "#29b6f6", strength: "#ab47bc" };
+  if (!wp.hasPlan) { el.innerHTML = ""; el.style.width = "0%"; return; }
+  el.style.width = "100%"; el.style.background = "transparent"; el.style.display = "flex"; el.style.gap = "2px";
+  el.innerHTML = ["run", "bike", "strength"].map(function(k) {
+    var p = wp.parts[k]; if (!p.plan) return "";
+    return '<div style="flex:' + p.plan + ';background:#26292e;border-radius:20px;overflow:hidden;"><div style="height:100%;width:' + (p.matched / p.plan * 100) + '%;background:' + cols[k] + ';border-radius:20px;transition:width 0.4s;"></div></div>';
+  }).join("");
+}
+
 function getPlanWeekTargetKm() {
   // Ermittelt die Soll-km der Trainingswoche, die der aktuell gewaehlten KW entspricht
   var refDateStr = document.getElementById("runDate") ? document.getElementById("runDate").value : "";
@@ -1825,21 +1945,22 @@ function getPlanWeekTargetKm() {
 
 function updateAnalysis() {
   var km     = getWeeklyKm();
-  var weight = parseFloat(document.getElementById("currentWeight") ? document.getElementById("currentWeight").value : 74) || 74;
+  var weight = getCurrentWeight();
   var goalW  = parseFloat(document.getElementById("goalWeight") ? document.getElementById("goalWeight").value : 69) || 69;
   var pace   = document.getElementById("runPace") ? document.getElementById("runPace").value : "-";
   var energy = document.getElementById("energy") ? document.getElementById("energy").value : "-";
   var battery= document.getElementById("bodyBattery") ? document.getElementById("bodyBattery").value : "-";
-  var targetKm = getPlanWeekTargetKm();
-  var completion = Math.min(100, Math.round((km / targetKm) * 100));
-  var pb = document.getElementById("progressBar");
-  if (pb) pb.style.width = completion + "%";
+  var refEl = document.getElementById("runDate");
+  var wp = getWeekProgress(refEl && refEl.value ? parseLocalDate(refEl.value) : new Date());
+  var completion = wp.hasPlan ? wp.completion : 0;
+  renderWeekProgressBar(document.getElementById("progressBar"), wp);
   var out = document.getElementById("analysisOutput");
   if (!out) return;
   var wLeft = (weight - goalW).toFixed(1);
   out.innerHTML = '<div class="metric-grid">'
-    + '<div class="metric"><div class="metric-label">Wochen-km</div><div class="metric-value">' + km + '</div></div>'
-    + '<div class="metric"><div class="metric-label">Planerfuellung</div><div class="metric-value">' + completion + '%</div></div>'
+    + '<div class="metric"><div class="metric-label">Lauf-km</div><div class="metric-value">' + km + '</div></div>'
+    + '<div class="metric"><div class="metric-label">Planerfuellung</div><div class="metric-value">' + (wp.hasPlan ? completion + '%' : '-') + '</div></div>'
+    + '<div class="metric"><div class="metric-label">Einheiten</div><div class="metric-value">' + wp.done + (wp.hasPlan ? '/' + wp.plan : '') + '</div></div>'
     + '<div class="metric"><div class="metric-label">Gewicht</div><div class="metric-value">' + weight + ' kg</div></div>'
     + '<div class="metric"><div class="metric-label">Rest bis Ziel</div><div class="metric-value">' + (parseFloat(wLeft) > 0 ? wLeft + " kg" : "Ziel!") + '</div></div>'
     + '<div class="metric"><div class="metric-label">Letzte Pace</div><div class="metric-value">' + (pace||"-") + '</div></div>'
@@ -2749,10 +2870,10 @@ function updateStartPage() {
     battEl.style.color = !d.bodyBattery ? "var(--text)" : battVal >= 70 ? "var(--accent)" : battVal >= 40 ? "var(--warning)" : "var(--danger)";
   }
 
-  var weight = parseFloat(d.currentWeight || 74);
+  var weight = caNum(d.currentWeight) > 30 ? caNum(d.currentWeight) : getCurrentWeight();
   var goalW  = parseFloat(d.goalWeight    || 69);
-  setEl("tileWeight",    weight + " kg");
-  setEl("tileWeightSub", (weight - goalW).toFixed(1) + " kg bis Ziel");
+  setEl("tileWeight",    fmtKg(weight) + " kg");
+  setEl("tileWeightSub", fmtKg(weight - goalW) + " kg bis Ziel");
 
   var complaint = getComplaintStatus(d);
   var calfScore = complaint.score;
@@ -2776,13 +2897,11 @@ function updateStartPage() {
     }
   }
 
-  var km = getWeeklyKm();
-  var targetKm = getPlanWeekTargetKm();
-  var completion = Math.min(100, Math.round((km / targetKm) * 100));
-  setEl("tileCompletion", completion + "%");
-  setEl("tileKm", km + " km diese Woche");
-  var spb = document.getElementById("startProgressBar");
-  if (spb) spb.style.width = completion + "%";
+  var wp = getWeekProgress(new Date());
+  setEl("tileCompletion", wp.hasPlan ? wp.completion + "%" : wp.done + (wp.done === 1 ? " Einheit" : " Einheiten"));
+  var tkm = document.getElementById("tileKm");
+  if (tkm) tkm.innerHTML = weekProgressText(wp) + (wp.hasPlan ? "" : " &middot; kein Plan fuer diese Woche");
+  renderWeekProgressBar(document.getElementById("startProgressBar"), wp);
 
   var hrv = d.garminHRV || "";
   var hrvColors = { ausgeglichen:"var(--accent)", niedrig:"var(--warning)", unausgeglichen:"var(--warning)", schlecht:"var(--danger)" };
@@ -3283,11 +3402,9 @@ function updateAthleteTab() {
   setEl("athProfilePlanId", localStorage.getItem(PLAN_ID_KEY) || "Noch nicht aus Sheet geladen");
 
   // Fortschritt
-  var km = getWeeklyKm();
-  var targetKm = getPlanWeekTargetKm();
-  var completion = Math.round((km / targetKm) * 100);
-  setEl("athProgressKm", km + " / " + targetKm + " km");
-  setEl("athProgressCompletion", completion + "%");
+  var wpA = getWeekProgress(new Date());
+  var akm = document.getElementById("athProgressKm"); if (akm) akm.innerHTML = weekProgressText(wpA);
+  setEl("athProgressCompletion", wpA.hasPlan ? wpA.completion + "% (" + wpA.matched + "/" + wpA.plan + " Einheiten)" : "kein Plan");
   var weightLeft = (weight - goalW).toFixed(1);
   setEl("athProgressWeightLeft", parseFloat(weightLeft) > 0 ? weightLeft + " kg" : "Ziel erreicht!");
 
@@ -3315,10 +3432,15 @@ function updateAthleteTab() {
 }
 
 function updateGoalDiff() {
-  var curW  = parseFloat(document.getElementById("currentWeight") ? document.getElementById("currentWeight").value : 74) || 74;
+  var wInfo = getCurrentWeightInfo();
+  var curW  = wInfo ? wInfo.kg : 74;
   var goalW = parseFloat(document.getElementById("goalWeight")    ? document.getElementById("goalWeight").value    : 69) || 69;
   var curWDisplayEl = document.getElementById("currentWeightDisplay");
-  if (curWDisplayEl) curWDisplayEl.textContent = curW + " kg";
+  if (curWDisplayEl) {
+    curWDisplayEl.textContent = wInfo ? fmtKg(curW) + " kg" : "-";
+    var sub = curWDisplayEl.nextElementSibling;
+    if (sub) sub.textContent = !wInfo ? "im Heute-Tab" : wInfo.fromToday ? "heute" : "Stand " + caDateLabel(wInfo.date);
+  }
   var diffW = (curW - goalW).toFixed(1);
   var diffEl = document.getElementById("weightDiff");
   if (diffEl) {
@@ -3326,7 +3448,7 @@ function updateGoalDiff() {
       diffEl.textContent = "Ziel erreicht!";
       diffEl.style.color = "var(--accent)";
     } else {
-      diffEl.textContent = diffW + " kg noch";
+      diffEl.textContent = fmtKg(parseFloat(diffW)) + " kg noch";
       diffEl.style.color = parseFloat(diffW) > 3 ? "var(--danger)" : "var(--warning)";
     }
   }
@@ -3346,6 +3468,7 @@ function updateGoalDiff() {
 // INIT
 // ============================================================
 document.addEventListener("DOMContentLoaded", function() {
+  var _cab = document.getElementById("runCoachAnalysis"); if (_cab) _cab.onclick = runCoachAnalysis;
   var tabBtns = document.querySelectorAll(".tab-btn");
   for (var i = 0; i < tabBtns.length; i++) {
     tabBtns[i].addEventListener("click", function() {
@@ -3417,8 +3540,8 @@ document.addEventListener("DOMContentLoaded", function() {
   updateRecoveryGarmin();
   updateGoalDiff();
   updateAthleteTab();
+  updateHeaderStats();
 
-  document.getElementById("runCoachAnalysis").addEventListener("click", runCoachAnalysis);
   document.getElementById("sheetsSaveBtn").addEventListener("click", saveSheetsSettings);
   document.getElementById("sheetsSyncBtn").addEventListener("click", sheetsFullSync);
   document.getElementById("sheetsDisconnectBtn").addEventListener("click", sheetsDisconnect);
