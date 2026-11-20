@@ -1435,7 +1435,15 @@ function importToBuilder() {
   imp.portions = num(document.getElementById("impPortions").value) || "";
   var good = imp.rows.filter(function(r) { return r.per100 && r.grams > 0; }), bad = imp.rows.length - good.length;
   if (!good.length) { toast("Noch keine zugeordneten Zutaten"); return; }
-  if (bad && !confirm(bad + " Zeile(n) ohne Lebensmittel oder Menge werden weggelassen. Weiter?")) return;
+  if (bad) {
+    var names = imp.rows.filter(function(r) { return !(r.per100 && r.grams > 0); }).map(function(r) { return "\u201E" + r.line + "\u201C"; });
+    askConfirm("Zeilen weglassen?", names.join(", ") + (bad === 1 ? " hat" : " haben") + " kein Lebensmittel oder 0 g und " + (bad === 1 ? "wird" : "werden") + " nicht übernommen. Salz, Gewürze und Wasser sind dafür meist egal.",
+      "Trotzdem übernehmen", function() { finishImport(good); }, false);
+    return;
+  }
+  finishImport(good);
+}
+function finishImport(good) {
   var b = { id: null, name: imp.name || "Importiertes Rezept", finalWeight: "", portions: imp.portions,
             items: good.map(function(r) { return { name: r.foodName + (normTxt(r.foodName) !== normTxt(r.label) ? " (" + r.label + ")" : ""), grams: r.grams, per100: r.per100, ext: r.ext || null, code: "" }; }) };
   closeImport();
@@ -1703,8 +1711,9 @@ function saveMeal() {
 }
 // Eigener Sicherheitsdialog: die Browser-Bestaetigung wird in installierten Web-Apps teils unterdrueckt
 var confirmCb = null;
-function askConfirm(title, text, yesLabel, cb) {
+function askConfirm(title, text, yesLabel, cb, danger) {
   confirmCb = cb;
+  document.getElementById("confirmYes").className = "btn" + (danger === false ? "" : " del");
   document.getElementById("confirmTitleText").textContent = title;
   document.getElementById("confirmText").textContent = text;
   document.getElementById("confirmYes").textContent = yesLabel || "Löschen";
