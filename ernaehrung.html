@@ -149,6 +149,23 @@
   .wi-row b{color:var(--text);font-size:0.95rem;}
   .wi-out{background:var(--accent-soft);border:1px solid #f6dcc3;border-radius:12px;padding:12px;margin-top:12px;}
   .wi-big{font-size:1.5rem;font-weight:800;color:var(--accent-dim);line-height:1.2;}
+  /* Rezept-Import */
+  #impText{width:100%;min-height:150px;resize:vertical;font:inherit;font-size:0.85rem;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);color:var(--text);}
+  .imp-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;}
+  .imp-btns .btn{padding:10px 4px;font-size:0.8rem;}
+  .imp-row .n{white-space:normal;}
+  .imp-row .d{word-break:break-word;}
+  .busy{opacity:0.55;pointer-events:none;}
+  details.ai{margin-top:10px;font-size:0.84rem;} details.ai summary{cursor:pointer;color:var(--muted);font-weight:700;}
+  /* Wasserzaehler */
+  .water-v{font-size:1.35rem;font-weight:800;color:var(--blue);}
+  .water-v small{font-size:0.8rem;color:var(--muted);font-weight:600;}
+  .wbtns{display:grid;grid-template-columns:0.8fr 1fr 1fr 1fr;gap:6px;margin-top:10px;}
+  .wbtns button{border:1px solid #cfe3f2;border-radius:11px;background:#f1f7fb;color:#17567f;font-weight:800;font-size:0.85rem;padding:10px 4px;cursor:pointer;}
+  .wbtns.coffee{grid-template-columns:0.8fr 3.06fr;margin-top:6px;}
+  .wbtns.coffee button:not(.minus){background:#f6ece2;border-color:#e6d3bf;color:#6b4423;}
+  .wbtns button.minus{background:var(--surface-3);border-color:var(--line);color:var(--muted);}
+  .wbtns button:active{transform:scale(0.96);}
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-weight:700;font-size:0.82rem;padding:8px 18px;border-radius:20px;opacity:0;transition:opacity 0.3s;z-index:200;pointer-events:none;white-space:nowrap;}
   #toast.show{opacity:1;}
 </style>
@@ -177,6 +194,7 @@
     <div id="dayType"></div>
   </div>
   <div id="mealCards"></div>
+  <div class="card" id="waterCard"></div>
   <div class="card">
     <div class="meal-h"><h2 style="margin:0;">&#127798;&#65039; Zusätze</h2><button class="btn small sec" data-act="extras-edit" id="extrasEditBtn">Bearbeiten</button></div>
     <div class="chips" id="extrasChips"></div>
@@ -192,12 +210,47 @@
 
   <div class="card">
     <div class="meal-h"><h2 style="margin:0;">&#11088; Meine Mahlzeiten</h2>
-      <div style="display:flex;gap:6px;"><button class="btn small sec" data-act="lib-save">&#128190; Sichern</button><button class="btn small" data-act="meal-new">+ Neu</button></div></div>
+      <div style="display:flex;gap:6px;"><button class="btn small sec" data-act="lib-save">&#128190; Sichern</button><button class="btn small sec" data-act="imp-open">&#128203; Rezept</button><button class="btn small" data-act="meal-new">+ Neu</button></div></div>
     <div id="mealList" style="margin-top:8px;"></div>
     <div class="row" style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px;">
       <div class="status" id="libStatus" style="margin:0;"></div>
       <button class="btn small sec" data-act="lib-restore" style="flex:0 0 auto;">Wiederherstellen</button>
     </div>
+  </div>
+
+  <div class="card" id="importCard" style="display:none;">
+    <h2>&#128203; Rezept einfügen</h2>
+    <textarea id="impText" placeholder="Ganzes Rezept hier einfügen, z. B. von Chefkoch:&#10;&#10;Dinkel-Quark-Brot&#10;Zutaten für 20 Scheiben&#10;500 g Dinkelmehl 630&#10;250 g Magerquark&#10;1 Pck. Backpulver&#10;2 Eier&#10;1 TL Salz&#10;&#10;Zubereitung … (wird ignoriert)"></textarea>
+    <div class="imp-btns">
+      <button class="btn" data-act="imp-local">&#128269; Auslesen</button>
+      <button class="btn" data-act="imp-ai" id="impAiBtn">&#10024; Mit KI</button>
+      <button class="btn" data-act="imp-photo" id="impPhotoBtn">&#128247; Foto (KI)</button>
+    </div>
+    <input type="file" id="impFile" accept="image/*" style="display:none;">
+    <div class="status" id="impStatus"></div>
+    <div id="impReview" style="display:none;">
+      <div class="row">
+        <div style="flex:2;"><label>Name</label><input id="impName" placeholder="Rezeptname"></div>
+        <div><label>Portionen</label><input id="impPortions" inputmode="numeric" placeholder="z.B. 4"></div>
+      </div>
+      <div id="impRows" style="margin-top:8px;"></div>
+      <button class="btn small sec" data-act="imp-ai-open" id="impAiOpen" style="display:none;margin-top:8px;"></button>
+      <div class="tiles" id="impTiles"></div>
+      <div class="hint" id="impInfo" style="margin-top:6px;"></div>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn" data-act="imp-take">Übernehmen &rarr; Mahlzeit</button>
+        <button class="btn sec" data-act="imp-cancel">Abbrechen</button>
+      </div>
+      <div class="hint" style="margin-top:4px;">Danach im Baukasten noch das Fertiggewicht nach dem Kochen/Backen eintragen und speichern.</div>
+    </div>
+    <details class="ai" id="aiBox"><summary>KI-Einstellungen (optional)</summary>
+      <div class="hint" style="margin:6px 0;">Für &bdquo;Mit KI&ldquo; und Fotos: eigener Claude-API-Schlüssel von console.anthropic.com. Kostet je Rezept wenige Cent. Der Schlüssel bleibt nur auf diesem Gerät und geht nicht ins Sheet; das Rezept wird zur Auswertung an Anthropic geschickt.</div>
+      <label>API-Schlüssel</label><input id="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+      <label>Modell</label>
+      <select id="aiModel"><option value="claude-sonnet-5-5">Claude Sonnet 5.5 (genauer)</option><option value="claude-haiku-5-5">Claude Haiku 5.5 (günstiger)</option></select>
+      <div class="row" style="margin-top:8px;"><button class="btn small" data-act="ai-save">Speichern</button><button class="btn small sec" data-act="ai-clear">Schlüssel löschen</button></div>
+      <div class="hint" id="aiState" style="margin-top:6px;"></div>
+    </details>
   </div>
 
   <div class="card" id="builderCard" style="display:none;">
@@ -248,6 +301,7 @@
     </div>
     <div id="topList" style="margin-top:8px;"></div>
   </div>
+  <div class="card"><h2>&#128167; Trinken</h2><div id="waterStats"></div></div>
   <div class="card"><h2>Zusätze</h2><div id="extrasStats"></div></div>
 </section>
 
@@ -282,6 +336,10 @@
       <div><label>KH Schwelle g/kg</label><input id="gThr" inputmode="decimal"></div>
       <div><label>KH HIIT g/kg</label><input id="gHiit" inputmode="decimal"></div>
     </div>
+    <div class="row">
+      <div><label>Wasser ml pro kg</label><input id="gWater" inputmode="numeric"></div>
+      <div><label>Wasser ml pro Trainingsstunde</label><input id="gWaterH" inputmode="numeric"></div>
+    </div>
     <div class="hint" id="goalInfo" style="margin-top:6px;"></div>
     <div class="row">
       <button class="btn" data-act="goals-save">Ziele speichern</button>
@@ -308,6 +366,7 @@
       <input id="q" placeholder="z.B. Haferflocken, Skyr ..." enterkeyhint="search">
       <button class="btn small" data-act="search" style="flex:0 0 auto;padding:11px 14px;">Suchen</button>
     </div>
+    <div id="localResults"></div>
     <div class="status" id="searchStatus"></div>
     <div id="results"></div>
   </div>
@@ -340,6 +399,7 @@
       <div><label>Ballastst. g</label><input id="mFiber" inputmode="decimal"></div>
       <div><label>Zucker g</label><input id="mSugar" inputmode="decimal"></div>
     </div>
+    <button class="chip" data-act="m-drink" id="mDrink" style="margin-top:10px;">&#128167; Getränk (zählt zum Trinken)</button>
     <button class="btn" data-act="manual-add">Hinzufügen</button>
   </div>
 </div>
@@ -349,8 +409,11 @@
 <div class="sheet" id="amtSheet">
   <div style="font-weight:800;font-size:1rem;" id="aName"></div>
   <div class="hint" id="aInfo"></div>
-  <button class="btn small sec" data-act="amt-fav" id="aFavBtn" style="margin-top:8px;">&#9734; Als Favorit merken</button>
-  <label>Menge (g)</label>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+    <button class="btn small sec" data-act="amt-fav" id="aFavBtn">&#9734; Als Favorit merken</button>
+    <button class="chip" data-act="amt-drink" id="aDrinkBtn" style="margin:0;"></button>
+  </div>
+  <label id="aGramsLbl">Menge (g)</label>
   <input id="aGrams" inputmode="decimal">
   <div class="chips" id="aChips"></div>
   <div class="tiles" id="aTiles"></div>
@@ -381,7 +444,11 @@ var K = {
   sheets: "coach_bjoern_sheets", token: "coach_bjoern_sheets_token",
   extrasList: "coach_bjoern_food_extras_list", extras: "coach_bjoern_food_extras",
   favs: "coach_bjoern_food_favs",    // Favoriten getrennt vom Zwischenspeicher, damit sie nie verdraengt werden
-  snapshot: "coach_bjoern_food_snapshot", libSync: "coach_bjoern_food_libsync", libPending: "coach_bjoern_food_libpending"
+  snapshot: "coach_bjoern_food_snapshot", libSync: "coach_bjoern_food_libsync", libPending: "coach_bjoern_food_libpending",
+  water: "coach_bjoern_food_water",   // { "YYYY-MM-DD": ml } reines Wasser
+  coffee: "coach_bjoern_food_coffee",  // { "YYYY-MM-DD": ml } Kaffee per Knopf
+  recipeMap: "coach_bjoern_food_recipemap",  // gelernte Zuordnungen Zutatentext -> Lebensmittel
+  ai: "coach_bjoern_food_ai"                // { key, model } Claude-API (nur lokal, nie im Sheet)
 };
 var NUT = ["kcal", "protein", "carbs", "fat", "fiber", "sugar"];
 var NUT_LABEL = { kcal: "kcal", protein: "Protein", carbs: "KH", fat: "Fett", fiber: "Ballastst.", sugar: "Zucker" };
@@ -480,7 +547,9 @@ function getGoals() {
     low: num(g.low) || 100,                      // KH max an Ruhe-/Krafttagen (Low Carb)
     end: num(g.end) || 130,                      // KH max an lockeren Ausdauertagen (Fettstoffwechsel)
     thr: num(g.thr) || 3,                        // KH g/kg an Schwellentagen
-    hiit: num(g.hiit) || 4                       // KH g/kg an HIIT-Tagen
+    hiit: num(g.hiit) || 4,                      // KH g/kg an HIIT-Tagen
+    water: num(g.water) || 35,                   // Wasser ml pro kg Koerpergewicht
+    waterH: num(g.waterH) || 500                 // zusaetzlich ml pro Trainingsstunde
   };
 }
 // ============================================================
@@ -510,9 +579,9 @@ function cacheProduct(prod) {
   }
   save(K.cache, c);
 }
-async function offFetch(url) {
+async function offFetch(url, timeoutMs) {
   var ctrl = new AbortController();
-  var timer = setTimeout(function() { ctrl.abort(); }, 12000);
+  var timer = setTimeout(function() { ctrl.abort(); }, timeoutMs || 12000);
   try {
     var r = await fetch(url, { signal: ctrl.signal });
     if (r.status === 429 || r.status === 503) throw new Error("Abrufgrenze von Open Food Facts erreicht – bitte eine Minute warten.");
@@ -530,25 +599,78 @@ function searchWaitSeconds() {
   searchTimes = searchTimes.filter(function(t) { return now - t < 60000; });
   return searchTimes.length >= 9 ? Math.ceil((60000 - (now - searchTimes[0])) / 1000) : 0;
 }
-var lastResults = [];
+// ---- Textsuche ----
+// API v2 kennt keine Volltextsuche. Daher: 1. Search-a-licious (search.openfoodfacts.org),
+// 2. bei Fehler oder 0 Treffern die alte Suche /cgi/search.pl. Ergebnisse je Begriff 30 min im Speicher.
+var lastResults = [], searchMem = {};
+function pickText(v) {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) return v.map(pickText).filter(Boolean).join(", ");
+  if (typeof v === "object") return pickText(v.de || v.main || v.en || v[Object.keys(v)[0]]);
+  return String(v);
+}
+function normHit(h) {   // Search-a-licious liefert Namen teils als {de:…, main:…}, Marken als Liste
+  return { code: h.code || "", product_name: pickText(h.product_name), product_name_de: pickText(h.product_name_de),
+           brands: pickText(h.brands), nutriments: h.nutriments || {}, serving_quantity: h.serving_quantity };
+}
+function hasNutri(p) { var n = p.nutriments || {}; return n["energy-kcal_100g"] != null || n["energy_100g"] != null; }
+async function searchNew(q) {
+  var url = "https://search.openfoodfacts.org/search?q=" + encodeURIComponent(q) + "&langs=de&page_size=20&fields=" + OFF_FIELDS;
+  var data = await offFetch(url, 8000);
+  var hits = (data.hits || []).map(normHit).filter(function(h) { return h.product_name || h.product_name_de; });
+  // Fehlen die Naehrwerte im Treffer, in einem Abruf per API v2 (code=…) nachladen
+  var codes = hits.filter(function(h) { return h.code && !hasNutri(h); }).map(function(h) { return h.code; });
+  if (codes.length) {
+    try {
+      var d2 = await offFetch("https://world.openfoodfacts.org/api/v2/search?code=" + codes.join(",") + "&page_size=" + codes.length + "&fields=" + OFF_FIELDS, 8000), by = {};
+      (d2.products || []).forEach(function(p) { by[p.code] = p; });
+      hits.forEach(function(h) { var p = by[h.code]; if (p && !hasNutri(h)) { h.nutriments = p.nutriments || {}; if (!h.serving_quantity) h.serving_quantity = p.serving_quantity; } });
+    } catch(e) { /* ohne Naehrwerte anzeigen */ }
+  }
+  return hits;
+}
+async function searchOld(q) {
+  var path = "/cgi/search.pl?search_terms=" + encodeURIComponent(q) + "&search_simple=1&action=process&json=1&page_size=20&fields=" + OFF_FIELDS, data;
+  try { data = await offFetch("https://de.openfoodfacts.org" + path); }
+  catch(e1) { data = await offFetch("https://world.openfoodfacts.org" + path); }
+  return data.products || [];
+}
+// Grundlebensmittel (offline) – erscheinen beim Tippen und über den Online-Treffern
+var localShown = [];
+function showLocalHits(q, intro) {
+  localShown = q && q.trim().length >= 2 ? dbSearch(q, 4) : [];
+  document.getElementById("localResults").innerHTML = localShown.length ?
+    '<div class="hint" style="margin-top:6px;font-weight:700;">Grundlebensmittel (Richtwerte, offline)</div>' + localShown.map(function(p, i) {
+      return '<div class="result" data-act="pick" data-src="db" data-i="' + i + '"><div style="font-weight:600;font-size:0.88rem;">' + esc(p.name) + '</div>' +
+        '<div class="hint">' + Math.round(p.per100.kcal) + ' kcal &middot; P ' + fmt(p.per100.protein) + ' &middot; KH ' + fmt(p.per100.carbs) + ' &middot; F ' + fmt(p.per100.fat) + ' pro 100 g</div></div>';
+    }).join("") + (intro ? '<div class="hint" style="margin:4px 0;">Nichts Passendes? &bdquo;Suchen&ldquo; fragt Open Food Facts nach Markenprodukten.</div>' : '') : "";
+}
 async function doSearch() {
   var q = document.getElementById("q").value.trim();
   if (!q) { setStatus("searchStatus", "Bitte Suchbegriff eingeben.", "warn"); return; }
-  var wait = searchWaitSeconds();
-  if (wait) { setStatus("searchStatus", "Suchgrenze erreicht – in " + wait + " s wieder möglich. \"Zuletzt\" geht ohne Abruf.", "warn"); return; }
-  searchTimes.push(Date.now());
-  setStatus("searchStatus", "Suche ...");
+  showLocalHits(q);
+  var memKey = q.toLowerCase(), mem = searchMem[memKey], fromMem = false, src, raw;
   document.getElementById("results").innerHTML = "";
-  var path = "/cgi/search.pl?search_terms=" + encodeURIComponent(q) + "&search_simple=1&action=process&json=1&page_size=20&fields=" + OFF_FIELDS;
-  var data;
-  try { data = await offFetch("https://de.openfoodfacts.org" + path); }
-  catch(e1) {
-    try { data = await offFetch("https://world.openfoodfacts.org" + path); }
-    catch(e2) { setStatus("searchStatus", e2.message, "err"); return; }
+  if (mem && Date.now() - mem.t < 30 * 60000) { raw = mem.raw; src = mem.src; fromMem = true; }
+  else {
+    var wait = searchWaitSeconds();
+    if (wait) { setStatus("searchStatus", "Suchgrenze erreicht – in " + wait + " s wieder möglich. \"Zuletzt\" geht ohne Abruf.", "warn"); return; }
+    searchTimes.push(Date.now());
+    setStatus("searchStatus", "Suche ...");
+    try { raw = await searchNew(q); src = "neu"; } catch(e) { raw = []; console.warn("Search-a-licious", e); }
+    if (!raw.length) {
+      setStatus("searchStatus", "Suche (Ersatzweg) ...");
+      try { raw = await searchOld(q); src = "alt"; }
+      catch(e2) { setStatus("searchStatus", e2.message + (localShown.length ? " Grundlebensmittel oben gehen offline." : ""), "err"); return; }
+    }
+    if (raw.length) searchMem[memKey] = { t: Date.now(), raw: raw, src: src };
   }
-  lastResults = (data.products || []).map(productFromOff);
+  // Produkte mit Naehrwerten zuerst, sonst Reihenfolge der Suche behalten
+  lastResults = raw.map(productFromOff).map(function(p, i) { return { p: p, i: i }; })
+    .sort(function(a, b) { return (b.p.hasData - a.p.hasData) || (a.i - b.i); }).map(function(x) { return x.p; });
   if (!lastResults.length) { setStatus("searchStatus", "Keine Treffer für \"" + q + "\". Anderes Wort oder Manuell versuchen.", "warn"); return; }
-  setStatus("searchStatus", lastResults.length + " Treffer");
+  setStatus("searchStatus", lastResults.length + " Treffer" + (src === "alt" ? " (Ersatzsuche)" : "") + (fromMem ? " – aus dem Speicher" : ""));
   document.getElementById("results").innerHTML = lastResults.map(function(p, i) {
     return '<div class="result" data-act="pick" data-src="search" data-i="' + i + '"><div style="font-weight:600;font-size:0.88rem;">' + esc(p.name) + '</div>' +
       '<div class="hint">' + (p.brand ? esc(p.brand) + ' &middot; ' : '') +
@@ -581,9 +703,12 @@ async function lookupBarcode(code) {
 var addTarget = { type: "meal", meal: "fruehstueck" };
 function openAdd(target) {
   addTarget = target;
-  document.getElementById("addTitle").textContent = target.type === "builder" ? "Zutat für die Mahlzeit" : "Hinzufügen zu " + mealLabel(target.meal);
-  document.getElementById("subMealsBtn").style.display = target.type === "builder" ? "none" : "";
-  if (target.type === "builder" && document.querySelector("#subtabs .on").dataset.p === "meals") switchSub("search");
+  var noMeal = target.type === "builder" || target.type === "import";
+  document.getElementById("addTitle").textContent = target.type === "import" ? "Zuordnen: " + (imp.rows[target.i] ? imp.rows[target.i].line : "") :
+    target.type === "builder" ? "Zutat für die Mahlzeit" : "Hinzufügen zu " + mealLabel(target.meal);
+  document.getElementById("subMealsBtn").style.display = noMeal ? "none" : "";
+  if (noMeal && document.querySelector("#subtabs .on").dataset.p === "meals") switchSub("search");
+  document.getElementById("localResults").innerHTML = "";
   renderRecent(); renderFavs(); renderPickMeals();
   document.getElementById("addBg").style.display = "block";
   document.getElementById("addSheet").classList.add("open");
@@ -608,8 +733,12 @@ function openAmount(prod) {
   current = prod;
   document.getElementById("aName").textContent = prod.name;
   document.getElementById("aInfo").textContent = (prod.brand ? prod.brand + " – " : "") + Math.round(prod.per100.kcal) + " kcal pro 100 g" + (prod.hasData === false ? " (unvollständige Daten)" : "");
-  document.getElementById("aGrams").value = round1(prod.lastGrams || prod.serving || 100);
+  var impRow = addTarget.type === "import" ? imp.rows[addTarget.i] : null;
+  document.getElementById("aGrams").value = round1(impRow && impRow.grams ? impRow.grams : prod.lastGrams || prod.serving || 100);
   document.getElementById("aFavBtn").style.display = prod.isMeal ? "none" : "";
+  if (!prod.isMeal && prod.drink == null) prod.drink = guessDrink(prod.name);
+  document.getElementById("aDrinkBtn").style.display = prod.isMeal || addTarget.type === "builder" || addTarget.type === "import" ? "none" : "";
+  updateDrinkBtn();
   var chips = [50, 100, 150, 200], html;
   if (prod.chips) html = prod.chips.map(function(c) { return '<button class="chip" data-act="grams" data-g="' + c.g + '">' + c.label + '</button>'; }).join("");
   else {
@@ -617,11 +746,17 @@ function openAmount(prod) {
     if (prod.serving && chips.indexOf(prod.serving) === -1) html = '<button class="chip" data-act="grams" data-g="' + prod.serving + '">1 Portion (' + fmt(prod.serving) + ' g)</button>' + html;
   }
   document.getElementById("aChips").innerHTML = html;
-  document.getElementById("aAddBtn").textContent = addTarget.type === "builder" ? "In die Mahlzeit" : "Zu " + mealLabel(addTarget.meal);
+  document.getElementById("aAddBtn").textContent = addTarget.type === "import" ? "Für diese Zeile übernehmen" : addTarget.type === "builder" ? "In die Mahlzeit" : "Zu " + mealLabel(addTarget.meal);
   updateFavBtn();
   updateAmountPreview();
   document.getElementById("amtBg").style.display = "block";
   document.getElementById("amtSheet").classList.add("open");
+}
+function updateDrinkBtn() {
+  var on = !!(current && current.drink), b = document.getElementById("aDrinkBtn");
+  b.classList.toggle("on", on);
+  b.innerHTML = (on ? "&#10003; " : "") + "&#128167; Getränk";
+  document.getElementById("aGramsLbl").textContent = on ? "Menge (g ≈ ml) – zählt zum Trinken" : "Menge (g)";
 }
 function updateFavBtn() { document.getElementById("aFavBtn").innerHTML = isFav(current) ? "&#9733; Favorit" : "&#9734; Als Favorit merken"; }
 function closeAmount() {
@@ -639,9 +774,22 @@ function confirmAmount() {
   if (prod.isMeal) { addMealGrams(prod.mealId, g); return; }
   prod.lastGrams = g;
   cacheProduct(prod);
+  var fv = getFavs(); if (fv[prod.key] && fv[prod.key].drink !== prod.drink) { fv[prod.key].drink = prod.drink; save(K.favs, fv); }
   addProduct(prod, g);
 }
 function addProduct(prod, grams) {
+  if (addTarget.type === "import") {
+    var r = imp.rows[addTarget.i];
+    if (r) {
+      r.per100 = Object.assign({}, prod.per100); r.ext = prod.ext ? Object.assign({}, prod.ext) : null;
+      r.foodName = prod.name + (prod.brand && prod.brand !== "Richtwert" ? " (" + prod.brand + ")" : "");
+      r.grams = grams; r.status = "ok"; r.src = prod.brand === "Richtwert" ? "Richtwert" : prod.key && prod.key.indexOf("off:") === 0 ? "Open Food Facts" : "eigene Wahl";
+      rememberMapping(r.label, prod);
+    }
+    closeAdd(); renderImport();
+    toast("Zuordnung gemerkt – gilt auch fürs nächste Rezept");
+    return;
+  }
   if (addTarget.type === "builder") {
     builder.items.push({ name: prod.name, grams: grams, per100: prod.per100, ext: prod.ext || null, code: prod.code || "" });
     renderBuilder();
@@ -650,7 +798,7 @@ function addProduct(prod, grams) {
   }
   var e = scale(prod.per100, grams);
   e.ext = scaleExt(prod.ext, grams);
-  e.name = prod.name; e.grams = grams; e.source = "produkt";
+  e.name = prod.name; e.grams = grams; e.source = "produkt"; e.drink = !!prod.drink;
   addEntry(e, addTarget.meal);
 }
 
@@ -669,13 +817,15 @@ function addEntry(entry, meal) {
   entry.id = uid(); entry.meal = meal;
   day.push(entry);
   setDay(date, day);
+  updateWaterFlag(date);
   renderAll();
-  toast(entry.name + " → " + mealLabel(meal));
+  toast(entry.name + " → " + mealLabel(meal) + (isDrinkEntry(entry) && entry.grams ? " (+" + Math.round(entry.grams) + " ml getrunken)" : ""));
   syncDay(date, true);
 }
 function removeEntry(id) {
   var date = getDate();
   setDay(date, getDay(date).filter(function(e) { return e.id !== id; }));
+  updateWaterFlag(date);
   renderAll();
   syncDay(date, true);
 }
@@ -701,10 +851,11 @@ function renderDiary() {
     return '<div class="card"><div class="meal-h"><h3>' + m.label + '</h3><span class="k">' + (items.length ? kc(mt.kcal) + ' kcal' : '') + '</span></div>' +
       items.map(function(e) {
         return '<div class="item"><div class="main"><div class="n">' + esc(e.name) + '</div><div class="d">' + (e.grams ? fmt(e.grams) + ' g &middot; ' : '') +
-          Math.round(e.kcal) + ' kcal &middot; P ' + fmt(e.protein) + ' &middot; KH ' + fmt(e.carbs) + ' &middot; F ' + fmt(e.fat) + '</div></div><button class="x" data-act="del-entry" data-id="' + e.id + '" aria-label="Entfernen">&#10005;</button></div>';
+          Math.round(e.kcal) + ' kcal &middot; P ' + fmt(e.protein) + ' &middot; KH ' + fmt(e.carbs) + ' &middot; F ' + fmt(e.fat) + (isDrinkEntry(e) ? ' &middot; <span style="color:var(--blue)">&#128167; Getränk</span>' : '') + '</div></div><button class="x" data-act="del-entry" data-id="' + e.id + '" aria-label="Entfernen">&#10005;</button></div>';
       }).join("") +
       '<button class="addlink" data-act="add" data-meal="' + m.id + '">+ Lebensmittel hinzufügen</button></div>';
   }).join("");
+  renderWater();
   renderExtras();
   renderSyncStatus();
 }
@@ -746,7 +897,7 @@ function renderFavs() {
   document.getElementById("favList").innerHTML = list.length ? list.map(function(p, i) { return productRow(p, "fav", i); }).join("") :
     '<div class="hint">Noch keine Favoriten. Tippe bei einem Produkt auf &#9734;, dann ist es hier mit einem Tipp erreichbar.</div>';
 }
-function productFrom(src, i) { return src === "search" ? lastResults[i] : src === "fav" ? favList()[i] : recentShown[i]; }
+function productFrom(src, i) { return src === "search" ? lastResults[i] : src === "db" ? localShown[i] : src === "fav" ? favList()[i] : recentShown[i]; }
 
 function manualAdd() {
   var name = document.getElementById("mName").value.trim();
@@ -757,10 +908,655 @@ function manualAdd() {
   NUT.forEach(function(k) { var v = num(document.getElementById(ids[k]).value); per100[k] = grams > 0 ? round1(v / grams * 100) : v; });
   var ext = scaleExt(null, 100), satRaw = document.getElementById("mSat").value;
   if (satRaw !== "") { var sv = num(satRaw); ext.satfat = grams > 0 ? round1(sv / grams * 100) : sv; }
-  var prod = { key: "manuell:" + name.toLowerCase(), code: "", name: name, brand: "", per100: per100, ext: ext, serving: grams || 0, hasData: true, lastGrams: grams || 100 };
+  var mD = document.getElementById("mDrink"), drink = mD.classList.contains("on");
+  mD.classList.remove("on"); mD.innerHTML = "&#128167; Getränk (zählt zum Trinken)";
+  var prod = { key: "manuell:" + name.toLowerCase(), code: "", name: name, brand: "", per100: per100, ext: ext, serving: grams || 0, hasData: true, lastGrams: grams || 100, drink: drink };
   cacheProduct(prod);
   ["mName", "mGrams", "mKcal", "mProtein", "mCarbs", "mFat", "mSat", "mFiber", "mSugar"].forEach(function(id) { document.getElementById(id).value = ""; });
   addProduct(prod, grams || 100);
+}
+
+// ============================================================
+// GRUNDLEBENSMITTEL (Richtwerte pro 100 g, angelehnt an BLS/USDA)
+// Format: "Name|Suchbegriffe|kcal Protein KH Fett Ballaststoffe Zucker GesFett Salz|Einheiten"
+// Einheiten: stk, el, tl, prise, msp, becher, dose, pck, scheibe, bund, zehe, tasse, glas, würfel, stange, kopf, knolle,
+// blatt, zweig, handvoll, schuss, tube, rolle, scoop = Gramm je Einheit; dichte = g pro ml (Standard 1)
+// ============================================================
+var FOOD_DB_RAW = [
+// Mehl, Getreide, Beilagen
+"Weizenmehl Type 405|mehl,weizenmehl,type 405,mehl type 405,weizenmehl 405,weizenmehl type 550,type 550|343 10 71 1 4 0.5 0.2 0|el:10,tl:3,tasse:110",
+"Dinkelmehl Type 630|dinkelmehl,dinkelmehl 630,dinkelmehl type 630,dinkelmehl type 1050|350 12 69 1.8 4 0.5 0.3 0|el:10,tl:3,tasse:110",
+"Vollkornmehl|vollkornmehl,weizenvollkornmehl,dinkelvollkornmehl,vollkorn dinkelmehl,vollkorn-dinkelmehl|335 13 60 2.5 10 0.5 0.4 0|el:10,tasse:110",
+"Roggenmehl|roggenmehl,roggenmehl 1150,roggenvollkornmehl|325 9 68 1.3 8 1 0.2 0|el:10",
+"Haferflocken|haferflocken,zarte haferflocken,kernige haferflocken,hafer|370 13.5 58.7 7 10 0.7 1.3 0|el:8,tasse:90,handvoll:30",
+"Haferkleie|haferkleie|330 17 47 7 15 1.5 1.3 0|el:6",
+"Speisestärke|speisestärke,stärke,maisstärke,kartoffelstärke,mondamin|350 0.4 86 0.1 0.9 0 0 0|el:10,tl:3,pck:250",
+"Grieß|grieß,hartweizengrieß,weichweizengrieß,dinkelgrieß|340 11 70 1 3.8 0.5 0.2 0|el:12",
+"Polenta|polenta,maisgrieß|360 8 75 1.5 4.5 0.6 0.2 0|",
+"Reis (roh)|reis,basmatireis,basmati,jasminreis,langkornreis,parboiled reis,risottoreis,arborio,milchreis roh,sushireis|350 7 78 0.6 1.4 0.2 0.2 0|tasse:180,beutel:125",
+"Vollkornreis (roh)|vollkornreis,naturreis,wildreis|350 7.5 74 2.2 3 0.7 0.4 0|tasse:180,beutel:125",
+"Nudeln (roh)|nudeln,pasta,spaghetti,penne,fusilli,tagliatelle,makkaroni,farfalle,lasagneplatten,lasagne platten,bandnudeln,rigatoni,linguine,spirelli,hörnchennudeln,suppennudeln,eiernudeln|355 12.5 71 1.5 3 3 0.3 0|pck:500",
+"Vollkornnudeln (roh)|vollkornnudeln,vollkornspaghetti,vollkornpasta,vollkornpenne|340 14 62 2.5 9 3 0.4 0|pck:500",
+"Linsennudeln (roh)|linsennudeln,kichererbsennudeln,erbsennudeln,proteinnudeln|340 25 48 2 8 2 0.3 0|pck:250",
+"Quinoa (roh)|quinoa|368 14 64 6 7 0 0.7 0|tasse:170",
+"Couscous (roh)|couscous|360 12.8 72 0.6 5 0.5 0.1 0|tasse:180",
+"Bulgur (roh)|bulgur|340 12 69 1.3 12 0.4 0.2 0|tasse:180",
+"Hirse (roh)|hirse|360 10 69 4 4 0 0.7 0|",
+"Kartoffeln|kartoffel,kartoffeln,festkochende kartoffeln,mehligkochende kartoffeln,vorwiegend festkochende kartoffeln,drillinge,frühkartoffeln|72 2 15.6 0.1 2.1 0.8 0 0|stk:120",
+"Süßkartoffel|süßkartoffel,süßkartoffeln|86 1.6 20 0.1 3 4.2 0 0.1|stk:300",
+"Gnocchi|gnocchi|150 3.5 33 0.3 1.5 0.5 0 1|pck:500",
+"Brot (Mischbrot)|brot,mischbrot,bauernbrot,graubrot,weißbrot,baguette,ciabatta|240 7 47 1.5 4 2 0.3 1.2|scheibe:45,stk:250",
+"Vollkornbrot|vollkornbrot,roggenvollkornbrot,dinkelvollkornbrot|210 7 39 1.5 8 3 0.2 1.1|scheibe:50",
+"Toastbrot|toast,toastbrot,vollkorntoast|265 8 48 4 3.5 5 1 1.2|scheibe:25",
+"Brötchen|brötchen,semmel,weizenbrötchen,laugenbrötchen|270 9 52 2 3 2 0.4 1.3|stk:55",
+"Tortilla-Wraps|tortilla,tortillas,wraps,wrap,tortillafladen|300 8 50 7 3 3 2.8 1.3|stk:60,pck:370",
+"Blätterteig|blätterteig|395 5.5 35 25 1.5 2 12 1|pck:275,rolle:275",
+"Pizzateig (fertig)|pizzateig,hefeteig fertig,frischer pizzateig|260 7 47 4.5 2 2 1.5 1.3|pck:400,rolle:400",
+"Paniermehl|paniermehl,semmelbrösel,semmelbrösel|370 12 72 2 5 4 0.5 1.2|el:8",
+// Hülsenfrüchte, Soja
+"Linsen (getrocknet)|linsen,rote linsen,berglinsen,belugalinsen,beluga linsen,tellerlinsen,gelbe linsen|330 24 50 1.5 11 2 0.2 0|tasse:190",
+"Linsen (gegart/Dose)|linsen aus der dose,linsen dose,gekochte linsen|110 8 15 0.5 6 1 0.1 0.4|dose:265",
+"Kichererbsen (Dose, abgetropft)|kichererbsen,kichererbsen dose|130 7 15 2.6 6 0.5 0.3 0.6|dose:265,glas:240",
+"Kidneybohnen (Dose, abgetropft)|kidneybohnen,rote bohnen|105 7.5 13 0.5 7 0.5 0.1 0.5|dose:250",
+"Weiße Bohnen (Dose)|weiße bohnen,cannellini,cannellinibohnen,butterbohnen|100 7 13 0.5 6 0.5 0.1 0.5|dose:250",
+"Schwarze Bohnen (Dose)|schwarze bohnen|110 7 15 0.5 7 0.3 0.1 0.5|dose:250",
+"Grüne Bohnen|grüne bohnen,brechbohnen,prinzessbohnen,buschbohnen,stangenbohnen|32 2.4 5 0.2 3 1.5 0 0|",
+"Erbsen (TK)|erbsen,tk erbsen,tiefkühlerbsen,erbsen tk|80 5.5 11 0.4 5 4.5 0.1 0|",
+"Edamame|edamame|120 11 9 5 5 2 0.6 0|",
+"Mais (Dose)|mais,maiskörner,zuckermais|85 2.8 15 1.2 3 4 0.2 0.5|dose:285",
+"Tofu|tofu,naturtofu,räuchertofu,seidentofu|130 13 2 7.5 1 0.5 1.1 0|stk:200,pck:200",
+"Sojaschnetzel (trocken)|sojaschnetzel,sojagranulat,sojahack|340 50 15 1.5 18 7 0.2 0|",
+// Gemüse
+"Zwiebel|zwiebel,zwiebeln,gemüsezwiebel,rote zwiebel,rote zwiebeln,schalotte,schalotten|40 1.2 7.5 0.1 1.8 4.5 0 0|stk:80",
+"Frühlingszwiebel|frühlingszwiebel,frühlingszwiebeln,lauchzwiebel,lauchzwiebeln|30 1.8 5 0.3 2.5 2 0 0|stk:20,bund:120,stange:20",
+"Knoblauch|knoblauch,knoblauchzehe,knoblauchzehen|145 6 29 0.1 2 1 0 0|zehe:4,stk:4,knolle:40",
+"Karotte|karotte,karotten,möhre,möhren,mohrrübe,mohrrüben|36 0.9 6.7 0.2 3 4.7 0 0.1|stk:80",
+"Paprika|paprika,paprikaschote,paprikaschoten,rote paprika,gelbe paprika,grüne paprika,spitzpaprika|32 1 5.5 0.3 3.5 4.5 0 0|stk:160",
+"Tomate|tomate,tomaten,rispentomaten,strauchtomaten,kirschtomaten,cherrytomaten,cocktailtomaten,datteltomaten,fleischtomate|19 1 2.8 0.2 1.3 2.6 0 0|stk:100",
+"Tomaten (Dose)|gehackte tomaten,stückige tomaten,dosentomaten,tomaten aus der dose,passierte tomaten,passata,pizzatomaten,geschälte tomaten,tomatenpassata|24 1.3 3.8 0.2 1.2 3.5 0 0.2|dose:400,pck:500,glas:690",
+"Tomatenmark|tomatenmark|85 4.5 13 0.5 4 12 0.1 0.4|el:15,tl:5,tube:200,dose:70",
+"Getrocknete Tomaten|getrocknete tomaten,getrocknete tomaten in öl|210 5 30 8 6 20 1 1|stk:5",
+"Zucchini|zucchini,zucchino|20 1.6 2.2 0.4 1.1 2 0.1 0|stk:250",
+"Aubergine|aubergine,auberginen|24 1.2 2.5 0.2 2.8 2.5 0 0|stk:300",
+"Gurke|gurke,salatgurke,gurken|14 0.6 1.8 0.2 0.5 1.7 0 0|stk:400",
+"Brokkoli|brokkoli,broccoli,brokkoliröschen|35 3.8 2.7 0.4 3 1.7 0.1 0|stk:500,kopf:500",
+"Blumenkohl|blumenkohl,blumenkohlröschen|25 2.5 2.3 0.3 2.5 2.4 0.1 0|stk:800,kopf:800",
+"Spinat|spinat,blattspinat,babyspinat,tk spinat,rahmspinat|20 2.7 0.6 0.4 2.6 0.4 0.1 0.2|handvoll:30",
+"Champignons|champignons,pilze,braune champignons,egerlinge,kräuterseitlinge,austernpilze,steinpilze,pfifferlinge|20 3 0.6 0.3 2 0.3 0 0|stk:20,dose:230",
+"Lauch|lauch,porree|28 2.2 3.3 0.3 2.3 2.5 0 0|stk:250,stange:250",
+"Staudensellerie|staudensellerie,stangensellerie,selleriestange,selleriestangen|17 1 2 0.2 1.6 1.8 0 0.2|stange:50,stk:50",
+"Knollensellerie|sellerie,knollensellerie,sellerieknolle|25 1.6 2.3 0.3 4 2 0 0.2|stk:600,knolle:600",
+"Kürbis|kürbis,hokkaido,hokkaidokürbis,butternut,butternutkürbis|30 1.1 6 0.2 2 4 0 0|stk:1000",
+"Rotkohl|rotkohl,blaukraut,rotkraut|28 1.5 3.5 0.2 2.5 3.5 0 0|kopf:1000,glas:680",
+"Weißkohl|weißkohl,spitzkohl,kohl,wirsing,chinakohl,pak choi|28 1.4 4 0.2 3 3.5 0 0|kopf:1000",
+"Sauerkraut|sauerkraut|20 1.5 0.8 0.3 2.2 0.6 0 1.2|dose:500,beutel:500",
+"Rote Bete|rote bete,rote beete,rote rüben|42 1.5 8 0.1 2.5 8 0 0.2|stk:150,pck:500",
+"Salat|salat,kopfsalat,eisbergsalat,rucola,feldsalat,romanasalat,römersalat,blattsalat,salatmix,pflücksalat,lollo rosso|16 1.3 1.5 0.2 1.4 1.2 0 0|kopf:300,handvoll:20,pck:125",
+"Kohlrabi|kohlrabi|27 2 3.7 0.1 1.4 3.5 0 0|stk:300",
+"Spargel|spargel,grüner spargel,weißer spargel|20 2 2 0.1 1.5 1.9 0 0|stange:20",
+"Fenchel|fenchel,fenchelknolle|25 1.2 3 0.3 3.3 3 0 0|stk:250,knolle:250",
+"Rosenkohl|rosenkohl|40 4.5 3.3 0.3 4.4 2.5 0.1 0|",
+"Radieschen|radieschen,rettich|15 1 2 0.1 1.6 2 0 0|bund:150,stk:10",
+"Avocado|avocado,avocados|160 2 0.9 15 6.7 0.7 2.1 0|stk:140",
+"Ingwer|ingwer,ingwerwurzel|80 1.8 15 0.8 2 1.7 0.2 0|stk:20,tl:3,el:8",
+"Chili|chili,chilischote,chilischoten,peperoni,jalapeno,jalapenos,peperoncini|40 2 7 0.4 1.5 5 0 0|stk:10",
+"Oliven|oliven,schwarze oliven,grüne oliven,kalamata|145 1 0 15 3.3 0 2 2.5|stk:4,glas:150",
+"Kapern|kapern|23 2.4 1.7 0.9 3.2 0.4 0.2 7|el:10,tl:3",
+"Essiggurken|essiggurke,essiggurken,gewürzgurken,cornichons|20 0.5 3 0.1 1 2.5 0 2|stk:30,glas:360",
+"Gemüsemischung (TK)|gemüsemischung,tk gemüse,pfannengemüse,suppengemüse,suppengrün,wokgemüse|35 2 5 0.3 3 3 0 0|pck:450,bund:400",
+// Kräuter, Gewürze, Würzmittel
+"Petersilie|petersilie,glatte petersilie,krause petersilie|50 4.4 7 0.4 4 0.8 0 0|bund:40,el:4,tl:1,handvoll:15",
+"Schnittlauch|schnittlauch|30 3.3 1.7 0.7 2.5 1.8 0 0|bund:30,el:3,tl:1",
+"Basilikum|basilikum|23 3.2 1 0.6 1.6 0.3 0 0|bund:20,el:2,blatt:0.5,handvoll:10",
+"Koriandergrün|koriandergrün,frischer koriander,koriander frisch,koriander|23 2.1 0.9 0.5 2.8 0.9 0 0|bund:30,el:2",
+"Kräuter|kräuter,dill,thymian,rosmarin,oregano,majoran,minze,salbei,estragon,kerbel,kräuter der provence,italienische kräuter,gemischte kräuter,tk kräuter,kresse,liebstöckel|40 2.5 5 0.7 4 0.5 0 0|bund:20,el:3,tl:1,zweig:1,blatt:0.2,prise:0.2,handvoll:10",
+"Salz|salz,meersalz,jodsalz,kräutersalz,steinsalz,fleur de sel|0 0 0 0 0 0 0 100|tl:6,el:18,prise:0.5,msp:0.3",
+"Pfeffer|pfeffer,schwarzer pfeffer,weißer pfeffer,pfeffer aus der mühle|255 10 39 3.3 25 0.6 1 0|tl:2,el:6,prise:0.2,msp:0.2",
+"Gewürze (getrocknet)|gewürz,gewürze,paprikapulver,edelsüß,rosenscharf,geräuchertes paprikapulver,currypulver,curry,kreuzkümmel,cumin,kurkuma,kümmel,muskat,muskatnuss,zimt,chilipulver,chiliflocken,cayennepfeffer,garam masala,ras el hanout,koriander gemahlen,koriandersamen,piment,nelken,kardamom,lorbeerblatt,lorbeerblätter,lorbeer,knoblauchpulver,zwiebelpulver,gyrosgewürz,fenchelsamen,senfkörner,sternanis,vanille,vanilleschote,vanilleextrakt,bourbon vanille|300 12 35 12 30 5 2 0.1|tl:2.5,el:7,prise:0.3,msp:0.3,stk:1,blatt:0.2",
+"Gemüsebrühe (Pulver)|gemüsebrühe pulver,brühpulver,gemüsebrühepulver,instantbrühe,brühwürfel,gemüsebrühwürfel,suppenwürfel,hühnerbrühe pulver,gekörnte brühe|230 9 25 10 1 10 5 55|tl:5,el:12,stk:10,würfel:10",
+"Brühe (fertig)|brühe,gemüsebrühe,hühnerbrühe,rinderbrühe,fond,gemüsefond,geflügelfond,fischfond,kalbsfond|5 0.3 0.5 0.2 0 0.3 0.1 0.9|tasse:250,glas:400",
+"Senf|senf,dijonsenf,dijon senf,mittelscharfer senf,körniger senf|90 6 4 5 2 3 0.3 3.5|tl:5,el:15",
+"Sojasauce|sojasauce,sojasoße,soja sauce,tamari,shoyu|60 9 5 0.1 0.8 1 0 15|el:15,tl:5,schuss:10,spritzer:2",
+"Essig|essig,balsamico,balsamessig,weißweinessig,apfelessig,rotweinessig,aceto balsamico,reisessig,branntweinessig|20 0 0.6 0 0 0.4 0 0|el:15,tl:5,schuss:10,spritzer:2",
+"Balsamico-Creme|balsamicocreme,balsamico creme,crema di balsamico|230 0.5 55 0 0 50 0 0.1|el:15,tl:5",
+"Ketchup|ketchup,tomatenketchup|105 1.2 24 0.2 0.5 22 0 1.8|el:17,tl:6",
+"Mayonnaise|mayonnaise,mayo,salatmayonnaise|700 1.1 1.5 77 0 1.3 6 1.3|el:15,tl:5",
+"Pesto|pesto,pesto alla genovese,basilikumpesto,pesto rosso|480 5 6 48 2 3 7 2.5|el:15,tl:5,glas:190",
+"Currypaste|currypaste,rote currypaste,grüne currypaste,harissa,sambal oelek,sriracha|110 2.5 12 6 3 8 1 8|el:15,tl:5",
+"Worcestersauce|worcestersauce,worcestershiresauce,fischsauce|80 1 18 0 0 15 0 7|el:15,tl:5,spritzer:2,schuss:10",
+"Zitronenschale|zitronenschale,zitronenabrieb,abrieb,zesten,orangenschale,orangenabrieb,limettenschale|47 1.5 5 0.3 10 4 0 0|tl:2,el:6,stk:5",
+// Süßen, Backen
+"Zucker|zucker,weißer zucker,rohrzucker,brauner zucker,puderzucker,kristallzucker,feinzucker,kokosblütenzucker,rohrohrzucker|400 0 100 0 0 100 0 0|el:15,tl:5,tasse:200,prise:0.5",
+"Vanillezucker|vanillezucker,vanillinzucker,bourbon vanillezucker|395 0 98 0 0 98 0 0|pck:8,tl:4",
+"Honig|honig|305 0.4 76 0 0 75 0 0|el:21,tl:7,dichte:1.4",
+"Sirup|ahornsirup,agavendicksaft,agavensirup,dattelsirup,reissirup,zuckerrübensirup,sirup|265 0 67 0.1 0 60 0 0|el:20,tl:7,dichte:1.33",
+"Erythrit / Süßstoff|erythrit,xucker light,süßstoff,stevia,süßungsmittel,flüssigsüße|0 0 0 0 0 0 0 0|el:12,tl:4",
+"Xylit|xylit,birkenzucker,xucker|240 0 100 0 0 0 0 0|el:12,tl:4",
+"Marmelade|marmelade,konfitüre,fruchtaufstrich,gelee|250 0.4 60 0.1 1 58 0 0|el:20,tl:7",
+"Backpulver|backpulver,weinsteinbackpulver|100 0 25 0 0 0 0 28|pck:15,tl:4,el:10",
+"Natron|natron,kaiser natron,speisenatron|0 0 0 0 0 0 0 68|tl:5,prise:0.5",
+"Hefe (frisch)|hefe,frische hefe,frischhefe,würfel hefe|80 12 2 1.2 6 0 0.2 0.1|würfel:42,pck:42,stk:42",
+"Trockenhefe|trockenhefe|325 40 13 7.6 27 0 1 0.1|pck:7,tl:3",
+"Gelatine|gelatine,blattgelatine,agar agar|340 85 0 0 0 0 0 0.5|blatt:1.7,pck:9,tl:3",
+"Kakaopulver|kakao,kakaopulver,backkakao,kakaopulver ungesüßt|360 20 11 21 33 1 12.5 0.1|el:8,tl:3",
+"Zartbitterschokolade|zartbitterschokolade,schokolade,kuvertüre,zartbitterkuvertüre,schokodrops,schokotropfen,schokostückchen,dunkle schokolade,bitterschokolade,schokoraspel|540 7 46 33 9 43 20 0|stk:5,riegel:5,tafel:100,el:12",
+"Vollmilchschokolade|vollmilchschokolade,milchschokolade,vollmilchkuvertüre|535 7.5 56 31 2 55 19 0.2|tafel:100,stk:5",
+"Puddingpulver|puddingpulver,vanillepuddingpulver,schokopuddingpulver|350 0.5 85 0.5 1 0 0.1 0.5|pck:37",
+// Nüsse, Samen, Trockenobst
+"Mandeln|mandeln,mandel,mandelstifte,mandelblättchen,mandelkerne|600 24 5.7 53 12.5 4 4 0|el:10,handvoll:30,stk:1.2",
+"Gemahlene Mandeln|gemahlene mandeln,mandeln gemahlen,mandelmehl|600 24 5.7 53 12.5 4 4 0|el:8,tl:3,tasse:100",
+"Haselnüsse|haselnüsse,haselnuss,haselnusskerne,gemahlene haselnüsse,haselnüsse gemahlen|645 15 10.5 61 8 4 4.5 0|el:8,handvoll:30",
+"Walnüsse|walnüsse,walnuss,walnusskerne,pekannüsse,pekannuss|680 15 6 63 6 2.6 6 0|handvoll:30,stk:5,el:8",
+"Cashewkerne|cashews,cashewkerne,cashew,cashewnüsse|580 18 27 45 3 6 9 0|handvoll:30,el:10",
+"Erdnüsse|erdnüsse,erdnuss,erdnusskerne|600 26 8 49 9 4 7 0|handvoll:30,el:10",
+"Pinienkerne|pinienkerne|675 14 4 68 4 3.6 5 0|el:10,tl:3",
+"Erdnussbutter|erdnussbutter,erdnussmus,peanutbutter|610 25 12 50 7 6 9 0.5|el:16,tl:6",
+"Nussmus|mandelmus,nussmus,cashewmus,haselnussmus|620 25 6 53 10 4 4 0|el:16,tl:6",
+"Tahin|tahin,tahini,sesammus,sesampaste|640 19 7 58 10 0.5 8 0|el:15,tl:5",
+"Sonnenblumenkerne|sonnenblumenkerne|585 21 12 49 9 2.6 5 0|el:10,handvoll:30",
+"Kürbiskerne|kürbiskerne|575 30 5 49 9 1.4 9 0|el:10,handvoll:30",
+"Leinsamen|leinsamen,geschroteter leinsamen,leinsamen geschrotet,goldleinsamen,leinsamenmehl|535 18 1.6 42 28 1.5 3.7 0|el:10,tl:3",
+"Chiasamen|chiasamen,chia,chia samen|490 17 8 31 34 0 3.3 0|el:12,tl:4",
+"Sesam|sesam,sesamsamen,schwarzer sesam|600 18 10 50 12 0.3 7 0|el:9,tl:3",
+"Hanfsamen|hanfsamen,geschälte hanfsamen|590 31 3 49 4 1.5 4.5 0|el:10",
+"Flohsamenschalen|flohsamenschalen,flohsamen|200 2 5 0.6 85 0 0 0|el:5,tl:2",
+"Kokosraspeln|kokosraspeln,kokosflocken,kokoschips|660 6.5 6.5 62 16 6 55 0|el:6,handvoll:20",
+"Rosinen|rosinen,sultaninen,cranberries getrocknet,getrocknete cranberries|300 2.5 68 0.5 5 65 0 0|el:12,handvoll:30",
+"Datteln|datteln,medjool,medjooldatteln,getrocknete datteln|290 2 65 0.4 8 63 0 0|stk:10",
+"Getrocknete Aprikosen|getrocknete aprikosen,soft aprikosen,trockenpflaumen,getrocknete feigen,feigen getrocknet|250 3 55 0.5 8 50 0 0|stk:8",
+// Öle, Fette
+"Pflanzenöl|öl,rapsöl,sonnenblumenöl,pflanzenöl,speiseöl,bratöl,leinöl,sesamöl,walnussöl,erdnussöl,traubenkernöl,avocadoöl,neutrales öl,distelöl|884 0 0 100 0 0 9 0|el:10,tl:4,dichte:0.92,schuss:10,spritzer:2",
+"Olivenöl|olivenöl,olivenöl extra vergine,natives olivenöl|884 0 0 100 0 0 14 0|el:10,tl:4,dichte:0.92,schuss:10,spritzer:2",
+"Kokosöl|kokosöl,kokosfett,palmin|880 0 0 99 0 0 87 0|el:10,tl:4",
+"Butter|butter,süßrahmbutter,sauerrahmbutter,weiche butter,flüssige butter,kalte butter|741 0.7 0.6 83 0 0.6 52 0.1|el:12,tl:5,stk:250,pck:250,flocke:3",
+"Margarine|margarine,pflanzenmargarine,alsan|720 0.2 0.4 80 0 0.4 25 0.3|el:12,tl:5,pck:250",
+"Butterschmalz|butterschmalz,ghee,schmalz|895 0.3 0 99.5 0 0 63 0|el:12,tl:5",
+// Milchprodukte, Eier
+"Milch 3,5 %|milch,vollmilch,frischmilch,milch 3 5,h milch,h-milch,laktosefreie milch|64 3.3 4.8 3.5 0 4.8 2.3 0.1|dichte:1.03,tasse:250,schuss:20,becher:250,glas:200",
+"Milch 1,5 %|fettarme milch,milch 1 5,teilentrahmte milch,milch fettarm|47 3.4 4.9 1.5 0 4.9 1 0.1|dichte:1.03,tasse:250,schuss:20,glas:200",
+"Haferdrink|hafermilch,haferdrink,reisdrink,reismilch,dinkeldrink|45 1 6.5 1.5 0.8 3.5 0.2 0.1|tasse:250,schuss:20,dichte:1.02",
+"Sojadrink|sojamilch,sojadrink|39 3.3 2 1.8 0.6 1 0.3 0.1|tasse:250,schuss:20",
+"Mandeldrink|mandelmilch,mandeldrink,cashewdrink|24 0.5 3 1.1 0.3 2.5 0.1 0.1|tasse:250,schuss:20",
+"Buttermilch|buttermilch|37 3.5 4 0.5 0 4 0.3 0.1|becher:500,tasse:250",
+"Kefir|kefir,dickmilch|60 3.4 4 3.5 0 4 2.2 0.1|becher:500",
+"Sahne 30 %|sahne,schlagsahne,schlagrahm,rahm,süße sahne,flüssige sahne,sprühsahne|310 2.4 3.2 32 0 3.2 20 0.1|becher:200,el:15,tl:5,schuss:20",
+"Kochsahne 15 %|kochsahne,cremefine,cuisine,kochcreme,cremefine zum kochen,sahne 15|160 3 4 15 0 4 10 0.1|becher:200,el:15",
+"Saure Sahne|saure sahne,sauerrahm|115 3 4 10 0 4 6.5 0.1|becher:200,el:15",
+"Schmand / Crème fraîche|schmand,crème fraîche,creme fraiche,crème fraiche,creme fraîche|290 2.4 2.6 30 0 2.6 19 0.1|becher:200,el:15",
+"Joghurt 3,5 %|joghurt,naturjoghurt,vollmilchjoghurt,joghurt natur,jogurt|65 3.8 4.4 3.5 0 4.4 2.3 0.1|becher:150,el:15,glas:500",
+"Joghurt 1,5 %|fettarmer joghurt,joghurt 1 5,magerjoghurt,joghurt 0 1|45 4 5 1.5 0 5 1 0.1|becher:150,el:15,glas:500",
+"Griechischer Joghurt 10 %|griechischer joghurt,joghurt griechischer art,greek yoghurt,griechischer joghurt 10|120 4 4 10 0 4 6.6 0.1|becher:150,el:15",
+"Magerquark|quark,magerquark,quark mager,speisequark mager|67 12 4 0.3 0 4 0.2 0.1|becher:250,pck:250,el:20",
+"Speisequark 20 %|speisequark,quark 20,halbfettquark,sahnequark,quark 40|109 12.5 2.7 5 0 2.7 3.2 0.1|becher:250,pck:250,el:20",
+"Skyr|skyr,isländischer skyr|63 11 4 0.2 0 4 0.1 0.1|becher:450,el:20",
+"Hüttenkäse|hüttenkäse,körniger frischkäse,cottage cheese|98 12.5 2 4.3 0 2 2.8 0.8|becher:200",
+"Frischkäse|frischkäse,doppelrahmfrischkäse,philadelphia,kräuterfrischkäse|245 5.5 3.5 23 0 3.5 15 0.8|pck:175,el:20,tl:7",
+"Frischkäse light|frischkäse light,frischkäse leicht,frischkäse fettarm,körniger frischkäse light|125 8 4.5 8 0 4 5 0.8|pck:175,el:20",
+"Ricotta|ricotta|150 9 3.5 11 0 3.5 7 0.2|pck:250,becher:250",
+"Mascarpone|mascarpone|420 4.5 4 43 0 4 29 0.1|pck:250,becher:250",
+"Mozzarella|mozzarella,büffelmozzarella,mini mozzarella,burrata|250 18 1 19 0 1 13 0.5|stk:125,pck:125,kugel:125",
+"Feta|feta,schafskäse,hirtenkäse,weißkäse|265 16 0.7 21 0 0.7 15 2.7|pck:200,stk:200",
+"Parmesan|parmesan,grana padano,pecorino,parmigiano|400 33 0 29 0 0 19 1.6|el:6,tl:2",
+"Halloumi|halloumi,grillkäse|320 21 2 25 0 2 16 2.7|pck:225",
+"Käse (Gouda u. Ä.)|käse,gouda,geriebener käse,reibekäse,emmentaler,bergkäse,cheddar,edamer,gratinkäse,pizzakäse,butterkäse,tilsiter,raclettekäse,mozzarella gerieben,gruyère|360 25 0 28 0 0 18 1.8|scheibe:20,handvoll:30,el:8,pck:200",
+"Ei|ei,eier,hühnerei,hühnereier,ei größe m,eier größe m|137 12 1 9.5 0 0.7 2.8 0.3|stk:58",
+"Eigelb|eigelb,dotter,eidotter|340 16 0.3 31.9 0 0.3 9 0.1|stk:18",
+"Eiweiß|eiweiß,eiklar,eiweiss|48 11 0.7 0.2 0 0.7 0 0.4|stk:35",
+"Proteinpulver|proteinpulver,eiweißpulver,whey,whey protein,veganes proteinpulver,casein|380 75 8 6 1 5 3 0.5|scoop:30,messlöffel:30,el:10",
+// Fleisch, Fisch
+"Hähnchenbrust|hähnchenbrust,hähnchenbrustfilet,hühnerbrust,hühnchenbrust,hähnchenfilet,putenbrust,putenbrustfilet,putenfilet,hähnchen,hühnchen,geflügel,putenschnitzel,hähnchengeschnetzeltes,putengeschnetzeltes|105 23.5 0 1 0 0 0.3 0.15|stk:150",
+"Hähnchenschenkel|hähnchenschenkel,hähnchenkeule,hähnchenkeulen,hühnerschenkel,hähnchenoberschenkel|170 18 0 11 0 0 3 0.2|stk:250",
+"Rinderhackfleisch|rinderhack,rinderhackfleisch,hackfleisch vom rind,tatar|210 20 0 14 0 0 6 0.2|pck:500",
+"Hackfleisch gemischt|hackfleisch,hack,gemischtes hack,gemischtes hackfleisch,schweinehack,schweinehackfleisch|260 18 0 21 0 0 8 0.2|pck:500",
+"Putenhack|putenhack,putenhackfleisch,hähnchenhack,geflügelhack|150 20 0 8 0 0 2.5 0.2|pck:400",
+"Rindfleisch (mager)|rindfleisch,rinderfilet,rinderhüfte,rumpsteak,steak,gulasch,rindergulasch,beinscheibe,roastbeef,rinderbraten,suppenfleisch|130 22 0 4.5 0 0 2 0.15|stk:200",
+"Schweinefleisch (mager)|schweinefilet,schweinefleisch,schnitzel,schweineschnitzel,kotelett,schweinelachs,schweinegulasch,schweinenacken,nackensteak|130 21 0 5 0 0 1.8 0.15|stk:150",
+"Speck|speck,bacon,speckwürfel,schinkenwürfel,bauchspeck,frühstücksspeck,pancetta|300 15 0.5 27 0 0.5 10 3|scheibe:10,pck:125",
+"Kochschinken|kochschinken,schinken,gekochter schinken,putenschinken,schinkenstreifen|110 19 1 3.5 0 1 1.2 2.2|scheibe:20,pck:100",
+"Salami|salami,chorizo,pepperoni salami|380 22 1 32 0 1 12 4.5|scheibe:8",
+"Würstchen|würstchen,wiener,bratwurst,bockwurst,frankfurter|270 13 1 24 0 1 9 2.2|stk:50",
+"Lachs|lachs,lachsfilet,lachsforelle,frischer lachs|200 20 0 13 0 0 2.5 0.1|stk:125",
+"Räucherlachs|räucherlachs,graved lachs|180 22 0 10 0 0 2 3|scheibe:20,pck:100",
+"Thunfisch (Dose)|thunfisch,thunfisch naturell,thunfisch im eigenen saft|110 25 0 1 0 0 0.3 1|dose:150",
+"Weißer Fisch|kabeljau,seelachs,fisch,fischfilet,pangasius,dorsch,forelle,zander,rotbarsch,scholle,tilapia|80 18 0 0.8 0 0 0.2 0.2|stk:125",
+"Garnelen|garnelen,shrimps,crevetten,scampi,riesengarnelen,krabben|80 18 0.5 1 0 0 0.3 0.6|pck:200",
+// Obst
+"Apfel|apfel,äpfel|54 0.3 11.4 0.4 2 10.3 0 0|stk:150",
+"Banane|banane,bananen|93 1.1 20 0.2 2 17 0.1 0|stk:120",
+"Zitrone|zitrone,zitronen,limette,limetten,bio zitrone,bio-zitrone|35 0.7 3 0.6 0 3 0 0|stk:100",
+"Zitronensaft|zitronensaft,limettensaft,saft einer zitrone,saft von 1 zitrone,saft einer limette|25 0.4 2.4 0.2 0 2.4 0 0|el:15,tl:5,stk:40,spritzer:2,schuss:10",
+"Orange|orange,orangen,apfelsine,mandarine,mandarinen,clementine|47 1 9 0.2 2 8.5 0 0|stk:180",
+"Beeren|beeren,heidelbeeren,blaubeeren,himbeeren,brombeeren,erdbeeren,johannisbeeren,beerenmischung,tk beeren,beeren tk,waldbeeren,beerenmix|40 1 6.5 0.4 4 6 0 0|handvoll:60,tasse:140,el:15",
+"Mango|mango|62 0.6 13 0.5 1.7 12.5 0.1 0|stk:300",
+"Ananas|ananas|55 0.5 12.4 0.2 1.4 12 0 0|stk:900,dose:340",
+"Birne|birne,birnen|55 0.5 12.4 0.3 3.3 10 0 0|stk:170",
+"Weintrauben|trauben,weintrauben|70 0.7 15.6 0.3 1.5 15 0 0|handvoll:80",
+"Kiwi|kiwi,kiwis|60 1 10 0.6 2.1 9 0 0|stk:75",
+"Pflaumen|pflaumen,zwetschgen,zwetschen,aprikosen,pfirsich,pfirsiche,nektarine,nektarinen|47 0.8 10 0.2 1.7 9 0 0|stk:60",
+"Kirschen|kirschen,sauerkirschen|62 0.9 13.3 0.3 1.3 12 0.1 0|glas:350",
+"Apfelmus|apfelmus,apfelmark|75 0.3 18 0.1 1.5 16 0 0|glas:700,el:20",
+"Kokosmilch|kokosmilch,kokosnussmilch|180 1.8 3 18 0 2.5 16 0.05|dose:400,el:15",
+"Kokosmilch light|kokosmilch light,kokosmilch fettreduziert,kokosmilch leicht|80 0.8 2 7.5 0 1.5 6.5 0.05|dose:400,el:15",
+// Getränke und Flüssigkeiten
+"Wasser|wasser,mineralwasser,leitungswasser,lauwarmes wasser,warmes wasser,kaltes wasser,heißes wasser,kochendes wasser,eiswasser|0 0 0 0 0 0 0 0|tasse:250,schuss:20,glas:200",
+"Wein|weißwein,rotwein,wein,weisswein,trockener weißwein,trockener rotwein,sherry,portwein,marsala|80 0.1 2.5 0 0 1 0 0|schuss:30,glas:200",
+"Bier|bier,dunkles bier,helles|43 0.5 3 0 0 0 0 0|flasche:500,glas:300",
+"Kaffee|kaffee,espresso,starker kaffee|2 0.2 0.3 0 0 0 0 0|tasse:150",
+"Fruchtsaft|orangensaft,apfelsaft,fruchtsaft,saft,traubensaft,multivitaminsaft|45 0.6 10 0.1 0.2 9 0 0|glas:200,schuss:20"
+];
+
+// ---- Datenbank aufbereiten ----
+function normTxt(s) {
+  return String(s || "").toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .replace(/[éèê]/g, "e").replace(/[àâ]/g, "a").replace(/[^a-z0-9]+/g, " ").trim();
+}
+function stemWord(w) { return w.length > 4 ? w.replace(/(en|n|s|e)$/, "") : w; }
+var FOOD_DB = FOOD_DB_RAW.map(function(line, i) {
+  var p = line.split("|"), v = p[2].split(" ").map(Number), u = {};
+  (p[3] || "").split(",").forEach(function(x) { var kv = x.split(":"); if (kv[0]) u[kv[0].trim()] = +kv[1]; });
+  var aliases = [p[0]].concat(p[1].split(",")).map(normTxt).filter(Boolean);
+  aliases = aliases.filter(function(a, j) { return aliases.indexOf(a) === j; });
+  var ext = {}; EXT.forEach(function(x) { ext[x.k] = null; });
+  ext.satfat = v[6]; ext.salt = v[7];
+  return { id: i, name: p[0], aliases: aliases, units: u,
+           per100: { kcal: v[0], protein: v[1], carbs: v[2], fat: v[3], fiber: v[4], sugar: v[5] }, ext: ext };
+});
+function dbProduct(f) {
+  var chips = [], lab = { stk: "Stück", el: "EL", tl: "TL", scheibe: "Scheibe", becher: "Becher", dose: "Dose", pck: "Packung", zehe: "Zehe", tasse: "Tasse", handvoll: "Handvoll", scoop: "Messlöffel" };
+  Object.keys(lab).forEach(function(k) { if (f.units[k]) chips.push({ g: f.units[k], label: "1 " + lab[k] + " (" + fmt(f.units[k]) + " g)" }); });
+  [50, 100, 200].forEach(function(g) { chips.push({ g: g, label: g + " g" }); });
+  return { key: "db:" + normTxt(f.name), code: "", name: f.name, brand: "Richtwert", per100: Object.assign({}, f.per100), ext: Object.assign({}, f.ext),
+           serving: f.units.stk || 0, hasData: true, chips: chips.slice(0, 6), drink: guessDrink(f.name) };
+}
+// Beste Zuordnung fuer einen Zutatentext. Laengster Treffer gewinnt:
+// ganze Phrase > ganzes Wort (auch Plural) > Wortende bei zusammengesetzten Woertern ("Weizenmehl" -> "mehl")
+function matchFood(text) { var r = matchFoodScored(text); return r ? r.f : null; }
+// Chefkoch schreibt "Tomaten, gehackte" -> auch umgedreht ("gehackte Tomaten") und ohne Zusatz probieren
+function matchFoodMulti(full) {
+  var noPar = String(full).replace(/\([^)]*\)/g, " "), parts = noPar.split(/\s*,\s*/), cands = [noPar, parts[0]];
+  if (parts.length > 1) cands.push(parts.slice(1).join(" ") + " " + parts[0]);
+  var best = null;
+  cands.forEach(function(c) { var r = matchFoodScored(c); if (r && (!best || r.sc > best.sc)) best = r; });
+  return best ? best.f : null;
+}
+function matchFoodScored(text) {
+  var t = " " + normTxt(text) + " ", words = t.trim().split(" "), best = null, bestScore = 0;
+  FOOD_DB.forEach(function(f) {
+    f.aliases.forEach(function(a) {
+      var sc = 0;
+      if (t.trim() === a) sc = 1000 + a.length;
+      else if (a.indexOf(" ") > -1) { if (t.indexOf(" " + a + " ") > -1) sc = a.length * 10 + 5; }
+      else words.forEach(function(w) {
+        var s = 0;
+        if (w === a || stemWord(w) === stemWord(a)) s = a.length * 10;
+        else if (a.length >= 3 && w.length > a.length + 2 && w.slice(-a.length) === a) s = a.length * 10 - 5;
+        if (s > sc) sc = s;
+      });
+      if (sc > bestScore) { bestScore = sc; best = f; }
+    });
+  });
+  return best ? { f: best, sc: bestScore } : null;
+}
+function dbSearch(q, n) {
+  var nq = normTxt(q); if (!nq) return [];
+  var hits = FOOD_DB.map(function(f) {
+    var sc = 0;
+    f.aliases.forEach(function(a) {
+      var s = a === nq ? 100 : a.indexOf(nq) === 0 ? 60 : a.indexOf(nq) > -1 ? 40 : nq.indexOf(a) > -1 && a.length >= 3 ? 20 + a.length : 0;
+      if (s > sc) sc = s;
+    });
+    return { f: f, sc: sc };
+  }).filter(function(x) { return x.sc > 0; }).sort(function(a, b) { return b.sc - a.sc; });
+  return hits.slice(0, n || 5).map(function(x) { return dbProduct(x.f); });
+}
+
+// ============================================================
+// REZEPT-IMPORT: Text einfuegen -> Zeilen lesen -> Pruefliste -> Mahlzeiten-Baukasten
+// ============================================================
+var UNIT_RE = {
+  kg: /^(kg|kilo|kilogramm)$/, g: /^(g|gr|gramm|grams?)$/, mg: /^(mg)$/, l: /^(l|liter|ltr)$/, ml: /^(ml|milliliter)$/, cl: /^(cl)$/, dl: /^(dl)$/,
+  el: /^(el|essl|essloeffel|eßl|tbsp|tbs)$/, tl: /^(tl|teel|teeloeffel|tsp)$/, prise: /^(prisen?)$/, msp: /^(msp|messerspitzen?)$/,
+  stk: /^(stk|stueck|stck|st)$/, becher: /^(bechern?)$/, dose: /^(dosen?|ds)$/, pck: /^(pck|pk|pkg|paeckchen|packungen?|packg|beutel|tueten?|pack)$/,
+  tasse: /^(tassen?|cups?)$/, bund: /^(bund|bd|bunde)$/, zehe: /^(zehen?)$/, scheibe: /^(scheiben?)$/, handvoll: /^(handvoll|hand)$/,
+  schuss: /^(schuss|schluck)$/, spritzer: /^(spritzer)$/, wuerfel: /^(wuerfel)$/, glas: /^(glas|glaeser)$/, kopf: /^(kopf|koepfe)$/,
+  stange: /^(stangen?)$/, zweig: /^(zweige?|zweiglein|stiele?|stengel)$/, blatt: /^(blatt|blaetter)$/, knolle: /^(knollen?)$/,
+  tube: /^(tuben?)$/, rolle: /^(rollen?)$/, scoop: /^(scoops?|messloeffel)$/, flasche: /^(flaschen?)$/, tafel: /^(tafeln?)$/
+};
+var UNIT_LABEL = { g: "g", kg: "kg", mg: "mg", l: "l", ml: "ml", cl: "cl", dl: "dl", el: "EL", tl: "TL", prise: "Prise", msp: "Msp.", stk: "Stück", becher: "Becher", dose: "Dose", pck: "Pck.", tasse: "Tasse", bund: "Bund", zehe: "Zehe", scheibe: "Scheibe", handvoll: "Handvoll", schuss: "Schuss", spritzer: "Spritzer", wuerfel: "Würfel", glas: "Glas", kopf: "Kopf", stange: "Stange", zweig: "Zweig", blatt: "Blatt", knolle: "Knolle", tube: "Tube", rolle: "Rolle", scoop: "Messlöffel", flasche: "Flasche", tafel: "Tafel" };
+// Standardgewichte, wenn das Lebensmittel keine eigene Angabe hat (g bzw. ml)
+var UNIT_DEF = { el: 12, tl: 4, prise: 0.5, msp: 0.3, tasse: 150, becher: 200, dose: 400, glas: 350, bund: 30, zehe: 4, handvoll: 30, schuss: 20, spritzer: 2, zweig: 1, blatt: 0.5, scheibe: 25, flasche: 500, wuerfel: 10 };
+var FRAC = { "½": 0.5, "¼": 0.25, "¾": 0.75, "⅓": 1 / 3, "⅔": 2 / 3, "⅛": 0.125, "⅕": 0.2 };
+var SIZE_RE = /^(gross|grosse|grosser|grosses|klein|kleine|kleiner|kleines|mittelgross|mittelgrosse|mittelgrosser|mittlere|mittlerer|mittel)$/;
+function sizeFactor(w) { return /^gross/.test(w) ? 1.3 : /^klein/.test(w) ? 0.7 : 1; }
+function parseNum(s) {
+  s = String(s).trim().replace(/[½¼¾⅓⅔⅛⅕]/g, function(c) { return " " + FRAC[c]; }).trim();
+  var m;
+  if ((m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/))) return +m[1] + m[2] / m[3];
+  if ((m = s.match(/^(\d+)\/(\d+)$/))) return m[1] / m[2];
+  if ((m = s.match(/^([\d.,]+)\s*(?:-|–|bis)\s*([\d.,]+)$/))) return (num(m[1]) + num(m[2])) / 2;
+  if ((m = s.match(/^(\d+)\s+(0\.\d+)$/))) return +m[1] + +m[2];
+  return num(s);
+}
+var AMOUNT_RE = /^(?:ca\.?\s*|etwa\s+|circa\s+|je\s+)?((?:\d+(?:[.,]\d+)?\s*(?:-|–|bis)\s*\d+(?:[.,]\d+)?)|(?:\d+\s+\d+\/\d+)|(?:\d+\/\d+)|(?:\d+(?:[.,]\d+)?\s*[½¼¾⅓⅔⅛⅕]?)|[½¼¾⅓⅔⅛⅕])\s*/;
+// Eine Zutatenzeile in Menge, Einheit und Name zerlegen
+function parseIngredientLine(line) {
+  var raw = line, s = line.replace(/^[\s\-–•*·▢□☐✓>]+/, "").replace(/\t+/g, " ").replace(/\s+/g, " ").trim();
+  var res = { line: raw.trim(), qty: null, unit: "", name: s, explicitG: null, size: 1, vague: false };
+  // Gewicht in Klammern oder "à 400 g": gilt pro Einheit
+  var pm = s.match(/(?:\(|\bà\s|\bje\s|\bzu\s|\ba\s)\s*(?:ca\.?\s*|je\s*)?(\d+(?:[.,]\d+)?)\s*(g|ml|kg|l)(?![a-zäöüß])/i);
+  var m = s.match(AMOUNT_RE);
+  if (m && m[0].trim()) {
+    res.qty = parseNum(m[1]); s = s.slice(m[0].length);
+    var w = s.split(" "), u = normTxt(w[0]).replace(/ /g, "");
+    // Einheit direkt an der Zahl ("200g") ist schon abgetrennt; Punkt nach Abkuerzung erlaubt
+    var unitKey = null;
+    Object.keys(UNIT_RE).forEach(function(k) { if (!unitKey && UNIT_RE[k].test(u)) unitKey = k; });
+    if (unitKey) { res.unit = unitKey; w.shift(); }
+    if (w.length && SIZE_RE.test(normTxt(w[0]))) { res.size = sizeFactor(normTxt(w[0])); w.shift(); }
+    if (!unitKey && w.length > 1) {   // "2 große Dosen Tomaten"
+      var u2 = normTxt(w[0]); Object.keys(UNIT_RE).forEach(function(k) { if (!unitKey && UNIT_RE[k].test(u2)) unitKey = k; });
+      if (unitKey) { res.unit = unitKey; w.shift(); }
+    }
+    s = w.join(" ");
+  } else {
+    // Menge am Ende: "Mehl 200 g" oder "Mehl: 200 g"
+    var e = s.match(/[:,]?\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|el|tl)\.?\s*$/i), w0 = normTxt(s.split(" ")[0]).replace(/ /g, ""), u0 = null;
+    Object.keys(UNIT_RE).forEach(function(k) { if (!u0 && UNIT_RE[k].test(w0)) u0 = k; });
+    if (e) { res.qty = num(e[1]); res.unit = normTxt(e[2]); s = s.slice(0, e.index); pm = null; }
+    else if (u0 && s.split(" ").length > 1) { res.qty = 1; res.unit = u0; s = s.split(" ").slice(1).join(" "); }   // "Handvoll Beeren", "Schuss Sojasauce"
+    else if (/^(etwas|n\.? ?b\.?|nach belieben|nach geschmack|evtl\.?|eventuell|optional|wenig|reichlich|einige|ein paar|1 schuss)\b/i.test(s) || /(nach belieben|nach geschmack|zum (braten|bestreuen|bestaeuben|bestäuben|garnieren|anbraten|einfetten)|für die form|fuer die form|n\.? ?b\.?)$/i.test(s)) res.vague = true;
+  }
+  if (pm && res.unit !== "g" && res.unit !== "ml" && res.unit !== "kg" && res.unit !== "l") {
+    var pg = num(pm[1]) * (/k/i.test(pm[2]) ? 1000 : /^l$/i.test(pm[2]) ? 1000 : 1);
+    if (pg > 0) res.explicitG = pg;
+  }
+  res.matchText = s;
+  res.name = s.replace(/\([^)]*\)/g, " ").replace(/^(etwas|evtl\.?|eventuell|wenig|reichlich|einige|ein paar|n\.? ?b\.?)\s+/i, "")
+    .replace(/\s*(,|;|–| - ).*$/, "").replace(/\s+(nach belieben|nach geschmack|zum \w+|für die form|n\.? ?b\.?)$/i, "").replace(/^(von|vom|der|die|das)\s+/i, "").trim() || s.trim();
+  return res;
+}
+// Menge -> Gramm mit den Einheiten des Lebensmittels
+function toGrams(p, food) {
+  var u = food ? food.units : {}, dens = u.dichte || 1, q = p.qty;
+  if (p.vague) return { g: u.prise || u.tl || u.el || (u.handvoll ? u.handvoll / 2 : 0), est: true };
+  if (q == null) {   // nur Name: bei Gewuerzen eine Prise, sonst 1 Stueck, wenn bekannt
+    if (u.prise) return { g: u.prise, est: true };
+    if (u.stk) return { g: u.stk * p.size, est: true };
+    return { g: 0, est: true };
+  }
+  if (p.explicitG) return { g: q * p.explicitG, est: false };
+  switch (p.unit) {
+    case "g": return { g: q, est: false };
+    case "kg": return { g: q * 1000, est: false };
+    case "mg": return { g: q / 1000, est: false };
+    case "ml": return { g: q * dens, est: false };
+    case "cl": return { g: q * 10 * dens, est: false };
+    case "dl": return { g: q * 100 * dens, est: false };
+    case "l": return { g: q * 1000 * dens, est: false };
+    case "": case "stk":
+      if (u.stk) return { g: q * u.stk * p.size, est: false };
+      if (u.zehe) return { g: q * u.zehe, est: false };
+      return { g: 0, est: true };
+  }
+  var key = p.unit === "wuerfel" ? (u["würfel"] ? "würfel" : "wuerfel") : p.unit;
+  if (u[key]) return { g: q * u[key] * p.size, est: false };
+  if (p.unit === "el" || p.unit === "tl" || p.unit === "tasse" || p.unit === "schuss" || p.unit === "spritzer") return { g: q * UNIT_DEF[p.unit] * dens, est: true };
+  if (UNIT_DEF[p.unit]) return { g: q * UNIT_DEF[p.unit] * p.size, est: true };
+  return { g: 0, est: true };
+}
+var HEAD_STOP = /^(zubereitung|anleitung|so geht|so wird|schritt\s*\d|arbeitszeit|kochzeit|backzeit|ruhezeit|gesamtzeit|naehrwerte|nährwerte|tipps?\b|zubereitungszeit|methode|instructions|directions|preparation)/i;
+var HEAD_SKIP = /^(zutaten|zutatenliste|einkaufsliste|ingredients|fuer (den|die|das)|für (den|die|das)|teig|fuellung|füllung|sauce|soße|sosse|dressing|topping|belag|marinade|garnitur|deko|ausserdem|außerdem|zum servieren|beilage)\b/i;
+function detectPortions(text) {
+  var m = text.match(/(?:für|fuer|ergibt|reicht für|zutaten für|portionen:?|personen:?)\s*(\d+)\s*(portionen|personen|portion|pers\.?|stück|stücke|scheiben|muffins|riegel|kugeln|brötchen|pfannkuchen|waffeln|bällchen|teile|stk\.?)?/i)
+       || text.match(/\b(\d+)\s*(portionen|personen|portion|stück|scheiben|muffins|riegel|kugeln|brötchen|pfannkuchen|waffeln)\b/i);
+  return m ? +m[1] : "";
+}
+function parseRecipeText(text) {
+  var lines = String(text || "").replace(/\r/g, "").split("\n").map(function(l) { return l.replace(/ /g, " ").trim(); });
+  // Chefkoch & Co.: Menge und Zutat stehen oft in getrennten Zeilen ("200 g" / "Mehl")
+  var merged = [];
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i];
+    if (!l) continue;
+    var am = l.match(AMOUNT_RE), rest = am ? normTxt(l.slice(am[0].length)).replace(/ /g, "") : "x";
+    var onlyAmt = am && am[0].trim() && (!rest || Object.keys(UNIT_RE).some(function(k) { return UNIT_RE[k].test(rest); }));
+    if (onlyAmt && i + 1 < lines.length && lines[i + 1] && !lines[i + 1].match(AMOUNT_RE)) { merged.push(l + " " + lines[i + 1]); i++; }
+    else merged.push(l);
+  }
+  var name = "", rows = [], started = false;
+  merged.forEach(function(l, idx) {
+    if (rows.stop) return;
+    if (HEAD_STOP.test(l) && (started || idx > 0)) { rows.stop = true; return; }
+    if (/:$/.test(l) || (HEAD_SKIP.test(l) && !l.match(AMOUNT_RE))) return;
+    var words = l.split(" ").length;
+    if (words > 12 || /[.!?]$/.test(l) && words > 6) return;   // Fliesstext / Anleitung
+    var p = parseIngredientLine(l), food = learnedFood(p.name) || matchFoodMulti(p.matchText);
+    // Erste Zeile ohne Menge = Rezepttitel (wenn danach noch Zutaten kommen)
+    if (!started && !name && idx === 0 && p.qty == null && merged.length > 2 && !/^(etwas|salz|pfeffer|für|fuer|zutaten|portionen|ergibt|reicht)/i.test(l)) { name = l.replace(/[:#*]/g, "").trim(); return; }
+    if (!started && /^(für|fuer|ergibt|reicht für|portionen|personen)\b/i.test(l) && detectPortions(l)) return;
+    if (p.qty == null && !p.vague && !food) return;   // weder Menge noch bekanntes Lebensmittel
+    if (/^(portionen?|personen|pers|stueck|stuecke|scheiben|muffins|minuten?|min|std|stunden?|kcal|grad|schritte?)\b/.test(normTxt(p.name))) return;
+    started = true;
+    rows.push(makeRow(p, food));
+  });
+  return { name: name, portions: detectPortions(text), rows: rows };
+}
+function makeRow(p, food) {
+  var row = { line: p.line, label: p.name, grams: 0, per100: null, ext: null, foodName: "", status: "none", src: "", drink: false };
+  if (food) {
+    var g = toGrams(p, food.learned ? (food.fakeFood || { units: {} }) : food);
+    row.grams = round1(g.g); row.per100 = Object.assign({}, food.per100); row.ext = food.ext ? Object.assign({}, food.ext) : null;
+    row.foodName = food.name; row.src = food.learned ? "gelernt" : "Richtwert";
+    row.status = g.est || !row.grams ? "est" : "ok";
+    row.drink = food.learned ? !!food.drink : guessDrink(food.name);
+  } else row.grams = round1(toGrams(p, null).g);
+  return row;
+}
+// Eigene Korrekturen merken: "Dinkelmehl 630 von Aldi" -> gewaehltes Produkt
+function learnedFood(name) {
+  var map = load(K.recipeMap, {}), hit = map[normTxt(name)];
+  if (!hit) return null;
+  var fake = FOOD_DB.filter(function(f) { return normTxt(f.name) === normTxt(hit.dbName || ""); })[0];
+  return { name: hit.name, per100: hit.per100, ext: hit.ext, learned: true, drink: hit.drink, fakeFood: fake || { units: hit.units || {} } };
+}
+function rememberMapping(label, prod) {
+  var map = load(K.recipeMap, {}), k = normTxt(label);
+  if (!k) return;
+  var units = {};
+  if (prod.serving) units.stk = prod.serving;
+  map[k] = { name: prod.name, per100: prod.per100, ext: prod.ext || null, drink: !!prod.drink, units: units, dbName: prod.key && prod.key.indexOf("db:") === 0 ? prod.name : "" };
+  var keys = Object.keys(map); if (keys.length > 400) delete map[keys[0]];
+  save(K.recipeMap, map);
+}
+
+// ---- Pruefliste ----
+var imp = { name: "", portions: "", rows: [] };
+function openImport() {
+  document.getElementById("importCard").style.display = "block";
+  document.getElementById("builderCard").style.display = "none";
+  renderAiSettings();
+  renderImport();
+  document.getElementById("importCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function closeImport() { imp = { name: "", portions: "", rows: [] }; document.getElementById("impText").value = ""; document.getElementById("importCard").style.display = "none"; }
+function runLocalImport() {
+  var text = document.getElementById("impText").value;
+  if (!text.trim()) { toast("Bitte erst ein Rezept einfügen"); return; }
+  var r = parseRecipeText(text);
+  imp = { name: r.name || imp.name, portions: r.portions || imp.portions, rows: r.rows };
+  if (!imp.rows.length) setStatus("impStatus", "Keine Zutaten erkannt. Steht pro Zeile eine Zutat? Sonst \"Mit KI auslesen\".", "warn");
+  else {
+    var open = imp.rows.filter(function(x) { return x.status === "none"; }).length;
+    setStatus("impStatus", imp.rows.length + " Zutaten erkannt" + (open ? ", " + open + " ohne Zuordnung" : "") + ".", open ? "warn" : "ok");
+  }
+  renderImport();
+}
+function rowVals(r) { return r.per100 ? scale(r.per100, r.grams) : scale({}, 0); }
+function renderImport() {
+  var box = document.getElementById("impRows"), rows = imp.rows;
+  document.getElementById("impReview").style.display = rows.length ? "" : "none";
+  document.getElementById("impName").value = imp.name || "";
+  document.getElementById("impPortions").value = imp.portions || "";
+  if (!rows.length) { box.innerHTML = ""; return; }
+  var col = { ok: "var(--c-p)", est: "var(--warning)", none: "var(--danger)" };
+  box.innerHTML = rows.map(function(r, i) {
+    var v = rowVals(r);
+    return '<div class="item imp-row" style="border-left:4px solid ' + col[r.status] + ';padding-left:8px;">' +
+      '<div class="main" data-act="imp-fix" data-i="' + i + '" style="cursor:pointer;">' +
+        '<div class="n">' + (r.per100 ? esc(r.foodName) : '<span style="color:var(--danger)">&#10067; keine Zuordnung &ndash; antippen</span>') + '</div>' +
+        '<div class="d">&bdquo;' + esc(r.line) + '&ldquo;' + (r.per100 ? ' &middot; ' + Math.round(v.kcal) + ' kcal' : '') +
+        (r.src ? ' &middot; ' + esc(r.src) : '') + (r.status === "est" ? ' &middot; <b style="color:var(--warning)">Menge prüfen</b>' : '') + (r.drink ? ' &middot; &#128167;' : '') + '</div></div>' +
+      '<input class="grams" inputmode="decimal" value="' + (r.grams || "") + '" placeholder="g" data-ii="' + i + '"><span class="hint">g</span>' +
+      '<button class="x" data-act="imp-del" data-i="' + i + '" aria-label="Entfernen">&#10005;</button></div>';
+  }).join("");
+  renderImportSum();
+  var open = rows.filter(function(r) { return r.status === "none"; }).length;
+  var ai = getAi(), btn = document.getElementById("impAiOpen");
+  btn.style.display = open && ai.key ? "" : "none";
+  btn.textContent = "✨ " + open + " offene Zeile" + (open === 1 ? "" : "n") + " mit KI klären";
+}
+function renderImportSum() {
+  var rows = imp.rows.filter(function(r) { return r.per100 && r.grams > 0; });
+  var t = sumVals(rows.map(rowVals)), g = rows.reduce(function(s, r) { return s + num(r.grams); }, 0), p = num(document.getElementById("impPortions").value);
+  document.getElementById("impTiles").innerHTML = tilesHtml(t);
+  document.getElementById("impInfo").innerHTML = 'Zutaten ' + kc(g) + ' g &middot; ' + (g ? Math.round(t.kcal / g * 100) : 0) + ' kcal/100 g roh' +
+    (p ? ' &middot; 1 von ' + p + ' Portionen &asymp; ' + kc(t.kcal / p) + ' kcal, P ' + fmt(t.protein / p) + ' g, KH ' + fmt(t.carbs / p) + ' g' : '') +
+    '<br><span style="color:var(--c-p)">&#9632;</span> sicher <span style="color:var(--warning)">&#9632;</span> geschätzt <span style="color:var(--danger)">&#9632;</span> offen &middot; Zeile antippen = Lebensmittel ändern';
+}
+function fixImportRow(i) {
+  var r = imp.rows[i]; if (!r) return;
+  openAdd({ type: "import", i: i });
+  switchSub("search");
+  document.getElementById("q").value = r.label;
+  showLocalHits(r.label, true);
+}
+function importToBuilder() {
+  imp.name = document.getElementById("impName").value.trim();
+  imp.portions = num(document.getElementById("impPortions").value) || "";
+  var good = imp.rows.filter(function(r) { return r.per100 && r.grams > 0; }), bad = imp.rows.length - good.length;
+  if (!good.length) { toast("Noch keine zugeordneten Zutaten"); return; }
+  if (bad && !confirm(bad + " Zeile(n) ohne Lebensmittel oder Menge werden weggelassen. Weiter?")) return;
+  var b = { id: null, name: imp.name || "Importiertes Rezept", finalWeight: "", portions: imp.portions,
+            items: good.map(function(r) { return { name: r.foodName + (normTxt(r.foodName) !== normTxt(r.label) ? " (" + r.label + ")" : ""), grams: r.grams, per100: r.per100, ext: r.ext || null, code: "" }; }) };
+  closeImport();
+  openBuilder(null);
+  builder = b; renderBuilder();
+  document.getElementById("builderTitle").textContent = "Neue Mahlzeit (aus Rezept)";
+  toast("Fertiggewicht nach dem Kochen eintragen, dann speichern");
+}
+
+// ---- KI (Claude-API, optional) ----
+function getAi() { return Object.assign({ key: "", model: "claude-sonnet-5-5" }, load(K.ai, {})); }
+function renderAiSettings() {
+  var a = getAi();
+  document.getElementById("aiKey").value = a.key ? "••••••••" + a.key.slice(-4) : "";
+  document.getElementById("aiModel").value = a.model;
+  document.getElementById("aiState").textContent = a.key ? "Schlüssel gespeichert (nur auf diesem Gerät)." : "Kein Schlüssel – lokale Auslese funktioniert trotzdem.";
+  ["impAiBtn", "impPhotoBtn"].forEach(function(id) { document.getElementById(id).classList.toggle("sec", !a.key); });
+}
+function saveAiSettings() {
+  var a = getAi(), k = document.getElementById("aiKey").value.trim();
+  if (k && k.indexOf("••") !== 0) {
+    if (!/^sk-ant-/.test(k)) { toast("Schlüssel beginnt normalerweise mit sk-ant-"); return; }
+    a.key = k;
+  }
+  a.model = document.getElementById("aiModel").value;
+  save(K.ai, a); renderAiSettings(); toast("KI-Einstellungen gespeichert");
+}
+function clearAiKey() { var a = getAi(); a.key = ""; save(K.ai, a); renderAiSettings(); renderImport(); toast("Schlüssel gelöscht"); }
+var AI_PROMPT = 'Du bist Ernährungsassistent. Lies das Rezept und antworte NUR mit JSON (kein Text davor oder danach) nach diesem Schema:\n' +
+  '{"name":"Rezeptname oder leer","portions":Zahl oder null,"ingredients":[{"line":"Originalzeile","name":"kurzer generischer deutscher Lebensmittelname","grams":Zahl,"kcal":Zahl,"protein":Zahl,"carbs":Zahl,"fat":Zahl,"fiber":Zahl,"sugar":Zahl,"satfat":Zahl,"salt":Zahl,"drink":true/false}]}\n' +
+  'Regeln:\n- grams = Menge der Zutat im GANZEN Rezept in Gramm. Stück, EL, TL, Prise, Becher, Dose usw. in übliche Gewichte umrechnen; ml mit Dichte in g. "etwas" oder "nach Belieben" realistisch klein schätzen.\n' +
+  '- Nährwerte (kcal bis salt) PRO 100 g des Lebensmittels im angegebenen Zustand (Reis/Nudeln roh, Dosenware abgetropft), Richtwerte nach Bundeslebensmittelschlüssel bzw. USDA.\n' +
+  '- name: z. B. "Weizenmehl Type 405", "Zwiebel", "Hähnchenbrust", "Olivenöl".\n- Zubereitungsschritte, Überschriften und Werbung ignorieren; jede Zutat genau einmal.\n- drink = true nur für Getränke/Flüssigkeiten zum Trinken (Milch, Saft), nicht für Brühe oder Öl.\n- portions = angegebene Portionen, Personen oder Stückzahl, sonst null.';
+async function callClaude(content) {
+  var a = getAi();
+  if (!a.key) throw new Error("Kein API-Schlüssel hinterlegt (KI-Einstellungen unten).");
+  var ctrl = new AbortController(), timer = setTimeout(function() { ctrl.abort(); }, 90000), r;
+  try {
+    r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", signal: ctrl.signal,
+      headers: { "content-type": "application/json", "x-api-key": a.key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({ model: a.model, max_tokens: 4096, messages: [{ role: "user", content: content }] })
+    });
+  } catch(e) {
+    throw new Error(e.name === "AbortError" ? "KI antwortet nicht (Zeitüberschreitung)." : "Keine Verbindung zur KI – Internet prüfen.");
+  } finally { clearTimeout(timer); }
+  var body = await r.json().catch(function() { return {}; });
+  if (r.status === 401) throw new Error("API-Schlüssel ungültig.");
+  if (r.status === 400 && /credit|billing/i.test(JSON.stringify(body))) throw new Error("Kein Guthaben im Anthropic-Konto.");
+  if (r.status === 404) throw new Error("Modell nicht verfügbar – in den KI-Einstellungen anderes Modell wählen.");
+  if (r.status === 429 || r.status === 529) throw new Error("KI ist gerade ausgelastet – gleich nochmal versuchen.");
+  if (!r.ok) throw new Error("KI-Fehler " + r.status + (body.error && body.error.message ? ": " + body.error.message : ""));
+  var txt = (body.content || []).filter(function(c) { return c.type === "text"; }).map(function(c) { return c.text; }).join("");
+  var j = txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1);
+  try { return JSON.parse(j); } catch(e) { throw new Error("KI-Antwort war kein lesbares JSON. Bitte nochmal versuchen."); }
+}
+// KI-Zutat -> Zeile. Lokale Werte haben Vorrang (gleiche Basis wie die übrigen Einträge), sonst KI-Werte.
+function rowFromAi(x) {
+  var food = learnedFood(x.name) || learnedFood(x.line || "") || matchFood(x.name), row = { line: x.line || x.name, label: x.name, grams: round1(num(x.grams)), drink: !!x.drink };
+  if (food) {
+    row.per100 = Object.assign({}, food.per100); row.ext = food.ext ? Object.assign({}, food.ext) : null;
+    row.foodName = food.name; row.src = food.learned ? "gelernt" : "Richtwert (KI-Menge)";
+  } else {
+    row.per100 = { kcal: round1(num(x.kcal)), protein: round1(num(x.protein)), carbs: round1(num(x.carbs)), fat: round1(num(x.fat)), fiber: round1(num(x.fiber)), sugar: round1(num(x.sugar)) };
+    var ext = {}; EXT.forEach(function(e) { ext[e.k] = null; }); ext.satfat = x.satfat != null ? num(x.satfat) : null; ext.salt = x.salt != null ? num(x.salt) : null;
+    row.ext = ext; row.foodName = x.name; row.src = "KI-Schätzung";
+  }
+  row.status = row.grams > 0 ? (food ? "ok" : "est") : "est";
+  return row;
+}
+async function runAiImport(mode, file) {
+  var text = document.getElementById("impText").value.trim(), content = [];
+  if (mode === "text" && !text) { toast("Bitte erst ein Rezept einfügen"); return; }
+  if (mode === "open") {
+    var open = imp.rows.map(function(r, i) { return { r: r, i: i }; }).filter(function(x) { return x.r.status === "none"; });
+    if (!open.length) return;
+    content.push({ type: "text", text: AI_PROMPT + "\n\nNur diese Zutatenzeilen auswerten:\n" + open.map(function(x) { return x.r.line; }).join("\n") });
+  } else if (mode === "photo") {
+    var img = await imageToBase64(file);
+    content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: img } });
+    content.push({ type: "text", text: AI_PROMPT + "\n\nDas Rezept steht auf dem Bild." + (text ? "\nZusatzinfo vom Nutzer: " + text : "") });
+  } else content.push({ type: "text", text: AI_PROMPT + "\n\nRezept:\n" + text });
+  setStatus("impStatus", "KI liest das Rezept … (10–40 s)");
+  document.getElementById("importCard").classList.add("busy");
+  try {
+    var res = await callClaude(content), ings = res.ingredients || [];
+    if (!ings.length) throw new Error("KI hat keine Zutaten gefunden.");
+    var rows = ings.map(rowFromAi);
+    if (mode === "open") {
+      var idx = imp.rows.map(function(r, i) { return r.status === "none" ? i : -1; }).filter(function(i) { return i > -1; });
+      // Antworten der Reihe nach den offenen Zeilen zuordnen, Rest anhängen
+      idx.forEach(function(i, n) { if (rows[n]) { rows[n].line = imp.rows[i].line; imp.rows[i] = rows[n]; } });
+      rows.slice(idx.length).forEach(function(r) { imp.rows.push(r); });
+    } else {
+      imp.rows = rows;
+      if (res.name) imp.name = res.name;
+      if (res.portions) imp.portions = res.portions;
+    }
+    var est = imp.rows.filter(function(r) { return r.status !== "ok"; }).length;
+    setStatus("impStatus", imp.rows.length + " Zutaten" + (est ? ", " + est + " bitte prüfen" : "") + ". Grün = lokale Richtwerte, Orange = KI-Schätzung.", "ok");
+    renderImport();
+  } catch(e) { setStatus("impStatus", e.message, "err"); }
+  finally { document.getElementById("importCard").classList.remove("busy"); }
+}
+function imageToBase64(file) {
+  return new Promise(function(res, rej) {
+    var fr = new FileReader();
+    fr.onerror = function() { rej(new Error("Bild konnte nicht gelesen werden.")); };
+    fr.onload = function() {
+      var im = new Image();
+      im.onerror = function() { rej(new Error("Bildformat wird nicht unterstützt.")); };
+      im.onload = function() {
+        var max = 1568, s = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement("canvas");
+        c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        res(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
 }
 
 // ============================================================
@@ -945,8 +1741,9 @@ function deleteMeal(id) {
 var APP_EXTRAS = [
   { id: "chili", label: "Chili" }, { id: "cinnamon", label: "Zimt" }, { id: "turmeric", label: "Kurkuma" }, { id: "ginger", label: "Ingwer" },
   { id: "omega3", label: "Omega-3" }, { id: "magnesium", label: "Magnesium" }, { id: "kreatin", label: "Kreatin" }, { id: "arginine", label: "Arginin" },
-  { id: "vegetables", label: "Gemüse" }, { id: "protein", label: "Protein" }, { id: "waterGoal", label: "Trinkziel" }
+  { id: "vegetables", label: "Gemüse" }, { id: "protein", label: "Protein" }
 ];
+// "Trinkziel" ist kein Haken mehr: der Wasserzaehler setzt waterGoal in der App automatisch.
 var extrasEdit = false;
 function customExtras() { return load(K.extrasList, []); }
 function allExtras() { return APP_EXTRAS.map(function(x) { return { id: x.id, label: x.label, app: true }; }).concat(customExtras()); }
@@ -992,6 +1789,107 @@ function addCustomExtra() {
 function removeCustomExtra(id) {
   save(K.extrasList, customExtras().filter(function(x) { return x.id !== id; }));
   renderExtras();
+}
+
+// ============================================================
+// TRINKEN: Wasser (Knöpfe) + Kaffee (Knopf, 300 ml) + Getränke aus dem Tagebuch (Milch, Saft …)
+// Ziel = ml/kg x Gewicht + ml pro Trainingsstunde. Alles zählt zu 100 %.
+// Ziel erreicht -> Haken "waterGoal" im Ernaehrungs-Tab der App wird mitgesetzt.
+// ============================================================
+var WATER_STEPS = [-250, 250, 500, 750], COFFEE_ML = 300;
+// Getränke-Erkennung über den Namen (nur Vorschlag – im Mengen-Dialog umschaltbar, pro Produkt gemerkt)
+var DRINK_RE = /(milch|kaffee|cappuccino|latte|espresso|\btee\b|früchtetee|kräutertee|saft|schorle|limo|cola|kakao|smoothie|wasser|getränk|drink|kefir|ayran|eistee|isotoni|elektrolyt)/i;
+var NOT_DRINK_RE = /(schoko|reis|pulver|bohne|kuchen|creme|joghurt|quark|käse|brot|brötchen|keks|riegel|pudding|konzentrat|\beis\b|speiseeis|milchbrötchen|kondensmilch|sahne|butter|melone|schinken|wurst)/i;
+function guessDrink(name) { name = String(name || ""); return DRINK_RE.test(name) && !NOT_DRINK_RE.test(name); }
+function isDrinkEntry(e) { return e.drink != null ? !!e.drink : (e.source !== "mahlzeit" && guessDrink(e.name)); }
+function fmtL(ml) { return (Math.round(ml / 100) / 10).toFixed(1).replace(".", ","); }   // ml -> "2,5"
+function waterOf(date) { return num(load(K.water, {})[date]); }
+function coffeeOf(date) { return num(load(K.coffee, {})[date]); }
+function diaryDrinks(date) { return getDay(date).filter(function(e) { return isDrinkEntry(e) && num(e.grams) > 0; }); }
+function diaryFluidOf(date) { return Math.round(diaryDrinks(date).reduce(function(s, e) { return s + num(e.grams); }, 0)); }
+function fluidOf(date) { return waterOf(date) + coffeeOf(date) + diaryFluidOf(date); }
+function trainingHours(date) {
+  return sessionsOf(date).reduce(function(s, x) { return s + parseDur(x.runTime) / 3600; }, 0);
+}
+function waterGoal(date) {
+  var g = getGoals(), w = dayInfo(date).weight, h = trainingHours(date);
+  return { ml: Math.round((g.water * w + g.waterH * h) / 50) * 50, weight: w, hours: h, perKg: g.water, perH: g.waterH };
+}
+// App-Haken "Trinkziel" nach jeder Aenderung (Wasser, Kaffee, Tagebuch) nachziehen
+function updateWaterFlag(date) {
+  var key = "date_entry_nutritionDate_" + date, a = load(key, null), total = fluidOf(date);
+  if (!a && !total) return;
+  a = a || { nutritionDate: date };
+  a.waterGoal = total >= waterGoal(date).ml; a.waterMl = total;
+  save(key, a);
+}
+function setDayMl(storeKey, date, ml) {
+  ml = Math.max(0, Math.round(ml));
+  var all = load(storeKey, {});
+  if (ml > 0) all[date] = ml; else delete all[date];
+  save(storeKey, all);
+  updateWaterFlag(date);
+}
+function addFluid(kind, delta) {
+  var date = getDate(), store = kind === "coffee" ? K.coffee : K.water, own = kind === "coffee" ? coffeeOf(date) : waterOf(date);
+  if (delta < 0 && own <= 0) { toast(kind === "coffee" ? "Heute noch kein Kaffee eingetragen" : "Kein Wasser zum Abziehen"); return; }
+  var goal = waterGoal(date).ml, before = fluidOf(date);
+  setDayMl(store, date, own + delta);
+  var now = fluidOf(date);
+  renderWater();
+  if (before < goal && now >= goal) toast("Trinkziel erreicht 💧");
+  else toast((kind === "coffee" ? "Kaffee " : "") + (delta > 0 ? "+" : "−") + Math.abs(delta) + " ml → " + fmtL(now) + " L");
+  syncDay(date, true);
+}
+function renderWater() {
+  var date = getDate(), wml = waterOf(date), cml = coffeeOf(date), drinks = diaryDrinks(date), dml = diaryFluidOf(date);
+  var ml = wml + cml + dml, wg = waterGoal(date), pct = wg.ml ? ml / wg.ml * 100 : 0;
+  var cups = cml / COFFEE_ML, parts = [];
+  if (wml) parts.push('Wasser ' + fmtL(wml) + ' L');
+  if (cml) parts.push('Kaffee ' + fmtL(cml) + ' L' + (Number.isInteger(cups) ? ' (' + cups + ' Becher)' : ''));
+  if (dml) parts.push('Tagebuch ' + fmtL(dml) + ' L (' + drinks.map(function(e) { return esc(stripAmountSuffix(e.name)); }).join(", ") + ')');
+  document.getElementById("waterCard").innerHTML =
+    '<div class="meal-h"><h3>&#128167; Trinken</h3><span class="water-v">' + fmtL(ml) + ' <small>/ ' + fmtL(wg.ml) + ' L</small></span></div>' +
+    '<div class="track" style="height:10px;margin-top:8px;"><div class="fill" style="width:' + Math.min(100, pct) + '%;background:' + (pct >= 100 ? 'var(--c-p)' : 'var(--blue)') + '"></div></div>' +
+    (parts.length ? '<div class="hint" style="margin-top:5px;">' + parts.join(' &middot; ') + '</div>' : '') +
+    '<div class="wbtns">' + WATER_STEPS.map(function(s) {
+      return '<button class="' + (s < 0 ? 'minus' : '') + '" data-act="water" data-ml="' + s + '">' + (s < 0 ? '&minus;' + (-s) : '+' + s) + ' ml</button>';
+    }).join("") + '</div>' +
+    '<div class="wbtns coffee"><button class="minus" data-act="coffee" data-ml="-' + COFFEE_ML + '" aria-label="Kaffee zurücknehmen">&minus; &#9749;</button>' +
+    '<button data-act="coffee" data-ml="' + COFFEE_ML + '">&#9749; Kaffee +' + COFFEE_ML + ' ml</button></div>' +
+    '<div class="hint" style="margin-top:6px;">Ziel: ' + wg.perKg + ' ml &times; ' + fmt(wg.weight) + ' kg' +
+    (wg.hours > 0 ? ' + ' + fmt(wg.hours) + ' h Training &times; ' + wg.perH + ' ml' : '') +
+    (pct >= 100 ? ' &middot; <b style="color:var(--c-p)">erreicht</b>' : ' &middot; noch ' + fmtL(Math.max(0, wg.ml - ml)) + ' L') +
+    '<br>Milch, Saft &amp; Co. aus dem Tagebuch zählen automatisch mit (1 g &asymp; 1 ml). Kaffee mit Milch: Kaffee-Knopf, die Milch zusätzlich im Tagebuch.</div>';
+}
+function waterStatsHtml(dates) {
+  var rows = dates.map(function(d) { return { d: d, ml: fluidOf(d), goal: waterGoal(d).ml }; });
+  var logged = rows.filter(function(r) { return r.ml > 0; });
+  if (!logged.length) return '<div class="hint">Im Zeitraum nichts zu trinken erfasst.</div>';
+  var hit = logged.filter(function(r) { return r.ml >= r.goal; }).length;
+  var avgMl = avg(logged.map(function(r) { return r.ml; })), avgGoal = avg(logged.map(function(r) { return r.goal; }));
+  if (dates.length === 1) {
+    var r = rows[0], p = r.goal ? r.ml / r.goal * 100 : 0;
+    return '<div class="mbar"><div class="t"><span>Getrunken</span><span>' + fmtL(r.ml) + ' / ' + fmtL(r.goal) + ' L &middot; ' + Math.round(p) + ' %</span></div>' +
+      '<div class="track"><div class="fill" style="width:' + Math.min(100, p) + '%;background:' + (p >= 100 ? 'var(--c-p)' : 'var(--blue)') + '"></div></div></div>';
+  }
+  // Saeulen pro Tag mit Ziellinie je Tag
+  var W = 320, H = 110, padL = 26, padB = 16, padT = 8, n = rows.length, bw = (W - padL - 4) / n;
+  var maxV = Math.max.apply(null, rows.map(function(r) { return Math.max(r.ml, r.goal); })) * 1.08 || 1;
+  var y = function(v) { return padT + (H - padT - padB) * (1 - v / maxV); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart">';
+  [1000, 2000, 3000, 4000, 5000].forEach(function(v) { if (v < maxV) svg += '<line x1="' + padL + '" x2="' + W + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#ebe4da"/><text x="' + (padL - 4) + '" y="' + (y(v) + 3) + '" text-anchor="end" font-size="8" fill="#7c726a">' + (v / 1000) + ' L</text>'; });
+  var step = "";
+  rows.forEach(function(r, i) {
+    var x = padL + i * bw, gap = n > 10 ? 1 : 3;
+    if (r.ml > 0) svg += '<rect x="' + (x + gap) + '" y="' + y(r.ml) + '" width="' + (bw - 2 * gap) + '" height="' + (H - padB - y(r.ml)) + '" rx="' + (n > 10 ? 1.5 : 3) + '" fill="' + (r.ml >= r.goal ? '#2f9e55' : '#1d86c4') + '"/>';
+    step += (i ? " L " : "M ") + x + " " + y(r.goal) + " L " + (x + bw) + " " + y(r.goal);
+    var lab = n > 7 ? (i % 7 === n % 7 - 1 || (n % 7 === 0 && i % 7 === 6) ? parseIso(r.d).getDate() + "." : "") : shortDay(r.d);
+    if (lab) svg += '<text x="' + (x + bw / 2) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="8.5" fill="#7c726a">' + lab + '</text>';
+  });
+  svg += '<path d="' + step + '" fill="none" stroke="#7c726a" stroke-width="1.5" stroke-dasharray="4 3"/></svg>';
+  return svg + '<div style="margin-top:6px;font-size:0.85rem;">Ø <b>' + fmtL(avgMl) + ' L</b> getrunken pro Tag (Ziel Ø ' + fmtL(avgGoal) + ' L) &middot; Ziel erreicht an <b>' + hit + ' von ' + logged.length + '</b> erfassten Tagen</div>' +
+    '<div class="cal-leg"><span><i style="background:#2f9e55"></i>Ziel erreicht</span><span><i style="background:#1d86c4"></i>darunter</span><span><i style="background:#7c726a;height:2px;vertical-align:3px;"></i>Tagesziel</span></div>';
 }
 
 // ============================================================
@@ -1311,7 +2209,8 @@ function renderEval() {
 
   // Zusaetze
   var dates = evalMode === "day" ? [B.end] : rangeDates(B.end, B.n);
-  var xs = allExtras().map(function(x) { return { label: x.label, n: dates.filter(function(d) { return extraTaken(d, x); }).length }; }).filter(function(x) { return x.n > 0; }).sort(function(a, b) { return b.n - a.n; });
+  document.getElementById("waterStats").innerHTML = waterStatsHtml(dates);
+  var xs =allExtras().map(function(x) { return { label: x.label, n: dates.filter(function(d) { return extraTaken(d, x); }).length }; }).filter(function(x) { return x.n > 0; }).sort(function(a, b) { return b.n - a.n; });
   document.getElementById("extrasStats").innerHTML = !xs.length ? '<div class="hint">Im Zeitraum keine Zusätze abgehakt.</div>' :
     xs.map(function(x) {
       return '<div class="mbar"><div class="t"><span>' + esc(x.label) + '</span><span>' + x.n + ' von ' + dates.length + ' Tagen</span></div><div class="track"><div class="fill" style="width:' + (x.n / dates.length * 100) + '%;background:var(--c-fib)"></div></div></div>';
@@ -1420,7 +2319,7 @@ function renderAnalysis() {
   document.getElementById("goalTdeeBtn").style.display = wt.baseTdee ? "" : "none";
 
   // Ziele
-  [["gBase", g.base], ["gProt", String(g.prot).replace(".", ",")], ["gLow", g.low], ["gEnd", g.end], ["gThr", String(g.thr).replace(".", ",")], ["gHiit", String(g.hiit).replace(".", ",")]]
+  [["gBase", g.base], ["gProt", String(g.prot).replace(".", ",")], ["gLow", g.low], ["gEnd", g.end], ["gThr", String(g.thr).replace(".", ",")], ["gHiit", String(g.hiit).replace(".", ",")], ["gWater", g.water], ["gWaterH", g.waterH]]
     .forEach(function(x) { document.getElementById(x[0]).value = x[1]; });
   var w = dayInfo(end).weight;
   document.getElementById("goalInfo").textContent = "Bei " + fmt(w) + " kg: Protein " + Math.round(g.prot * w) + " g, KH Schwelle ca. " + Math.round(g.thr * w) + " g, HIIT ca. " + Math.round(g.hiit * w) + " g. Fett ergibt sich aus den restlichen Kalorien.";
@@ -1469,6 +2368,14 @@ function buildRecommendations(rows, pk, ts, wt, g) {
     if (satShare > 1 / 3) add(3, "", "Fettqualität verbessern", Math.round(satShare * 100) + " % deines Fetts sind gesättigt. Mehr Olivenöl, Nüsse, Avocado und fetten Fisch – das passt auch zur Dr.-Feil-Strategie (Omega-3 hoch).");
     else add(6, "good", "Gute Fettqualität", "Nur " + Math.round(satShare * 100) + " % deines Fetts sind gesättigt.");
   }
+  // Wasser (nur Tage mit Eintrag, mind. 4)
+  var wRows = rows.map(function(r) { return { ml: fluidOf(r.date), goal: waterGoal(r.date).ml }; }).filter(function(r) { return r.ml > 0; });
+  if (wRows.length >= 4) {
+    var wAvg = avg(wRows.map(function(r) { return r.ml; })), wGoal = avg(wRows.map(function(r) { return r.goal; }));
+    var wHit = wRows.filter(function(r) { return r.ml >= r.goal; }).length;
+    if (wAvg < wGoal * 0.8) add(2, "", "Mehr trinken", "Ø " + fmtL(wAvg) + " L statt " + fmtL(wGoal) + " L – Ziel nur an " + wHit + " von " + wRows.length + " Tagen erreicht. Schon 2 % Flüssigkeitsverlust kosten Ausdauerleistung; zu jeder Mahlzeit ein großes Glas, an Trainingstagen eine Flasche zur Einheit.");
+    else if (wHit / wRows.length >= 0.7) add(6, "good", "Gut getrunken", "Trinkziel an " + wHit + " von " + wRows.length + " Tagen erreicht.");
+  }
   if (ext.salt.cover >= 0.5 && ext.salt.val / n > 6) add(4, "", "Salz im Blick", "Ø " + fmt(ext.salt.val / n) + " g Salz pro Tag aus verpackten Produkten – Orientierung höchstens 6 g.");
   // Gewicht
   var goalW = num((load("coach_bjoern_v21", {}) || {}).goalWeight), curW = wt.pts.length ? wt.pts[wt.pts.length - 1].w : null;
@@ -1489,7 +2396,10 @@ function buildRecommendations(rows, pk, ts, wt, g) {
 
 function saveGoals(fromTdee) {
   var g = { base: num(document.getElementById("gBase").value), prot: num(document.getElementById("gProt").value), low: num(document.getElementById("gLow").value),
-            end: num(document.getElementById("gEnd").value), thr: num(document.getElementById("gThr").value), hiit: num(document.getElementById("gHiit").value) };
+            end: num(document.getElementById("gEnd").value), thr: num(document.getElementById("gThr").value), hiit: num(document.getElementById("gHiit").value),
+            water: num(document.getElementById("gWater").value), waterH: num(document.getElementById("gWaterH").value) };
+  if (g.water < 20 || g.water > 60) { toast("Wasser zwischen 20 und 60 ml/kg"); return; }
+  if (g.waterH < 0 || g.waterH > 1500) { toast("Wasser pro Trainingsstunde 0–1.500 ml"); return; }
   if (fromTdee) { var wt = weightTrend(getDate()); if (wt.baseTdee) g.base = wt.baseTdee - 275; }
   if (g.base < 1200 || g.base > 4500) { toast("Grundziel zwischen 1.200 und 4.500 kcal"); return; }
   if (g.prot < 1 || g.prot > 3) { toast("Protein zwischen 1,0 und 3,0 g/kg"); return; }
@@ -1675,7 +2585,7 @@ function renderWhatIf(reset) {
 // ============================================================
 var TAB = "Naehrwerte";
 var HEAD = ["Datum", "kcal", "Protein g", "KH g", "Fett g", "Ballaststoffe g", "Zucker g", "Eintraege", "kcal Fruehstueck", "kcal Mittag", "kcal Abend", "kcal Snacks",
-            "Gesaettigte Fette g", "Ungesaettigte Fette g", "Tagestyp", "Training kcal", "KH-Ziel g", "Zusaetze"];
+            "Gesaettigte Fette g", "Ungesaettigte Fette g", "Tagestyp", "Training kcal", "KH-Ziel g", "Zusaetze", "Trinkmenge ml", "Trinkziel ml", "davon Wasser ml", "davon Kaffee ml", "davon Getraenke Tagebuch ml"];
 var gisClient = null, pendingCbs = [], tabReady = false, chain = Promise.resolve();
 function sheetsCfg() { return load(K.sheets, {}); }
 function sheetsOn() { var c = sheetsCfg(); return !!(c.clientId && c.sheetId); }
@@ -1732,7 +2642,7 @@ async function ensureTab(token) {
   var meta = await api(token, "GET", "?fields=sheets.properties.title");
   var titles = (meta.sheets || []).map(function(s) { return s.properties.title; });
   if (titles.indexOf(TAB) === -1) await api(token, "POST", ":batchUpdate", { requests: [{ addSheet: { properties: { title: TAB, gridProperties: { frozenRowCount: 1 } } } }] });
-  await api(token, "PUT", "/values/" + encodeURIComponent("'" + TAB + "'!A1:R1") + "?valueInputOption=RAW", { values: [HEAD] });
+  await api(token, "PUT", "/values/" + encodeURIComponent("'" + TAB + "'!A1:V1") + "?valueInputOption=RAW", { values: [HEAD] });
   tabReady = true;
 }
 function dayRow(date) {
@@ -1744,7 +2654,8 @@ function dayRow(date) {
   var tg = dayTargets(date);
   return [date, Math.round(t.kcal), t.protein, t.carbs, t.fat, t.fiber, t.sugar, text].concat(perMeal).concat([
     withSat.length ? round1(sat) : "", withSat.length ? round1(Math.max(0, fatKnown - sat)) : "",
-    TYPE_INFO[tg.type].label, Math.round(tg.exKcal), Math.round(tg.carbs), takenExtrasLabels(date).join(", ")]);
+    TYPE_INFO[tg.type].label, Math.round(tg.exKcal), Math.round(tg.carbs), takenExtrasLabels(date).join(", "),
+    fluidOf(date) || "", waterGoal(date).ml, waterOf(date) || "", coffeeOf(date) || "", diaryFluidOf(date) || ""]);
 }
 async function upsertDays(token, dates) {
   await ensureTab(token);
@@ -1754,8 +2665,8 @@ async function upsertDays(token, dates) {
   var updates = [], appends = [];
   dates.forEach(function(d) {
     var row = dayRow(d);
-    if (index[d]) updates.push({ range: "'" + TAB + "'!A" + index[d] + ":R" + index[d], values: [row] });
-    else if (getDay(d).length) appends.push(row);
+    if (index[d]) updates.push({ range: "'" + TAB + "'!A" + index[d] + ":V" + index[d], values: [row] });
+    else if (getDay(d).length || waterOf(d) || coffeeOf(d)) appends.push(row);
   });
   if (updates.length) await api(token, "POST", "/values:batchUpdate", { valueInputOption: "RAW", data: updates });
   if (appends.length) await api(token, "POST", "/values/" + encodeURIComponent("'" + TAB + "'!A1") + ":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS", { values: appends });
@@ -1772,7 +2683,10 @@ function runSync(dates, interactive) {
   if (!started) renderSyncStatus();
 }
 function syncDay(date, interactive) { runSync([date], interactive); }
-function syncAll() { runSync(Object.keys(load(K.log, {})), true); }
+function syncAll() {
+  var dates = Object.keys(load(K.log, {})).concat(Object.keys(load(K.water, {}))).concat(Object.keys(load(K.coffee, {})));
+  runSync(dates.filter(function(d, i) { return dates.indexOf(d) === i; }), true);
+}
 
 // ============================================================
 // SICHERUNG: Meine Mahlzeiten & Favoriten im Sheet (Tabs "Mahlzeiten", "Favoriten")
@@ -1860,7 +2774,7 @@ function writeSnapshot() {
     var today = isoLocal(new Date()), days = {};
     for (var i = -7; i <= 3; i++) {
       var d = dateAdd(today, i), tg = dayTargets(d);
-      days[d] = { label: tg.label, strategy: tg.strategy, carbs: Math.round(tg.carbs), carbsIsMax: tg.carbsIsMax, kcalGoal: Math.round(tg.kcal) };
+      days[d] = { label: tg.label, strategy: tg.strategy, carbs: Math.round(tg.carbs), carbsIsMax: tg.carbsIsMax, kcalGoal: Math.round(tg.kcal), waterMl: fluidOf(d), waterGoalMl: waterGoal(d).ml };
     }
     var wt = weightTrend(today);
     save(K.snapshot, { updated: Date.now(), baseGoal: getGoals().base, baseTdee: wt.baseTdee || null, days: days });
@@ -1910,7 +2824,18 @@ document.addEventListener("click", function(ev) {
     case "manual-add": manualAdd(); break;
     case "del-entry": removeEntry(d.id); break;
     case "meal-amount": openAmount(mealAsProduct(findMeal(d.id))); break;
-    case "meal-new": openBuilder(null); break;
+    case "meal-new": document.getElementById("importCard").style.display = "none"; openBuilder(null); break;
+    case "imp-open": closeBuilder(); openImport(); break;
+    case "imp-local": runLocalImport(); break;
+    case "imp-ai": if (!getAi().key) { document.getElementById("aiBox").open = true; toast("Erst API-Schlüssel hinterlegen"); } else runAiImport("text"); break;
+    case "imp-photo": if (!getAi().key) { document.getElementById("aiBox").open = true; toast("Erst API-Schlüssel hinterlegen"); } else document.getElementById("impFile").click(); break;
+    case "imp-ai-open": runAiImport("open"); break;
+    case "imp-fix": fixImportRow(+d.i); break;
+    case "imp-del": imp.rows.splice(+d.i, 1); renderImport(); break;
+    case "imp-take": importToBuilder(); break;
+    case "imp-cancel": closeImport(); break;
+    case "ai-save": saveAiSettings(); break;
+    case "ai-clear": clearAiKey(); break;
     case "meal-edit": openBuilder(findMeal(d.id)); break;
     case "meal-del": deleteMeal(d.id); break;
     case "confirm-yes": closeConfirm(true); break;
@@ -1931,6 +2856,10 @@ document.addEventListener("click", function(ev) {
     case "extras-edit": extrasEdit = !extrasEdit; renderExtras(); break;
     case "extra-add": addCustomExtra(); break;
     case "top-k": topKey = d.k; renderEval(); break;
+    case "water": addFluid("water", +d.ml); break;
+    case "coffee": addFluid("coffee", +d.ml); break;
+    case "amt-drink": if (current) { current.drink = !current.drink; updateDrinkBtn(); } break;
+    case "m-drink": el.classList.toggle("on"); el.innerHTML = (el.classList.contains("on") ? "&#10003; " : "") + "&#128167; Getränk (zählt zum Trinken)"; break;
   }
 });
 document.addEventListener("keydown", function(ev) { if (ev.key === "Escape" && confirmCb) closeConfirm(false); });
@@ -1939,12 +2868,17 @@ document.addEventListener("input", function(ev) {
   if (k && wi) { wi[k] = +ev.target.value; if (k === "base") wi.baseKnown = false; renderWhatIf(false); }
 });
 document.addEventListener("change", function(ev) {
+  if (ev.target.dataset && ev.target.dataset.ii != null) { var ir = imp.rows[+ev.target.dataset.ii]; if (ir) { ir.grams = num(ev.target.value); if (ir.per100 && ir.grams > 0) ir.status = "ok"; renderImportSum(); } }
   if (ev.target.dataset && ev.target.dataset.bi != null) { builder.items[+ev.target.dataset.bi].grams = num(ev.target.value); renderBuilder(); }
 });
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("date").value = isoLocal(new Date());
   document.getElementById("date").addEventListener("change", renderAll);
   document.getElementById("q").addEventListener("keydown", function(e) { if (e.key === "Enter") doSearch(); });
+  document.getElementById("q").addEventListener("input", function() { showLocalHits(this.value); });
+  document.getElementById("impFile").addEventListener("change", function() { var f = this.files[0]; this.value = ""; if (f) runAiImport("photo", f); });
+  document.getElementById("impName").addEventListener("input", function() { imp.name = this.value; });
+  document.getElementById("impPortions").addEventListener("input", function() { imp.portions = num(this.value) || ""; renderImportSum(); });
   document.getElementById("extraName").addEventListener("keydown", function(e) { if (e.key === "Enter") addCustomExtra(); });
   document.getElementById("recentQ").addEventListener("input", renderRecent);
   document.getElementById("bFinal").addEventListener("input", function() { builder.finalWeight = num(this.value) || ""; renderBuilderInfo(); });
