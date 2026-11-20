@@ -2651,7 +2651,7 @@ async function ensureTab(token) {
   var meta = await api(token, "GET", "?fields=sheets.properties.title");
   var titles = (meta.sheets || []).map(function(s) { return s.properties.title; });
   if (titles.indexOf(TAB) === -1) await api(token, "POST", ":batchUpdate", { requests: [{ addSheet: { properties: { title: TAB, gridProperties: { frozenRowCount: 1 } } } }] });
-  await api(token, "PUT", "/values/" + encodeURIComponent("'" + TAB + "'!A1:V1") + "?valueInputOption=RAW", { values: [HEAD] });
+  await api(token, "PUT", "/values/" + encodeURIComponent("'" + TAB + "'!A1:" + lastCol() + "1") + "?valueInputOption=RAW", { values: [HEAD] });
   tabReady = true;
 }
 function dayRow(date) {
@@ -2666,6 +2666,8 @@ function dayRow(date) {
     TYPE_INFO[tg.type].label, Math.round(tg.exKcal), Math.round(tg.carbs), takenExtrasLabels(date).join(", "),
     fluidOf(date) || "", waterGoal(date).ml, waterOf(date) || "", coffeeOf(date) || "", diaryFluidOf(date) || ""]);
 }
+// Letzte Spalte aus der Kopfzeile ableiten (23 Spalten = W), damit Bereich und Daten immer zusammenpassen
+function lastCol() { var n = HEAD.length, c = ""; while (n > 0) { var m = (n - 1) % 26; c = String.fromCharCode(65 + m) + c; n = Math.floor((n - 1) / 26); } return c; }
 async function upsertDays(token, dates) {
   await ensureTab(token);
   var keys = await api(token, "GET", "/values/" + encodeURIComponent("'" + TAB + "'!A2:A"));
@@ -2674,7 +2676,7 @@ async function upsertDays(token, dates) {
   var updates = [], appends = [];
   dates.forEach(function(d) {
     var row = dayRow(d);
-    if (index[d]) updates.push({ range: "'" + TAB + "'!A" + index[d] + ":V" + index[d], values: [row] });
+    if (index[d]) updates.push({ range: "'" + TAB + "'!A" + index[d] + ":" + lastCol() + index[d], values: [row] });
     else if (getDay(d).length || waterOf(d) || coffeeOf(d)) appends.push(row);
   });
   if (updates.length) await api(token, "POST", "/values:batchUpdate", { valueInputOption: "RAW", data: updates });
