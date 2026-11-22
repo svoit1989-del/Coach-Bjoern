@@ -394,8 +394,9 @@
     <p class="sub">Werte aus Garmin Connect App manuell uebertragen</p>
     <label>Datum</label><input id="garminDate" type="date">
     <div class="garmin-grid">
-      <div><label>Body Battery</label><input id="bodyBattery" type="number" min="0" max="100" placeholder="0-100" inputmode="numeric"></div>
       <div><label>Schlaf (Std:Min)</label><input id="garminSleep" type="time" placeholder="07:30"></div>
+      <div><label>Schlafscore (0-100)</label><input id="garminSleepScore" type="number" min="0" max="100" placeholder="z.B. 78" inputmode="numeric"></div>
+      <div><label>Body Battery</label><input id="bodyBattery" type="number" min="0" max="100" placeholder="0-100" inputmode="numeric"></div>
       <div><label>Ruhepuls (bpm)</label><input id="garminRHR" type="number" placeholder="z.B. 52" inputmode="numeric"></div>
       <div>
         <label>HRV Status</label>
@@ -420,7 +421,6 @@
         </select>
       </div>
     </div>
-    <label>Schlafscore (0-100)</label><input id="garminSleepScore" type="number" min="0" max="100" placeholder="z.B. 78" inputmode="numeric">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><label>Laktatschwelle HF</label><input id="garminLtHr" type="number" placeholder="z.B. 168" inputmode="numeric"></div>
       <div><label>Laktatschwelle Pace</label><input id="garminLtPace" placeholder="z.B. 4:52" inputmode="numeric"></div>
@@ -459,25 +459,26 @@
 
     <!-- LAUF-SPEZIFISCHE FELDER -->
     <div id="runOnlyFields">
-      <label>Pace (min/km)</label><input id="runPace" inputmode="numeric" placeholder="z.B. 6:10">
-      <label>Hoehenmeter (m)</label><input id="runElevation" type="number" placeholder="z.B. 45" inputmode="numeric">
+      <label>Pace (min/km)</label><input id="runPace" inputmode="numeric" placeholder="z.B. 6:10"><div id="hfSlotRun"></div>
+      <div id="hfWrap" style="display:contents"><label>Herzfrequenz (bpm)</label><input id="runHF" type="number" placeholder="z.B. 145" inputmode="numeric"></div>
       <label>Kadenz (spm)</label><input id="runCadence" type="number" placeholder="z.B. 172" inputmode="numeric">
       <label>Bodenkontaktzeit BKT (ms)</label><input id="runBKT" type="number" placeholder="z.B. 265" inputmode="numeric">
       <label>Vertikale Bewegung (cm)</label><input id="runVertical" type="number" step="0.1" placeholder="z.B. 8.4" inputmode="decimal">
+      <label>Hoehenmeter (m)</label><input id="runElevation" type="number" placeholder="z.B. 45" inputmode="numeric">
     </div>
 
     <!-- RAD-SPEZIFISCHE FELDER -->
     <div id="bikeOnlyFields" style="display:none;">
       <label>Geschwindigkeit Ø (km/h)</label><input id="bikeSpeed" type="number" step="0.1" placeholder="z.B. 24.5" inputmode="decimal">
+      <div id="hfSlotBike"></div>
       <label>Trittfrequenz (rpm)</label><input id="bikeCadence" type="number" placeholder="z.B. 85" inputmode="numeric">
       <label>Hoehenmeter (m)</label><input id="bikeElevation" type="number" placeholder="z.B. 120" inputmode="numeric">
       <label>Leistung Ø (Watt, optional)</label><input id="bikePower" type="number" placeholder="z.B. 180" inputmode="numeric">
     </div>
 
     <!-- GEMEINSAME FELDER -->
-    <label>Herzfrequenz (bpm)</label><input id="runHF" type="number" placeholder="z.B. 145" inputmode="numeric">
-    <label>RPE (1-10)</label><input id="runRPE" type="number" min="1" max="10" placeholder="z.B. 6" inputmode="numeric">
     <label>Verbrauch (kcal, z.B. aus Garmin)</label><input id="runKcal" type="number" placeholder="z.B. 620" inputmode="numeric">
+    <label>RPE (1-10)</label><input id="runRPE" type="number" min="1" max="10" placeholder="z.B. 6" inputmode="numeric">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><label>Trainingseffekt aerob</label><input id="runTeAerob" type="number" step="0.1" min="0" max="5" placeholder="z.B. 3.2" inputmode="decimal"></div>
       <div><label>Trainingseffekt anaerob</label><input id="runTeAnaerob" type="number" step="0.1" min="0" max="5" placeholder="z.B. 1.4" inputmode="decimal"></div>
@@ -1428,6 +1429,8 @@ function setTrainingDiscipline(discipline) {
   var titleEl = document.getElementById("trainingCardTitle");
 
   var isBike = discipline === "bike";
+  var hfWrap = document.getElementById("hfWrap"), hfSlot = document.getElementById(isBike ? "hfSlotBike" : "hfSlotRun");
+  if (hfWrap && hfSlot && hfSlot.nextSibling !== hfWrap) hfSlot.parentNode.insertBefore(hfWrap, hfSlot.nextSibling);
   if (runFields)  runFields.style.display  = isBike ? "none" : "block";
   if (bikeFields) bikeFields.style.display = isBike ? "block" : "none";
   // Thule Chariot ist ein Laufzubehoer - ergibt beim Radfahren keinen Sinn
@@ -3204,6 +3207,8 @@ function athDay(date) {
     if (bike) { o.bike += km; o.bikeMin += sec ? sec / 60 : km / 25 * 60; } else { o.run += km; o.runMin += sec ? sec / 60 : km * 6; }
     var f = x.runFocus || (athNum(x.runTeAnaerob) >= 3 ? "hiit" : athNum(x.runTeAerob) >= 4 ? "schwelle" : athNum(x.runRPE) >= 7 ? "schwelle" : "");
     if (f === "hiit" || f === "schwelle") o.quality = true;
+    var lvl = f === "hiit" ? 2 : f === "schwelle" ? 1 : 0;
+    if (o.lvl === undefined || lvl > o.lvl || (lvl === o.lvl && !bike && o.disc === "bike")) { o.lvl = lvl; o.disc = bike ? "bike" : "run"; }
   });
   try { var st = JSON.parse(localStorage.getItem("date_entry_strengthDate_" + date)) || {}; o.strength = Object.keys(st).some(function(k) { return k.indexOf("str-") === 0 && st[k]; }); } catch(e) {}
   return o;
@@ -3240,6 +3245,8 @@ function renderRaceRoad() {
 }
 
 // ---- 2) Trainings-Kalender: 12 Wochen als Farbfelder ----
+// Farbe je Disziplin und Intensitaet: [locker, Schwelle, HIIT]
+var ATH_HEAT_COLS = { run: ["#4caf50", "#ff9800", "#e53935"], bike: ["#29b6f6", "#3f6fe0", "#ec407a"] };
 function renderTrainHeatmap() {
   var box = document.getElementById("athHeat"); if (!box) return;
   var WEEKS = 12, cell = 22, gap = 4, left = 22, top = 4, start = athMonday(new Date()); start.setDate(start.getDate() - (WEEKS - 1) * 7);
@@ -3251,7 +3258,7 @@ function renderTrainHeatmap() {
   }
   days.forEach(function(o) {
     var x = left + o.wk * (cell + gap), y = top + o.d * (cell + gap), col = "#2d3036", op = 1;
-    if (o.load > 0) { col = o.quality ? "#ff7043" : o.run > 0 ? "#4caf50" : o.bike > 0 ? "#29b6f6" : "#ab47bc"; op = 0.45 + 0.55 * Math.min(1, o.load / (maxLoad * 0.8)); }
+    if (o.load > 0) { col = o.disc ? ATH_HEAT_COLS[o.disc][o.lvl] : "#ab47bc"; op = 0.45 + 0.55 * Math.min(1, o.load / (maxLoad * 0.8)); }
     svg += '<rect x="' + x + '" y="' + y + '" width="' + cell + '" height="' + cell + '" rx="5" fill="' + col + '" opacity="' + (o.future ? 0.25 : op).toFixed(2) + '"' + (o.iso === todayIso ? ' stroke="#fff" stroke-width="2"' : '') + '/>';
     if (o.load > 0 && o.strength && (o.run > 0 || o.bike > 0)) svg += '<circle cx="' + (x + cell - 5) + '" cy="' + (y + 5) + '" r="2.5" fill="#ab47bc" stroke="#1c1e22" stroke-width="1"/>';
   });
@@ -3259,7 +3266,7 @@ function renderTrainHeatmap() {
   var Wd = left + WEEKS * (cell + gap), Hd = top + 7 * (cell + gap);
   box.innerHTML = '<svg viewBox="0 0 ' + Wd + ' ' + Hd + '" style="width:100%;height:auto;display:block;">' + svg + '</svg>' +
     '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:0.7rem;color:var(--muted);margin-top:8px;">' +
-    [["#4caf50", "Lauf locker"], ["#ff7043", "Schwelle / HIIT"], ["#29b6f6", "Rad"], ["#ab47bc", "Kraft"]].map(function(l) { return '<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + l[0] + ';margin-right:4px;vertical-align:-1px;"></i>' + l[1] + '</span>'; }).join("") + '<span>kräftiger = länger</span></div>' +
+    [[ATH_HEAT_COLS.run[0], "Lauf locker"], [ATH_HEAT_COLS.run[1], "Lauf Schwelle"], [ATH_HEAT_COLS.run[2], "Lauf HIIT"], [ATH_HEAT_COLS.bike[0], "Rad locker"], [ATH_HEAT_COLS.bike[1], "Rad Schwelle"], [ATH_HEAT_COLS.bike[2], "Rad HIIT"], ["#ab47bc", "Kraft"]].map(function(l) { return '<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:' + l[0] + ';margin-right:4px;vertical-align:-1px;"></i>' + l[1] + '</span>'; }).join("") + '<span>kräftiger = länger</span></div>' +
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;text-align:center;">' +
     [[total, "Einheiten"], [activeDays, "aktive Tage"], [goodWeeks + "/" + WEEKS, "Wochen mit 3+"]].map(function(x) { return '<div style="background:var(--surface-2);border-radius:10px;padding:8px 2px;"><div style="font-size:1.15rem;font-weight:800;">' + x[0] + '</div><div style="font-size:0.62rem;color:var(--muted);text-transform:uppercase;">' + x[1] + '</div></div>'; }).join("") + '</div>';
 }
