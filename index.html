@@ -119,6 +119,14 @@
     .exercise-name{font-weight:700;font-size:0.92rem;}
     .exercise-soll{font-size:0.78rem;color:var(--accent);font-weight:700;background:#1a2e1a;padding:2px 8px;border-radius:20px;}
     .exercise-links{margin-top:6px;}
+    .exercise-amount{font-size:0.95rem;font-weight:800;color:var(--text,#f5f6f7);margin-bottom:4px;}
+    .exercise-amount small{font-weight:500;color:var(--muted);font-size:0.78rem;}
+    .exercise-hint{font-size:0.78rem;color:var(--muted);line-height:1.45;margin-bottom:8px;}
+    .str-facts{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;}
+    .str-fact{font-size:0.78rem;font-weight:700;background:var(--surface-2);border-radius:20px;padding:4px 10px;}
+    .str-phase{font-size:0.8rem;line-height:1.45;background:var(--surface-2);border-left:3px solid var(--blue,#29b6f6);border-radius:8px;padding:8px 10px;margin-bottom:10px;}
+    .str-phase b{display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);margin-bottom:2px;}
+    .str-notes{font-size:0.78rem;color:var(--muted);line-height:1.5;margin:4px 0 10px;padding-left:16px;}
     .exercise-links a{color:var(--blue);font-size:0.8rem;text-decoration:none;}
     .nutrition-time-row{display:flex;gap:8px;align-items:flex-end;margin-top:4px;}
     .nutrition-time-row input.time-input{width:90px;flex-shrink:0;}
@@ -1242,6 +1250,55 @@ function parseExercisesFromText(text) {
   return out;
 }
 
+function parseStrengthProse(text) {
+  // Liest Coach-Fliesstext wie "2 Runden, 60 s Pause. Kniebeuge 15: 3 s runter ... Plank 60 s, letzte 15 s Schulter-Taps."
+  // -> { rounds, pause, exercises:[{name, amount, hint}], notes:[...] }
+  var res = { rounds: "", pause: "", bonus: "", exercises: [], notes: [] };
+  if (!text) return res;
+  var t = String(text).replace(/z\.\s?B\./g, "z.B.").replace(/\s+/g, " ").replace(/(\d)\.\s+(Runde)/g, "$1.$2");
+  var parts = t.split(/\.\s+(?=[A-ZÄÖÜ])/), lastWasEx = false;
+  parts.forEach(function(raw) {
+    var p = raw.trim().replace(/\.$/, "");
+    if (!p) return;
+    // Rahmen der Einheit: Runden, Pause
+    var mR = p.match(/(\d+)\s*Runden/i), mP = p.match(/(\d+(?:-\d+)?\s*s)\s*Pause/i);
+    if (mR && !res.rounds && /^(Zirkel|\d)/i.test(p)) {
+      res.rounds = mR[1]; if (mP) res.pause = mP[1]; lastWasEx = false;
+      var mB = p.match(/(eine\s+)?(\d+)\.\s*Runde[^,]*Bonus/i); if (mB) res.bonus = mB[2] + ". Runde als Bonus";
+      return;
+    }
+    if (/Soll\/Ist|Tab Kraft/i.test(p)) return;
+    // Uebung: Name + Umfang (erste Zahl bzw. Text nach dem Doppelpunkt) + Hinweise
+    var name = "", amount = "", hint = "";
+    var colon = p.indexOf(":"), firstNum = p.search(/(je\s+)?\d/);
+    if (colon > 0 && (firstNum < 0 || colon < firstNum)) {
+      name = p.slice(0, colon).trim();
+      var rest = p.slice(colon + 1).trim(), cut = rest.search(/,|\s-\s/);
+      amount = cut > 0 ? rest.slice(0, cut).trim() : rest; hint = cut > 0 ? rest.slice(cut + 1).replace(/^-\s*/, "").trim() : "";
+    } else if (firstNum > 1) {
+      name = p.slice(0, firstNum).trim();
+      var r2 = p.slice(firstNum), c2 = r2.search(/:|,|\s-\s/);
+      amount = c2 > 0 ? r2.slice(0, c2).trim() : r2.trim();
+      hint = c2 > 0 ? r2.slice(c2 + 1).replace(/^-\s*/, "").trim() : "";
+    }
+    var ok = name && name.length <= 50 && /^[A-ZÄÖÜ]/.test(name) && !/\b(wenn|zieht|halten|bleibt|morgen|sonst|keine|nur)\b/i.test(name) && amount;
+    if (ok) { res.exercises.push({ name: name, amount: amount.replace(/\s*Wdh$/i, " Wdh"), hint: hint ? hint.charAt(0).toUpperCase() + hint.slice(1) : "" }); lastWasEx = true; return; }
+    // Nachsatz ohne Zahl ("Ohne Rucksack, wenn ...") gehoert zur vorigen Uebung, allgemeine Hinweise in die Liste
+    var prev = res.exercises[res.exercises.length - 1];
+    if (lastWasEx && prev && !/->|\u2192|morgen|Bonus|Runde|zieht|weglassen|abbrechen/i.test(p)) { prev.hint = (prev.hint ? prev.hint + ". " : "") + p; return; }
+    lastWasEx = false;
+    res.notes.push(p);
+  });
+  return res;
+}
+
+function strengthSollText(rounds, amount) {
+  // "2" + "15" -> "2 x 15"; "2" + "60 s" -> "2 x 60 s"; ohne Runden nur der Umfang
+  if (!amount) return "";
+  if (rounds && /^(je\s+)?\d/.test(amount)) return rounds + " \u00d7 " + amount.replace(/^je\s+/, "");
+  return amount;
+}
+
 function normalizeStrengthSession(d) {
   // Bevorzugt ein strukturiertes "exercises"-Array aus dem Plan, sonst Text aus "desc"/"workout"
   var exercises = [];
@@ -1251,6 +1308,10 @@ function normalizeStrengthSession(d) {
     }).filter(function(e) { return e.name; });
   }
   if (!exercises.length) exercises = parseExercisesFromText(d.desc).concat(parseExercisesFromText(d.workout));
+  var prose = parseStrengthProse(d.desc);
+  if (!exercises.length && prose.exercises.length) {
+    exercises = prose.exercises.map(function(e) { return { name: e.name, sets: strengthSollText(prose.rounds, e.amount), amount: e.amount, hint: e.hint }; });
+  }
   if (!exercises.length) {
     var label = (d.title || "") + " " + (d.type || "");
     exercises = (/\bB\b/.test(label) ? strengthB : strengthA).map(function(e) { return { name: e.name, sets: e.sets, link: e.link }; });
@@ -1260,7 +1321,14 @@ function normalizeStrengthSession(d) {
     if (!e.link && known) e.link = known.link;
     e.id = strengthFieldId(e.name);
   });
-  return { day: d.day || "", title: d.title || d.type || "Kraft", dauer: d.dauer || "", desc: d.desc || "", exercises: exercises };
+  // Ablauf "Aufwaermen -> Zirkel -> Abschluss" aus dem workout-Feld
+  var flow = String(d.workout || "").split(/\s*(?:->|\u2192)\s*/).map(function(x) { return x.trim(); }).filter(Boolean);
+  var warm = "", cool = "";
+  if (flow.length >= 2) { warm = flow[0]; cool = flow[flow.length - 1]; if (/^zirkel$|hauptteil/i.test(cool)) cool = ""; }
+  var structured = prose.exercises.length > 0 && exercises.length === prose.exercises.length;
+  return { day: d.day || "", title: d.title || d.type || "Kraft", dauer: d.dauer || "", desc: d.desc || "", exercises: exercises,
+           rounds: prose.rounds, pause: prose.pause, bonus: prose.bonus, notes: structured ? prose.notes : [],
+           warm: warm.replace(/^\d+'\s*ein:\s*/i, function(m) { return m; }), cool: cool, structured: structured };
 }
 
 function getWeekStrengthSessions(dateStr) {
@@ -1306,15 +1374,29 @@ function renderStrength() {
   h += '</div>';
 
   h += '<div class="card"><h2>' + sel.title + (sel.day === weekdayToday ? ' <span class="week-badge" style="margin-left:6px;">heute</span>' : '') + '</h2>';
-  if (sel.dauer) h += '<div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px;">&#9201; ' + sel.dauer + (sel.day ? ' &middot; geplant: ' + sel.day : '') + '</div>';
-  if (sel.desc) h += '<div style="font-size:0.8rem;color:var(--muted);line-height:1.5;margin-bottom:10px;">' + sel.desc + '</div>';
-  sel.exercises.forEach(function(ex) {
+  // Hard Facts der Einheit
+  var facts = [];
+  if (sel.dauer) facts.push("&#9201; " + sel.dauer);
+  if (sel.rounds) facts.push("&#128257; " + sel.rounds + " Runden");
+  if (sel.pause) facts.push("&#9208; " + sel.pause + " Pause");
+  if (sel.bonus) facts.push("&#11088; " + sel.bonus);
+  if (sel.day) facts.push("&#128197; " + sel.day);
+  if (facts.length) h += '<div class="str-facts">' + facts.map(function(f) { return '<span class="str-fact">' + f + '</span>'; }).join("") + '</div>';
+  if (sel.structured) {
+    if (sel.notes.length) h += '<ul class="str-notes">' + sel.notes.map(function(n) { return '<li>' + n + '</li>'; }).join("") + '</ul>';
+    if (sel.warm) h += '<div class="str-phase"><b>Aufw\u00e4rmen</b>' + sel.warm + '</div>';
+  } else if (sel.desc) {
+    h += '<div style="font-size:0.8rem;color:var(--muted);line-height:1.5;margin-bottom:10px;">' + sel.desc + '</div>';
+  }
+  sel.exercises.forEach(function(ex, i) {
     h += '<div class="exercise-card">';
-    h += '<div class="exercise-header"><span class="exercise-name">' + ex.name + '</span>' + (ex.sets ? '<span class="exercise-soll">SOLL ' + ex.sets + '</span>' : '') + '</div>';
-    h += '<input id="' + ex.id + '" placeholder="IST-Wert / Gewicht">';
+    h += '<div class="exercise-header"><span class="exercise-name">' + (sel.structured ? (i + 1) + '. ' : '') + ex.name + '</span>' + (ex.sets ? '<span class="exercise-soll">SOLL ' + ex.sets + '</span>' : '') + '</div>';
+    if (ex.hint) h += '<div class="exercise-hint">' + ex.hint + '</div>';
+    h += '<input id="' + ex.id + '" placeholder="' + (ex.sets ? 'IST, z.B. ' + ex.sets.replace(/\s*pro (Seite|Bein).*/, "").replace(/ mit .*/, "") : 'IST-Wert / Gewicht') + '">';
     if (ex.link) h += '<div class="exercise-links"><a href="' + ex.link + '" target="_blank">&#128250; Anleitung (YouTube)</a></div>';
     h += '</div>';
   });
+  if (sel.structured && sel.cool) h += '<div class="str-phase" style="border-left-color:var(--accent);"><b>Abschluss</b>' + sel.cool + '</div>';
   h += "<button class='btn' onclick='confirmSave(\"strength\")'>Kraftwerte speichern</button></div>";
   c.innerHTML = h;
 
